@@ -1,0 +1,37 @@
+/* Admin Dark Theme - Original Colors */
+.admin-dark {
+  /* Rich dark palette */
+  --bg-deep: #050507;
+  --bg: #0a0a0f;
+  --bg-elevated: #12121a;
+  --card: #0f0f16;
+  --card-hover: #16161f;
+  
+  /* Borders with depth */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(212, 175, 125, 0.3);
+  
+  /* Luxury gold accent */
+  --primary: #d4af7d;
+  --primary-light: #e8c99b;
+  --primary-dark: #b8956a;
+  --primary-glow: rgba(212, 175, 125, 0.4);
+  
+  /* Text hierarchy */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
+  
+  /* Status colors */
+  --error: #ef4444;
+  --success: #22c55e;
+  --info: #3b82f6;
+  --warning: #f59e0b;
+}
+
+.admin-dark {
+  background: var(--bg);
+  color: var(--text-primary);
+}

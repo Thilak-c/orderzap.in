@@ -25,11 +25,11 @@ export default function Footer() {
         />
         {gitInfo && (
           <span className="text-[10px] text-[--text-dim] font-mono">
-            {gitInfo.message}
+            {gitInfo.message} by {gitInfo.author}
           </span>
         )}
       </div>
-      <p className="text-xs text-[--text-muted] mt-1">How Patna Order's</p>
+      {/* <p className="text-xs text-[--text-muted] mt-1">How Patna Order's</p> */}
     </footer>
   );
 }

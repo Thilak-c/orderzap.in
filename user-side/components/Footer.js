@@ -13,23 +13,29 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="py-4 px-4 text-center border-t border-[--border] bg-[--bg]">
+    <footer className="py-4 px-4 border-t border-[--border] bg-[--bg] relative">
       <div className="flex items-center justify-center gap-2">
         <span className="text-xs text-[--text-muted]">Powered by</span>
-        <Image 
-          src="/assets/logos/orderzap-logo.png" 
-          alt="OrderZap" 
-          width={100} 
+        <Image
+          src="/assets/logos/orderzap-logo.png"
+          alt="OrderZap"
+          width={100}
           height={30}
           className="object-contain"
         />
-        {gitInfo && (
-          <span className="text-[10px] text-[--text-dim] font-mono">
-            {gitInfo.message} by {gitInfo.author}
-          </span>
-        )}
       </div>
       {/* <p className="text-xs text-[--text-muted] mt-1">How Patna Order's</p> */}
+
+      {gitInfo && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-right">
+          <div className="text-[8px] text-[--text-muted] font-mono">
+            {gitInfo.message}
+          </div>
+          <div className="text-[8px] text-[--text-muted] font-mono">
+            {gitInfo.author}
+          </div>
+        </div>
+      )}
     </footer>
   );
 }

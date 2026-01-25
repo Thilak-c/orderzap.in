@@ -9,7 +9,7 @@ export default function StaffCallsPage() {
   const updateCallStatus = useMutation(api.staffCalls.updateStatus);
 
   if (!staffCalls || !staff) {
-    return <div className="p-6 text-black">LOADING...</div>;
+    return <div className="p-6 text-zinc-500">LOADING...</div>;
   }
 
   const pendingCalls = staffCalls.filter(c => c.status === 'pending');
@@ -27,37 +27,37 @@ export default function StaffCallsPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 border-b border-black pb-4">
+      <div className="mb-6 border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold text-white tracking-tight">STAFF CALLS</h1>
-        <p className="text-black text-xs uppercase tracking-widest">Customer assistance requests</p>
+        <p className="text-zinc-600 text-xs uppercase tracking-widest">Customer assistance requests</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-black/5 border border-black/10 p-4 text-center">
-          <p className="text-3xl font-bold text-black">{pendingCalls.length}</p>
-          <p className="text-[10px] text-black uppercase">Pending</p>
+        <div className="bg-red-500/10 border border-red-500/30 p-4 text-center">
+          <p className="text-3xl font-bold text-red-400">{pendingCalls.length}</p>
+          <p className="text-[10px] text-zinc-500 uppercase">Pending</p>
         </div>
-        <div className="bg-black/5 border border-black/10 p-4 text-center">
-          <p className="text-3xl font-bold text-black">{acknowledgedCalls.length}</p>
-          <p className="text-[10px] text-black uppercase">Acknowledged</p>
+        <div className="bg-amber-500/10 border border-amber-500/30 p-4 text-center">
+          <p className="text-3xl font-bold text-amber-400">{acknowledgedCalls.length}</p>
+          <p className="text-[10px] text-zinc-500 uppercase">Acknowledged</p>
         </div>
-        <div className="bg-black/5 border border-black/10 p-4 text-center">
-          <p className="text-3xl font-bold text-black">{resolvedCalls.length}</p>
-          <p className="text-[10px] text-black uppercase">Resolved</p>
+        <div className="bg-green-500/10 border border-green-500/30 p-4 text-center">
+          <p className="text-3xl font-bold text-green-400">{resolvedCalls.length}</p>
+          <p className="text-[10px] text-zinc-500 uppercase">Resolved</p>
         </div>
       </div>
 
       {/* Pending Calls */}
       {pendingCalls.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-xs text-black uppercase tracking-widest mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 bg-red-500 rounded-none animate-pulse" />
+          <h2 className="text-xs text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             Pending ({pendingCalls.length})
           </h2>
           <div className="space-y-2">
             {pendingCalls.map(call => (
-              <div key={call._id} className="bg-black/5 border border-black/10 p-4 flex items-center justify-between">
+              <div key={call._id} className="bg-red-500/10 border border-red-500/30 p-4 flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl font-bold text-white">T{call.tableNumber}</span>
@@ -67,11 +67,11 @@ export default function StaffCallsPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-black text-sm mt-1">{call.reason || 'Assistance needed'}</p>
+                  <p className="text-zinc-400 text-sm mt-1">{call.reason || 'Assistance needed'}</p>
                   {call.reassignReason && (
                     <p className="text-purple-400 text-xs mt-1">{call.reassignReason}</p>
                   )}
-                  <p className="text-black text-xs mt-1">
+                  <p className="text-zinc-600 text-xs mt-1">
                     {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     {call.originalStaffId && ` • Assigned: ${getStaffName(call.originalStaffId)}`}
                   </p>
@@ -99,18 +99,18 @@ export default function StaffCallsPage() {
       {/* Acknowledged Calls */}
       {acknowledgedCalls.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-xs text-black uppercase tracking-widest mb-3">
+          <h2 className="text-xs text-amber-400 uppercase tracking-widest mb-3">
             Acknowledged ({acknowledgedCalls.length})
           </h2>
           <div className="space-y-2">
             {acknowledgedCalls.map(call => (
-              <div key={call._id} className="bg-black/5 border border-black/10 p-4 flex items-center justify-between">
+              <div key={call._id} className="bg-amber-500/10 border border-amber-500/30 p-4 flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-3">
                     <span className="text-xl font-bold text-white">T{call.tableNumber}</span>
                   </div>
-                  <p className="text-black text-sm">{call.reason || 'Assistance needed'}</p>
-                  <p className="text-black text-xs mt-1">
+                  <p className="text-zinc-400 text-sm">{call.reason || 'Assistance needed'}</p>
+                  <p className="text-zinc-600 text-xs mt-1">
                     {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -129,17 +129,17 @@ export default function StaffCallsPage() {
       {/* Resolved Calls */}
       {resolvedCalls.length > 0 && (
         <div>
-          <h2 className="text-xs text-black uppercase tracking-widest mb-3">
+          <h2 className="text-xs text-zinc-500 uppercase tracking-widest mb-3">
             Resolved ({resolvedCalls.length})
           </h2>
           <div className="space-y-2">
             {resolvedCalls.slice(0, 10).map(call => (
-              <div key={call._id} className="bg-white border border-black p-3 flex items-center justify-between opacity-60">
+              <div key={call._id} className="bg-zinc-900 border border-zinc-800 p-3 flex items-center justify-between opacity-60">
                 <div>
                   <span className="text-white font-medium">T{call.tableNumber}</span>
-                  <span className="text-black text-sm ml-3">{call.reason || 'Assistance'}</span>
+                  <span className="text-zinc-500 text-sm ml-3">{call.reason || 'Assistance'}</span>
                 </div>
-                <span className="text-black text-xs">
+                <span className="text-zinc-600 text-xs">
                   {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
@@ -150,7 +150,7 @@ export default function StaffCallsPage() {
 
       {/* Empty State */}
       {staffCalls.length === 0 && (
-        <div className="text-center py-12 text-black">
+        <div className="text-center py-12 text-zinc-600">
           <p className="text-4xl mb-3">🔔</p>
           <p className="text-sm">No staff calls yet</p>
         </div>

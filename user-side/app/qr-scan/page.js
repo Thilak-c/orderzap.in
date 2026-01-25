@@ -45,12 +45,41 @@ export default function QRScanPage() {
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: 250, // Scanning area size
+          qrbox: { width: 250, height: 250 }, // Use object format
           aspectRatio: 1.0,
+          disableFlip: false,
+          // Disable the default UI overlay
+          showTorchButtonIfSupported: false,
+          showZoomSliderIfSupported: false,
         },
         onScanSuccess,
         onScanFailure
       );
+
+      // Aggressively remove all overlay elements
+      setTimeout(() => {
+        // Remove scan region
+        const scanRegion = document.getElementById('qr-reader__scan_region');
+        if (scanRegion) {
+          scanRegion.remove();
+        }
+        
+        // Remove all divs except video container
+        const qrReader = document.getElementById('qr-reader');
+        if (qrReader) {
+          const allDivs = qrReader.querySelectorAll('div');
+          allDivs.forEach(div => {
+            div.style.display = 'none';
+            div.remove();
+          });
+          
+          // Remove all canvas elements
+          const allCanvas = qrReader.querySelectorAll('canvas');
+          allCanvas.forEach(canvas => {
+            canvas.style.display = 'none';
+          });
+        }
+      }, 100);
     } catch (err) {
       console.error("Scanner error:", err);
       setError("Unable to access camera. Please check permissions.");
@@ -76,11 +105,20 @@ export default function QRScanPage() {
 
   const onScanSuccess = (decodedText) => {
     // Extract table number from QR code
-    // Expected format: https://yoursite.com/menu/5 or just "5"
+    // Expected format: https://yoursite.com/a/5 or just "5"
     let tableNumber = decodedText;
     
     // If it's a URL, extract the table number
-    if (decodedText.includes('/menu/')) {
+    if (decodedText.includes('/a/')) {
+      const parts = decodedText.split('/a/');
+      tableNumber = parts[1];
+    } else if (decodedText.includes('/auth/')) {
+      const parts = decodedText.split('/auth/');
+      tableNumber = parts[1];
+    } else if (decodedText.includes('/m/')) {
+      const parts = decodedText.split('/m/');
+      tableNumber = parts[1];
+    } else if (decodedText.includes('/menu/')) {
       const parts = decodedText.split('/menu/');
       tableNumber = parts[1];
     }
@@ -97,7 +135,7 @@ export default function QRScanPage() {
 
     // Navigate after animation
     setTimeout(() => {
-      router.push(`/menu/${tableNumber}`);
+      router.push(`/a/${tableNumber}`);
     }, 1500);
   };
 
@@ -113,7 +151,7 @@ export default function QRScanPage() {
   if (brandingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg]">
-        <div className="w-12 h-12 border-2 border-[--border] border-t-[--primary] rounded-none animate-spin" />
+        <div className="loader" />
       </div>
     );
   }
@@ -154,12 +192,6 @@ export default function QRScanPage() {
               {/* Camera feed - positioned behind overlays */}
               <div id="qr-reader" className="absolute inset-0 w-full h-full" />
               
-              {/* Corner accents - on top of camera */}
-             {/* / <div className="absolute top-4 left-4 w-6 h-6 border-t-3 border-l-3 border-[--primary] rounded-tl-xl z-10" /> */}
-              {/* <div className="absolute top-4 right-4 w-6 h-6 border-t-3 border-r-3 border-[--primary] rounded-tr-xl z-10" /> */}
-              {/* <div className="absolute bottom-4 left-4 w-6 h-6 border-b-3 border-l-3 border-[--primary] rounded-bl-xl z-10" /> */}
-              {/* <div className="absolute bottom-4 right-4 w-6 h-6 border-b-3 border-r-3 border-[--primary] rounded-br-xl z-10" /> */}
-              
               {/* Animated scanning line */}
               {scanning && (
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-transparent animate-scan-smooth shadow-[0_0_20px_rgba(212,175,125,0.6)] z-10" />
@@ -181,9 +213,8 @@ export default function QRScanPage() {
         <div className="w-full max-w-sm pb-8">
           <button
             onClick={handleManualEntry}
-            className="w-full py-4 rounded-none bg-[--card] border border-[--border] text-[--text-primary] text-[15px] font-medium hover:border-[--text-dim] transition-all active:scale-[0.98]"
+            className="w-full py-4 rounded-none border border-transparent transition-all active:scale-[0.98]"
           >
-            Enter table number manually
           </button>
         </div>
       </div>

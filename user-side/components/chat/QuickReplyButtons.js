@@ -20,7 +20,7 @@ export default function QuickReplyButtons() {
             key={reply.action}
             onClick={() => sendQuickReply(reply.action)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-[--card] border border-[--border] text-xs text-[--text-secondary] whitespace-nowrap hover:border-[--primary]/30 hover:text-[--text-primary] transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[--card] border border-[--border] text-xs text-[--text-secondary] whitespace-nowrap hover:border-[--primary]/30 hover:text-[--text-primary] transition-all disabled:opacity-50"
           >
             <span>{reply.icon}</span>
             <span>{reply.label}</span>

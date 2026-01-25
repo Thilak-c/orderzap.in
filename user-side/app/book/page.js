@@ -73,7 +73,7 @@ const TableCard = ({ table, isSelected, onSelect, capacity }) => {
       onClick={onSelect}
       className={`
         relative flex flex-col items-center justify-center
-        rounded-none transition-all duration-300 ease-out border-2
+        rounded-full transition-all duration-300 ease-out border-2
         ${isSelected 
           ? 'bg-[--primary] border-[--primary-light] scale-110 z-20' 
           : 'bg-[--card] border-[--border] hover:border-[--primary]/50 active:scale-95'
@@ -106,7 +106,7 @@ const TableCard = ({ table, isSelected, onSelect, capacity }) => {
 
       {/* Selected checkmark */}
       {isSelected && (
-        <div className="absolute -top-1 -right-1 w-6 h-6 bg-[--text-primary] rounded-none flex items-center justify-center shadow-none z-30">
+        <div className="absolute -top-1 -right-1 w-6 h-6 bg-[--text-primary] rounded-full flex items-center justify-center shadow-lg z-30">
           <Check size={14} className="text-[--primary]" strokeWidth={3} />
         </div>
       )}
@@ -299,13 +299,13 @@ export default function BookTablePage() {
       <div className="min-h-screen flex flex-col">
         <div className="p-5 flex items-center justify-center opacity-0 animate-slide-down" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
           <div className="flex items-center gap-3">
-            <img src={brandLogo} alt={brandName} className="h-9 w-9 rounded-none object-contain" />
+            <img src={brandLogo} alt={brandName} className="h-9 w-9 rounded-full object-contain" />
             <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">{brandName}</span>
           </div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-8 pb-24">
-          <div className="px-4 py-1.5 rounded-none text-[10px] font-semibold uppercase tracking-[0.2em] mb-10 opacity-0 animate-bounce-in bg-black/5 text-black border border-black/10" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
-            <span className="inline-block w-1.5 h-1.5 rounded-none bg-current mr-2" />
+          <div className="px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] mb-10 opacity-0 animate-bounce-in bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-2" />
             Confirmed
           </div>
           <div className="text-center mb-10">
@@ -327,12 +327,12 @@ export default function BookTablePage() {
             </p>
           </div>
           {/* Deposit credit info */}
-          <div className="mt-8 px-5 py-3 rounded-none bg-[--primary]/10 border border-[--primary]/20 opacity-0 animate-slide-up" style={{animationDelay: '0.9s', animationFillMode: 'forwards'}}>
+          <div className="mt-8 px-5 py-3 rounded-xl bg-[--primary]/10 border border-[--primary]/20 opacity-0 animate-slide-up" style={{animationDelay: '0.9s', animationFillMode: 'forwards'}}>
             <p className="text-[--primary] text-sm font-medium text-center">₹{totalDeposit} credit on your bill</p>
           </div>
         </div>
         <div className="p-6">
-          <Link href="/" className="btn-primary w-full py-4 rounded-none text-sm font-medium opacity-0 animate-slide-up block text-center" style={{animationDelay: '1s', animationFillMode: 'forwards'}}>Done</Link>
+          <Link href="/" className="btn-primary w-full py-4 rounded-xl text-sm font-medium opacity-0 animate-slide-up block text-center" style={{animationDelay: '1s', animationFillMode: 'forwards'}}>Done</Link>
         </div>
       </div>
     );
@@ -342,7 +342,7 @@ export default function BookTablePage() {
   if (brandingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg]">
-        <div className="w-12 h-12 border-2 border-[--border] border-t-[--primary] rounded-none animate-spin" />
+        <div className="loader" />
       </div>
     );
   }
@@ -357,7 +357,7 @@ export default function BookTablePage() {
           <ArrowLeft size={20} className="text-[--text-muted]" />
         </button>
         <div className="flex items-center gap-3">
-          <img src={brandLogo} alt={brandName} className="h-8 w-8 rounded-none object-contain" />
+          <img src={brandLogo} alt={brandName} className="h-8 w-8 rounded-full object-contain" />
           <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">Book</span>
         </div>
         <div className="w-8" />
@@ -365,13 +365,13 @@ export default function BookTablePage() {
 
       <div className="flex items-center justify-center gap-2 mb-4">
         {[1, 2, 3].map(s => (
-          <div key={s} className={`h-1 rounded-none transition-all ${step >= s ? 'bg-[--primary] w-8' : 'bg-[--border] w-2'}`} />
+          <div key={s} className={`h-1 rounded-full transition-all ${step >= s ? 'bg-[--primary] w-8' : 'bg-[--border] w-2'}`} />
         ))}
       </div>
 
       {error && (
-        <div className="mx-6 mb-4 p-3 bg-black/5 border border-black/10 rounded-none">
-          <p className="text-black text-xs text-center">{error}</p>
+        <div className="mx-6 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+          <p className="text-red-400 text-xs text-center">{error}</p>
         </div>
       )}
 
@@ -383,7 +383,7 @@ export default function BookTablePage() {
             <div className="overflow-x-auto pb-4 justify-center mb-6 scrollbar-hide -mx-4 px-4">
               <div className="flex justify-center gap-2 w-max">
                 {dates.map(d => (
-                  <button key={d.value} onClick={() => setSelectedDate(d.value)} className={`flex-shrink-0 w-16 py-3 justify-center rounded-none text-center transition-all ${selectedDate === d.value ? 'bg-[--primary] text-white' : 'bg-[--card] border border-[--border] text-[--text-muted]'}`}>
+                  <button key={d.value} onClick={() => setSelectedDate(d.value)} className={`flex-shrink-0 w-16 py-3 justify-center rounded-xl text-center transition-all ${selectedDate === d.value ? 'bg-[--primary] text-white' : 'bg-[--card] border border-[--border] text-[--text-muted]'}`}>
                     <p className="text-[10px] uppercase">{d.day}</p>
                     <p className="text-2xl font-semibold my-1">{d.dateNum}</p>
                     <p className="text-[10px] uppercase">{d.month}</p>
@@ -395,7 +395,7 @@ export default function BookTablePage() {
             <p className="text-[--text-dim] text-[10px] uppercase tracking-[0.3em] mb-3 text-center">Start Time</p>
             <div className="flex flex-wrap gap-2 justify-center mb-6">
               {timeSlots.slice(0, -2).map(slot => (
-                <button key={`start-${slot.value}`} onClick={() => { const idx = timeSlots.findIndex(t => t.value === slot.value); setStartTime(slot.value); setEndTime(timeSlots[Math.min(idx + 4, timeSlots.length - 1)].value); }} className={`px-4 py-2.5 rounded-none text-sm transition-all ${startTime === slot.value ? 'bg-[--primary] text-white' : 'bg-[--card] border border-[--border] text-[--text-muted]'}`}>
+                <button key={`start-${slot.value}`} onClick={() => { const idx = timeSlots.findIndex(t => t.value === slot.value); setStartTime(slot.value); setEndTime(timeSlots[Math.min(idx + 4, timeSlots.length - 1)].value); }} className={`px-4 py-2.5 rounded-lg text-sm transition-all ${startTime === slot.value ? 'bg-[--primary] text-white' : 'bg-[--card] border border-[--border] text-[--text-muted]'}`}>
                   {slot.label}
                 </button>
               ))}
@@ -404,7 +404,7 @@ export default function BookTablePage() {
             <p className="text-[--text-dim] text-[10px] uppercase tracking-[0.3em] mb-3 text-center">End Time</p>
             <div className="flex flex-wrap gap-2 justify-center mb-6">
               {timeSlots.filter(t => t.value > startTime).map(slot => (
-                <button key={`end-${slot.value}`} onClick={() => setEndTime(slot.value)} className={`px-4 py-2.5 rounded-none text-sm transition-all ${endTime === slot.value ? 'bg-[--primary] text-white' : 'bg-[--card] border border-[--border] text-[--text-muted]'}`}>
+                <button key={`end-${slot.value}`} onClick={() => setEndTime(slot.value)} className={`px-4 py-2.5 rounded-lg text-sm transition-all ${endTime === slot.value ? 'bg-[--primary] text-white' : 'bg-[--card] border border-[--border] text-[--text-muted]'}`}>
                   {slot.label}
                 </button>
               ))}
@@ -417,7 +417,7 @@ export default function BookTablePage() {
               <span className="text-[--text-primary] font-semibold">{getTimeLabel(endTime)}</span>
               <span className="text-[--text-muted] ml-2">({getDuration(startTime, endTime)})</span>
             </div>
-            <button onClick={() => setStep(2)} className="btn-primary w-full py-4 rounded-none text-sm font-medium">Continue</button>
+            <button onClick={() => setStep(2)} className="btn-primary w-full py-4 rounded-xl text-sm font-medium">Continue</button>
           </div>
         </div>
       )}
@@ -426,12 +426,12 @@ export default function BookTablePage() {
         <div className="flex-1 flex flex-col">
           <div className="flex-1 px-4 overflow-y-auto pb-40">
             {/* Guest counter - prominent, easy to adjust */}
-            <div className="bg-[--card] rounded-none p-5 mb-6 border border-[--border]">
+            <div className="bg-[--card] rounded-2xl p-5 mb-6 border border-[--border]">
               <p className="text-[--text-dim] text-[10px] uppercase tracking-[0.2em] mb-3 text-center font-medium">Party Size</p>
               <div className="flex items-center justify-center gap-5">
                 <button 
                   onClick={() => setPartySize(Math.max(1, partySize - 1))} 
-                  className="w-12 h-12 rounded-none bg-[--bg-elevated] border border-[--border] flex items-center justify-center text-[--text-muted] active:scale-90 active:bg-[--card-hover] text-xl font-medium transition-all"
+                  className="w-12 h-12 rounded-full bg-[--bg-elevated] border border-[--border] flex items-center justify-center text-[--text-muted] active:scale-90 active:bg-[--card-hover] text-xl font-medium transition-all"
                 >
                   −
                 </button>
@@ -441,7 +441,7 @@ export default function BookTablePage() {
                 </div>
                 <button 
                   onClick={() => setPartySize(partySize + 1)} 
-                  className="w-12 h-12 rounded-none bg-[--bg-elevated] border border-[--border] flex items-center justify-center text-[--text-muted] active:scale-90 active:bg-[--card-hover] text-xl font-medium transition-all"
+                  className="w-12 h-12 rounded-full bg-[--bg-elevated] border border-[--border] flex items-center justify-center text-[--text-muted] active:scale-90 active:bg-[--card-hover] text-xl font-medium transition-all"
                 >
                   +
                 </button>
@@ -465,18 +465,18 @@ export default function BookTablePage() {
 
             {/* Table floor plan */}
             {availableTables.length === 0 ? (
-              <div className="bg-[--card] rounded-none p-10 text-center border border-[--border]">
-                <div className="w-16 h-16 rounded-none bg-[--bg-elevated] flex items-center justify-center mx-auto mb-4">
+              <div className="bg-[--card] rounded-2xl p-10 text-center border border-[--border]">
+                <div className="w-16 h-16 rounded-full bg-[--bg-elevated] flex items-center justify-center mx-auto mb-4">
                   <Users size={24} className="text-[--text-dim]" />
                 </div>
                 <p className="text-[--text-secondary] font-medium mb-1">No tables available</p>
                 <p className="text-[--text-muted] text-sm">Try a different party size or time</p>
               </div>
             ) : (
-              <div className="bg-[--card] rounded-none p-5 border border-[--border]">
+              <div className="bg-[--card] rounded-2xl p-5 border border-[--border]">
                 {/* Multi-table capacity indicator */}
                 {needsMultipleTables && selectedTables.length > 0 && (
-                  <div className={`mb-4 p-3 rounded-none text-center text-sm ${hasEnoughCapacity ? 'bg-black/5 text-black border border-black/10' : 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20'}`}>
+                  <div className={`mb-4 p-3 rounded-xl text-center text-sm ${hasEnoughCapacity ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20'}`}>
                     {totalSelectedCapacity} / {partySize} seats selected
                     {hasEnoughCapacity && ' ✓'}
                   </div>
@@ -504,11 +504,11 @@ export default function BookTablePage() {
                 {/* Legend */}
                 <div className="flex items-center justify-center gap-6 mt-5 pt-4 border-t border-[--border]">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-none bg-[--card-hover]" />
+                    <div className="w-3 h-3 rounded-full bg-[--card-hover]" />
                     <span className="text-[--text-dim] text-[10px] uppercase tracking-wide">Available</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-none bg-[--primary]" />
+                    <div className="w-3 h-3 rounded-full bg-[--primary]" />
                     <span className="text-[--text-dim] text-[10px] uppercase tracking-wide">Selected</span>
                   </div>
                 </div>
@@ -524,7 +524,7 @@ export default function BookTablePage() {
                 <div className="mb-3">
                   <div className="flex items-center gap-2 mb-2">
                     {selectedTables.map(t => (
-                      <div key={t._id} className="px-3 py-1.5 rounded-none bg-[--primary] text-[--bg] text-sm font-medium">
+                      <div key={t._id} className="px-3 py-1.5 rounded-lg bg-[--primary] text-[--bg] text-sm font-medium">
                         #{t.number}
                       </div>
                     ))}
@@ -541,7 +541,7 @@ export default function BookTablePage() {
               selectedTable ? (
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-none bg-[--primary] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[--primary] flex items-center justify-center">
                       <span className="text-[--bg] font-bold">{selectedTable.number}</span>
                     </div>
                     <div>
@@ -560,7 +560,7 @@ export default function BookTablePage() {
             <button 
               onClick={() => hasValidSelection && setStep(3)} 
               disabled={!hasValidSelection} 
-              className="btn-primary w-full py-4 rounded-none text-sm font-semibold"
+              className="btn-primary w-full py-4 rounded-xl text-sm font-semibold"
             >
               {needsMultipleTables && !hasEnoughCapacity && selectedTables.length > 0 
                 ? `Need ${partySize - totalSelectedCapacity} more seats` 
@@ -585,7 +585,7 @@ export default function BookTablePage() {
             </div>
             
             {/* Deposit info card */}
-            <div className="bg-[--card] border border-[--border] rounded-none overflow-hidden mb-6">
+            <div className="bg-[--card] border border-[--border] rounded-2xl overflow-hidden mb-6">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[--text-secondary] text-sm">Reservation Deposit</span>
@@ -597,14 +597,14 @@ export default function BookTablePage() {
               </div>
               
               {/* Big noticeable refund banner */}
-              <div className="bg-black/5 border-t border-black/10 p-4">
+              <div className="bg-emerald-500/15 border-t border-emerald-500/20 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-none bg-black/5 flex items-center justify-center flex-shrink-0">
-                    <span className="text-black text-lg">↩</span>
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-emerald-400 text-lg">↩</span>
                   </div>
                   <div>
-                    <p className="text-black font-semibold text-sm">100% Redeemable!</p>
-                    <p className="text-black/80 text-xs mt-0.5">
+                    <p className="text-emerald-400 font-semibold text-sm">100% Redeemable!</p>
+                    <p className="text-emerald-400/80 text-xs mt-0.5">
                       This amount will be deducted from your food & drinks bill. You're not losing anything!
                     </p>
                   </div>
@@ -625,10 +625,10 @@ export default function BookTablePage() {
                     pattern: { value: /^[a-zA-Z\s]+$/, message: "Name can only contain letters" }
                   })} 
                   placeholder="Your name" 
-                  className={`w-full bg-[--card] border rounded-none px-4 py-3.5 text-sm ${errors.customerName ? 'border-red-500' : 'border-[--border]'}`} 
+                  className={`w-full bg-[--card] border rounded-xl px-4 py-3.5 text-sm ${errors.customerName ? 'border-red-500' : 'border-[--border]'}`} 
                 />
                 {errors.customerName && (
-                  <p className="text-black text-[10px] mt-1">{errors.customerName.message}</p>
+                  <p className="text-red-400 text-[10px] mt-1">{errors.customerName.message}</p>
                 )}
               </div>
               <div>
@@ -637,7 +637,7 @@ export default function BookTablePage() {
                   {/* Country Code */}
                   <select 
                     {...register("countryCode")}
-                    className="bg-[--card] border border-[--border] rounded-none px-3 py-3.5 text-sm w-24"
+                    className="bg-[--card] border border-[--border] rounded-xl px-3 py-3.5 text-sm w-24"
                   >
                     <option value="+91">🇮🇳 +91</option>
                    
@@ -659,11 +659,11 @@ export default function BookTablePage() {
                     })} 
                     placeholder="10 digit number" 
                     maxLength={10}
-                    className={`flex-1 bg-[--card] border rounded-none px-4 py-3.5 text-sm ${errors.customerPhone ? 'border-red-500' : 'border-[--border]'}`} 
+                    className={`flex-1 bg-[--card] border rounded-xl px-4 py-3.5 text-sm ${errors.customerPhone ? 'border-red-500' : 'border-[--border]'}`} 
                   />
                 </div>
                 {errors.customerPhone && (
-                  <p className="text-black text-[10px] mt-1">{errors.customerPhone.message}</p>
+                  <p className="text-red-400 text-[10px] mt-1">{errors.customerPhone.message}</p>
                 )}
                 <p className="text-[--text-dim] text-[10px] mt-1.5">Used to create your account & track your deposit</p>
               </div>
@@ -673,7 +673,7 @@ export default function BookTablePage() {
                   {...register("notes")} 
                   placeholder="Special requests" 
                   rows={2} 
-                  className="w-full bg-[--card] border border-[--border] rounded-none px-4 py-3.5 text-sm resize-none" 
+                  className="w-full bg-[--card] border border-[--border] rounded-xl px-4 py-3.5 text-sm resize-none" 
                 />
               </div>
             </form>
@@ -686,7 +686,7 @@ export default function BookTablePage() {
             <button 
               onClick={handleFormSubmit(initiatePayment)} 
               disabled={isProcessing}
-              className={`w-full py-4 rounded-none text-sm font-medium transition-all ${
+              className={`w-full py-4 rounded-xl text-sm font-medium transition-all ${
                 isProcessing 
                   ? 'bg-[--border] text-[--text-dim] cursor-not-allowed' 
                   : 'btn-primary'
@@ -694,7 +694,7 @@ export default function BookTablePage() {
             >
               {isProcessing ? (
                 <span className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-[--text-dim] border-t-transparent rounded-none animate-spin" />
+                  <div className="loader !w-4 !h-4 !border-2" />
                   Processing...
                 </span>
               ) : (

@@ -29,7 +29,7 @@ export default function AdminSettingsPage() {
       if (getFileUrl) {
         setBrandLogo(getFileUrl);
       } else {
-        setBrandLogo(settings.brandLogo || "/logo.png");
+        setBrandLogo(settings.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png");
       }
     }
   }, [settings, getFileUrl]);
@@ -88,8 +88,8 @@ export default function AdminSettingsPage() {
   const handleRemoveLogo = async () => {
     try {
       await setSetting({ key: "brandLogoStorageId", value: "" });
-      await setSetting({ key: "brandLogo", value: "/logo.png" });
-      setBrandLogo("/logo.png");
+      await setSetting({ key: "brandLogo", value: "/assets/logos/favicon_io/android-chrome-192x192.png" });
+      setBrandLogo("/assets/logos/favicon_io/android-chrome-192x192.png");
       
       // Clear branding cache so changes appear immediately
       localStorage.removeItem("branding_cache");
@@ -133,66 +133,66 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 border-b border-black pb-4">
+      <div className="mb-6 border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold text-white tracking-tight">SETTINGS</h1>
-        <p className="text-black text-xs uppercase tracking-widest">Brand Configuration</p>
+        <p className="text-zinc-600 text-xs uppercase tracking-widest">Brand Configuration</p>
       </div>
 
       <div className="max-w-2xl">
         {/* Preview */}
-        <div className="bg-white border border-black p-6 mb-6">
-          <p className="text-[10px] text-black uppercase tracking-widest mb-4">Preview</p>
-          <div className="flex items-center gap-4 bg-white p-4 border border-black">
+        <div className="bg-zinc-900 border border-zinc-800 p-6 mb-6">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-4">Preview</p>
+          <div className="flex items-center gap-4 bg-zinc-950 p-4 border border-zinc-800">
             <img 
-              src={brandLogo || "/logo.png"} 
+              src={brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png"} 
               alt={brandName} 
-              className="h-12 w-12 rounded-none object-contain"
+              className="h-12 w-12 rounded-full object-contain"
               onError={(e) => {
-                e.target.src = "/logo.png";
+                e.target.src = "/assets/logos/favicon_io/android-chrome-192x192.png";
               }}
             />
             <div>
               <h2 className="text-lg font-bold text-white">{brandName || "BTS DISC"}</h2>
-              <p className="text-[10px] text-black uppercase tracking-widest">Admin Panel</p>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-widest">Admin Panel</p>
             </div>
           </div>
         </div>
 
         {/* Settings Form */}
-        <div className="bg-white border border-black p-6 space-y-6">
+        <div className="bg-zinc-900 border border-zinc-800 p-6 space-y-6">
           <div>
-            <label className="block text-[10px] text-black uppercase tracking-wide mb-2">
+            <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-2">
               Brand Name
             </label>
             <input
               type="text"
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
-              className="w-full bg-white border border-black px-4 py-2 text-sm text-white placeholder-zinc-600 focus:border-black focus:outline-none"
+              className="w-full bg-zinc-950 border border-zinc-800 px-4 py-2 text-sm text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none"
               placeholder="Enter brand name"
             />
-            <p className="text-[9px] text-black mt-1">This will appear throughout the app</p>
+            <p className="text-[9px] text-zinc-600 mt-1">This will appear throughout the app</p>
           </div>
 
           <div>
-            <label className="block text-[10px] text-black uppercase tracking-wide mb-2">
+            <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-2">
               Brand Logo
             </label>
             
             {/* Current Logo Display */}
             <div className="mb-3 flex items-center gap-3">
               <img 
-                src={brandLogo || "/logo.png"} 
+                src={brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png"} 
                 alt="Current logo" 
-                className="h-16 w-16 rounded-none object-contain bg-white border border-black p-2"
+                className="h-16 w-16 rounded-full object-contain bg-zinc-950 border border-zinc-800 p-2"
                 onError={(e) => {
-                  e.target.src = "/logo.png";
+                  e.target.src = "/assets/logos/favicon_io/android-chrome-192x192.png";
                 }}
               />
               {settings?.brandLogoStorageId && (
                 <button
                   onClick={handleRemoveLogo}
-                  className="p-2 bg-red-950 border border-red-900 text-black hover:bg-red-900 text-xs"
+                  className="p-2 bg-red-950 border border-red-900 text-red-400 hover:bg-red-900 text-xs"
                   title="Remove logo"
                 >
                   <X size={14} />
@@ -211,36 +211,36 @@ export default function AdminSettingsPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-full bg-white border border-black px-4 py-3 text-sm text-black hover:text-white hover:border-black transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full bg-zinc-950 border border-zinc-800 px-4 py-3 text-sm text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Upload size={16} />
               {uploading ? "UPLOADING..." : "UPLOAD NEW LOGO"}
             </button>
-            <p className="text-[9px] text-black mt-1">
+            <p className="text-[9px] text-zinc-600 mt-1">
               Upload an image file (max 5MB). Recommended: square image, 512x512px or larger
             </p>
 
             {/* Or use URL */}
             <div className="mt-4">
-              <p className="text-[9px] text-black uppercase tracking-widest mb-2">Or use URL</p>
+              <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">Or use URL</p>
               <input
                 type="text"
                 value={settings?.brandLogoStorageId ? "" : brandLogo}
                 onChange={(e) => setBrandLogo(e.target.value)}
                 disabled={!!settings?.brandLogoStorageId}
-                className="w-full bg-white border border-black px-4 py-2 text-sm text-white placeholder-zinc-600 focus:border-black focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="/logo.png"
+                className="w-full bg-zinc-950 border border-zinc-800 px-4 py-2 text-sm text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder="/assets/logos/favicon_io/android-chrome-192x192.png"
               />
-              <p className="text-[9px] text-black mt-1">
+              <p className="text-[9px] text-zinc-600 mt-1">
                 {settings?.brandLogoStorageId 
                   ? "Remove uploaded logo to use URL instead" 
-                  : "Path to logo image (e.g., /logo.png)"}
+                  : "Path to logo image (e.g., /assets/logos/favicon_io/android-chrome-192x192.png)"}
               </p>
             </div>
           </div>
 
           {message && (
-            <div className={`p-3 text-xs ${message.includes("Error") || message.includes("must") ? "bg-red-950 border border-red-900 text-black" : "bg-emerald-950 border border-emerald-900 text-black"}`}>
+            <div className={`p-3 text-xs ${message.includes("Error") || message.includes("must") ? "bg-red-950 border border-red-900 text-red-400" : "bg-emerald-950 border border-emerald-900 text-emerald-400"}`}>
               {message}
             </div>
           )}
@@ -249,13 +249,13 @@ export default function AdminSettingsPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 bg-white text-black py-2 text-xs font-bold uppercase tracking-wide hover:bg-white disabled:opacity-50"
+              className="flex-1 bg-white text-black py-2 text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 disabled:opacity-50"
             >
               {saving ? "SAVING..." : "SAVE CHANGES"}
             </button>
             <button
               onClick={handleInitDefaults}
-              className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wide hover:bg-white hover:text-white"
+              className="px-4 py-2 bg-zinc-800 text-zinc-400 text-xs font-bold uppercase tracking-wide hover:bg-zinc-700 hover:text-white"
             >
               RESET TO DEFAULTS
             </button>
@@ -263,9 +263,9 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Info */}
-        <div className="mt-6 bg-white border border-black p-4">
-          <p className="text-[10px] text-black uppercase tracking-widest mb-2">Note</p>
-          <p className="text-xs text-black">
+        <div className="mt-6 bg-zinc-900 border border-zinc-800 p-4">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">Note</p>
+          <p className="text-xs text-zinc-400">
             Changes will be reflected across the entire application including customer-facing pages, 
             admin panel, and staff interfaces. Uploaded images are stored securely in the database.
           </p>

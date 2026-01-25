@@ -48,7 +48,7 @@ export function useBranding() {
     if (settings && (logoUrl !== undefined || !settings.brandLogoStorageId)) {
       const brandData = {
         brandName: settings.brandName || "BTS DISC",
-        brandLogo: logoUrl || settings.brandLogo || "/logo.png",
+        brandLogo: logoUrl || settings.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png",
       };
       
       try {
@@ -68,7 +68,7 @@ export function useBranding() {
   }, [settings, logoUrl]);
   
   const isLoading = settings === undefined && cachedBranding === null;
-  const brandLogo = logoUrl || settings?.brandLogo || cachedBranding?.brandLogo || "/logo.png";
+  const brandLogo = logoUrl || settings?.brandLogo || cachedBranding?.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png";
   const brandName = settings?.brandName || cachedBranding?.brandName || "BTS DISC";
   
   return {

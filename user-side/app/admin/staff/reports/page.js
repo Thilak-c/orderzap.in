@@ -11,7 +11,7 @@ export default function StaffReportsPage() {
   const [selectedStaff, setSelectedStaff] = useState([]);
 
   if (!staff || !orders || !staffCalls) {
-    return <div className="p-6 text-black">LOADING...</div>;
+    return <div className="p-6 text-zinc-500">LOADING...</div>;
   }
 
   const toggleStaff = (id) => {
@@ -58,20 +58,20 @@ export default function StaffReportsPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 border-b border-black pb-4">
+      <div className="mb-6 border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold text-white tracking-tight">STAFF REPORTS</h1>
-        <p className="text-black text-xs uppercase tracking-widest">Compare staff performance</p>
+        <p className="text-zinc-600 text-xs uppercase tracking-widest">Compare staff performance</p>
       </div>
 
       {/* Staff Selection */}
-      <div className="mb-6 bg-white border border-black p-4">
+      <div className="mb-6 bg-zinc-900 border border-zinc-800 p-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-black uppercase tracking-wide">Select Staff to Compare</p>
+          <p className="text-xs text-zinc-500 uppercase tracking-wide">Select Staff to Compare</p>
           <div className="flex gap-2">
-            <button onClick={selectAll} className="text-[10px] text-black hover:text-white uppercase">
+            <button onClick={selectAll} className="text-[10px] text-zinc-400 hover:text-white uppercase">
               Select All
             </button>
-            <button onClick={clearAll} className="text-[10px] text-black hover:text-white uppercase">
+            <button onClick={clearAll} className="text-[10px] text-zinc-400 hover:text-white uppercase">
               Clear
             </button>
           </div>
@@ -84,7 +84,7 @@ export default function StaffReportsPage() {
               className={`px-3 py-1.5 text-xs transition-colors ${
                 selectedStaff.includes(s._id)
                   ? 'bg-white text-black font-bold'
-                  : 'bg-white text-black hover:text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
               {s.name}
@@ -98,83 +98,83 @@ export default function StaffReportsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-black">
-                <th className="text-left py-3 px-4 text-[10px] text-black uppercase tracking-wide">Metric</th>
+              <tr className="border-b border-zinc-800">
+                <th className="text-left py-3 px-4 text-[10px] text-zinc-500 uppercase tracking-wide">Metric</th>
                 {compareStaff.map(s => (
                   <th key={s._id} className="text-center py-3 px-4 text-xs text-white font-bold">
                     {s.name}
-                    <span className="block text-[9px] text-black font-normal">{s.role}</span>
+                    <span className="block text-[9px] text-zinc-500 font-normal">{s.role}</span>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-black/50">
-                <td className="py-3 px-4 text-black">Assigned Tables</td>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-400">Assigned Tables</td>
                 {compareStaff.map(s => (
                   <td key={s._id} className="text-center py-3 px-4 text-white">
                     {s.assignedTables.join(', ') || '—'}
                   </td>
                 ))}
               </tr>
-              <tr className="border-b border-black/50 bg-white/50">
-                <td className="py-3 px-4 text-black">Total Orders</td>
+              <tr className="border-b border-zinc-800/50 bg-zinc-900/50">
+                <td className="py-3 px-4 text-zinc-400">Total Orders</td>
                 {compareStaff.map(s => {
                   const isMax = s.totalOrders === Math.max(...compareStaff.map(x => x.totalOrders));
                   return (
-                    <td key={s._id} className={`text-center py-3 px-4 font-bold ${isMax && compareStaff.length > 1 ? 'text-black' : 'text-white'}`}>
+                    <td key={s._id} className={`text-center py-3 px-4 font-bold ${isMax && compareStaff.length > 1 ? 'text-green-400' : 'text-white'}`}>
                       {s.totalOrders}
                     </td>
                   );
                 })}
               </tr>
-              <tr className="border-b border-black/50">
-                <td className="py-3 px-4 text-black">Completed Orders</td>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-400">Completed Orders</td>
                 {compareStaff.map(s => (
                   <td key={s._id} className="text-center py-3 px-4 text-white">{s.completedOrders}</td>
                 ))}
               </tr>
-              <tr className="border-b border-black/50 bg-white/50">
-                <td className="py-3 px-4 text-black">Pending Orders</td>
+              <tr className="border-b border-zinc-800/50 bg-zinc-900/50">
+                <td className="py-3 px-4 text-zinc-400">Pending Orders</td>
                 {compareStaff.map(s => (
-                  <td key={s._id} className={`text-center py-3 px-4 ${s.pendingOrders > 0 ? 'text-black' : 'text-black'}`}>
+                  <td key={s._id} className={`text-center py-3 px-4 ${s.pendingOrders > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
                     {s.pendingOrders}
                   </td>
                 ))}
               </tr>
-              <tr className="border-b border-black/50">
-                <td className="py-3 px-4 text-black">Total Revenue</td>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-400">Total Revenue</td>
                 {compareStaff.map(s => {
                   const isMax = s.totalRevenue === Math.max(...compareStaff.map(x => x.totalRevenue));
                   return (
-                    <td key={s._id} className={`text-center py-3 px-4 font-bold ${isMax && compareStaff.length > 1 ? 'text-black' : 'text-white'}`}>
+                    <td key={s._id} className={`text-center py-3 px-4 font-bold ${isMax && compareStaff.length > 1 ? 'text-green-400' : 'text-white'}`}>
                       ₹{s.totalRevenue.toLocaleString()}
                     </td>
                   );
                 })}
               </tr>
-              <tr className="border-b border-black/50 bg-white/50">
-                <td className="py-3 px-4 text-black">Avg Order Value</td>
+              <tr className="border-b border-zinc-800/50 bg-zinc-900/50">
+                <td className="py-3 px-4 text-zinc-400">Avg Order Value</td>
                 {compareStaff.map(s => (
                   <td key={s._id} className="text-center py-3 px-4 text-white">
                     ₹{s.avgOrderValue.toFixed(0)}
                   </td>
                 ))}
               </tr>
-              <tr className="border-b border-black/50">
-                <td className="py-3 px-4 text-black">Staff Calls</td>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-400">Staff Calls</td>
                 {compareStaff.map(s => (
                   <td key={s._id} className="text-center py-3 px-4 text-white">{s.totalCalls}</td>
                 ))}
               </tr>
-              <tr className="border-b border-black/50 bg-white/50">
-                <td className="py-3 px-4 text-black">Resolved Calls</td>
+              <tr className="border-b border-zinc-800/50 bg-zinc-900/50">
+                <td className="py-3 px-4 text-zinc-400">Resolved Calls</td>
                 {compareStaff.map(s => (
                   <td key={s._id} className="text-center py-3 px-4 text-white">{s.resolvedCalls}</td>
                 ))}
               </tr>
-              <tr className="border-b border-black/50">
-                <td className="py-3 px-4 text-black">Top Table</td>
+              <tr className="border-b border-zinc-800/50">
+                <td className="py-3 px-4 text-zinc-400">Top Table</td>
                 {compareStaff.map(s => (
                   <td key={s._id} className="text-center py-3 px-4 text-white">
                     {s.topTable ? `T${s.topTable.table} (${s.topTable.count})` : '—'}
@@ -185,36 +185,36 @@ export default function StaffReportsPage() {
           </table>
         </div>
       ) : (
-        <div className="text-center py-12 text-black">
+        <div className="text-center py-12 text-zinc-600">
           <p className="text-sm">Select staff members above to compare their performance</p>
         </div>
       )}
 
       {/* All Staff Overview */}
-      <div className="mt-8 pt-6 border-t border-black">
-        <h2 className="text-xs text-black uppercase tracking-widest mb-4">All Staff Overview</h2>
+      <div className="mt-8 pt-6 border-t border-zinc-800">
+        <h2 className="text-xs text-zinc-500 uppercase tracking-widest mb-4">All Staff Overview</h2>
         <div className="grid gap-3">
           {staffStats.sort((a, b) => b.totalRevenue - a.totalRevenue).map((s, i) => (
-            <div key={s._id} className="bg-white border border-black p-4 flex items-center justify-between">
+            <div key={s._id} className="bg-zinc-900 border border-zinc-800 p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-8 h-8 flex items-center justify-center text-sm font-bold ${
-                  i === 0 ? 'bg-amber-500 text-black' : 'bg-white text-black'
+                  i === 0 ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-400'
                 }`}>
                   {i + 1}
                 </div>
                 <div>
                   <p className="text-white font-medium">{s.name}</p>
-                  <p className="text-black text-xs">{s.role} • Tables: {s.assignedTables.join(', ') || '—'}</p>
+                  <p className="text-zinc-500 text-xs">{s.role} • Tables: {s.assignedTables.join(', ') || '—'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-6 text-right">
                 <div>
                   <p className="text-white font-bold">₹{s.totalRevenue.toLocaleString()}</p>
-                  <p className="text-black text-[10px] uppercase">Revenue</p>
+                  <p className="text-zinc-500 text-[10px] uppercase">Revenue</p>
                 </div>
                 <div>
                   <p className="text-white font-bold">{s.totalOrders}</p>
-                  <p className="text-black text-[10px] uppercase">Orders</p>
+                  <p className="text-zinc-500 text-[10px] uppercase">Orders</p>
                 </div>
               </div>
             </div>

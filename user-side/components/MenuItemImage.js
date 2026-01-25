@@ -23,7 +23,7 @@ export default function MenuItemImage({ storageId, alt, className = "" }) {
 
   // If it's a storage ID, wait for the URL
   if (!imageUrl) {
-    return <div className={`${className} bg-white animate-pulse`} />;
+    return <div className={`${className} bg-zinc-800 animate-pulse`} />;
   }
 
   return <img src={imageUrl} alt={alt} className={className} />;

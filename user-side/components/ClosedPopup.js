@@ -10,12 +10,9 @@ const OPEN_HOUR = 12;  // 12 PM
 const CLOSE_HOUR = 23; // 11 PM
 
 export function isRestaurantOpen() {
-  // COMMENTED OUT: Always return true (restaurant always open)
-  return true;
-  
-  // const now = new Date();
-  // const hour = now.getHours();
-  // return hour >= OPEN_HOUR && hour < CLOSE_HOUR;
+  const now = new Date();
+  const hour = now.getHours();
+  return hour >= OPEN_HOUR && hour < CLOSE_HOUR;
 }
 
 export function ClosedPopup({ tableId }) {
@@ -41,7 +38,7 @@ export function ClosedPopup({ tableId }) {
   if (brandingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg]">
-        <div className="w-12 h-12 border-2 border-[--border] border-t-[--primary] rounded-none animate-spin" />
+        <div className="loader" />
       </div>
     );
   }
@@ -66,7 +63,7 @@ export function ClosedPopup({ tableId }) {
       {/* Header */}
       <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
         <div className="flex items-center gap-3">
-          <img src={brandLogo} alt={brandName} className="h-9 w-9 rounded-none object-contain" />
+          <img src={brandLogo} alt={brandName} className="h-9 w-9 rounded-full object-contain" />
           <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">{brandName}</span>
         </div>
         {tableId && (
@@ -80,16 +77,16 @@ export function ClosedPopup({ tableId }) {
       <div className="flex-1 flex flex-col items-center justify-center px-8 pb-24">
         {/* Status Badge */}
         <div 
-          className="px-4 py-1.5 rounded-none text-[10px] font-semibold uppercase tracking-[0.2em] mb-10 opacity-0 animate-bounce-in bg-black/5 text-black border border-black/10"
+          className="px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] mb-10 opacity-0 animate-bounce-in bg-amber-500/10 text-amber-400 border border-amber-500/20"
           style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}
         >
-          <span className="inline-block w-1.5 h-1.5 rounded-none bg-current mr-2" />
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-2" />
           Currently Closed
         </div>
 
         {/* Icon */}
         <div 
-          className="w-20 h-20 rounded-none bg-[--primary]/10 flex items-center justify-center mb-8 opacity-0 animate-scale-in"
+          className="w-20 h-20 rounded-full bg-[--primary]/10 flex items-center justify-center mb-8 opacity-0 animate-scale-in"
           style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}
         >
           <Clock size={36} className="text-[--primary]" />
@@ -131,7 +128,7 @@ export function ClosedPopup({ tableId }) {
 
         {/* Opens in */}
         <div 
-          className="px-4 py-2 rounded-none bg-[--primary]/5 border border-[--primary]/10 opacity-0 animate-fade-in"
+          className="px-4 py-2 rounded-lg bg-[--primary]/5 border border-[--primary]/10 opacity-0 animate-fade-in"
           style={{animationDelay: '1.1s', animationFillMode: 'forwards'}}
         >
           <p className="text-[--primary] text-sm font-medium">
@@ -144,7 +141,7 @@ export function ClosedPopup({ tableId }) {
       <div className="p-6 space-y-3">
         <button 
           onClick={handleDismiss}
-          className="btn-primary w-full py-4 rounded-none text-sm font-medium opacity-0 animate-slide-up"
+          className="btn-primary w-full py-4 rounded-xl text-sm font-medium opacity-0 animate-slide-up"
           style={{animationDelay: '1.2s', animationFillMode: 'forwards'}}
         >
           Browse Menu Anyway

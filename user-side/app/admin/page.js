@@ -35,12 +35,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 border-b border-black pb-4 flex justify-between items-start">
+      <div className="mb-6 border-b border-zinc-800 pb-4 flex justify-between items-start">
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight">DASHBOARD</h1>
-          <p className="text-black text-xs uppercase tracking-widest">System Overview</p>
+          <p className="text-zinc-600 text-xs uppercase tracking-widest">System Overview</p>
         </div>
-        <button onClick={handleSeed} className="bg-white text-black px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-white hover:text-white">
+        <button onClick={handleSeed} className="bg-zinc-800 text-zinc-400 px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-zinc-700 hover:text-white">
           SEED DB
         </button>
       </div>
@@ -57,21 +57,21 @@ export default function AdminDashboard() {
       {/* Staff Calls & Zone Requests */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Staff Calls */}
-        <div className="bg-white border border-black">
-          <div className="px-4 py-3 border-b border-black flex justify-between items-center">
-            <h2 className="text-xs font-bold text-black uppercase tracking-wide">! STAFF CALLS</h2>
+        <div className="bg-zinc-900 border border-zinc-800">
+          <div className="px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
+            <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wide">! STAFF CALLS</h2>
             {pendingCalls > 0 && <span className="text-[10px] bg-red-600 text-white px-2 py-0.5">{pendingCalls}</span>}
           </div>
           {!staffCalls || staffCalls.length === 0 ? (
-            <p className="text-center py-6 text-black text-sm">No pending calls</p>
+            <p className="text-center py-6 text-zinc-600 text-sm">No pending calls</p>
           ) : (
             <div className="divide-y divide-zinc-800 max-h-48 overflow-y-auto">
               {staffCalls.map((call) => (
-                <div key={call._id} className="p-3 flex justify-between items-center hover:bg-white/50">
+                <div key={call._id} className="p-3 flex justify-between items-center hover:bg-zinc-800/50">
                   <div>
                     <p className="font-medium text-sm">Table {call.tableNumber}</p>
-                    <p className="text-[10px] text-black">{call.zoneName || "Unknown zone"}</p>
-                    {call.reason && <p className="text-[10px] text-black mt-1">{call.reason}</p>}
+                    <p className="text-[10px] text-zinc-600">{call.zoneName || "Unknown zone"}</p>
+                    {call.reason && <p className="text-[10px] text-amber-400 mt-1">{call.reason}</p>}
                   </div>
                   <button
                     onClick={() => resolveStaffCall({ id: call._id, status: "resolved" })}
@@ -86,20 +86,20 @@ export default function AdminDashboard() {
         </div>
 
         {/* Zone Requests */}
-        <div className="bg-white border border-black">
-          <div className="px-4 py-3 border-b border-black flex justify-between items-center">
-            <h2 className="text-xs font-bold text-black uppercase tracking-wide">◎ ZONE REQUESTS</h2>
+        <div className="bg-zinc-900 border border-zinc-800">
+          <div className="px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
+            <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wide">◎ ZONE REQUESTS</h2>
             {pendingRequests > 0 && <span className="text-[10px] bg-amber-600 text-black px-2 py-0.5">{pendingRequests}</span>}
           </div>
           {!zoneRequests || zoneRequests.length === 0 ? (
-            <p className="text-center py-6 text-black text-sm">No pending requests</p>
+            <p className="text-center py-6 text-zinc-600 text-sm">No pending requests</p>
           ) : (
             <div className="divide-y divide-zinc-800 max-h-48 overflow-y-auto">
               {zoneRequests.map((req) => (
-                <div key={req._id} className="p-3 flex justify-between items-center hover:bg-white/50">
+                <div key={req._id} className="p-3 flex justify-between items-center hover:bg-zinc-800/50">
                   <div>
                     <p className="font-medium text-sm">Table {req.tableNumber}</p>
-                    <p className="text-[10px] text-black">{req.currentZone || "Current"} → <span className="text-black">{req.requestedZone}</span></p>
+                    <p className="text-[10px] text-zinc-600">{req.currentZone || "Current"} → <span className="text-amber-400">{req.requestedZone}</span></p>
                   </div>
                   <button
                     onClick={() => resolveZoneRequest({ id: req._id, status: "approved" })}
@@ -115,35 +115,35 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white border border-black">
-        <div className="px-4 py-3 border-b border-black flex justify-between items-center">
-          <h2 className="text-xs font-bold text-black uppercase tracking-wide">▤ RECENT ORDERS</h2>
-          <Link href="/admin/orders" className="text-[10px] text-black hover:text-white">VIEW ALL →</Link>
+      <div className="bg-zinc-900 border border-zinc-800">
+        <div className="px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
+          <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wide">▤ RECENT ORDERS</h2>
+          <Link href="/admin/orders" className="text-[10px] text-zinc-500 hover:text-white">VIEW ALL →</Link>
         </div>
         {!orders || orders.length === 0 ? (
-          <p className="text-center py-8 text-black text-sm">No orders yet</p>
+          <p className="text-center py-8 text-zinc-600 text-sm">No orders yet</p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-white text-[10px] uppercase tracking-wide">
+            <thead className="bg-zinc-950 text-[10px] uppercase tracking-wide">
               <tr>
-                <th className="text-left py-2 px-4 text-black">Order</th>
-                <th className="text-left py-2 px-3 text-black">Table</th>
-                <th className="text-left py-2 px-3 text-black">Items</th>
-                <th className="text-left py-2 px-3 text-black">Status</th>
-                <th className="text-right py-2 px-4 text-black">Total</th>
+                <th className="text-left py-2 px-4 text-zinc-500">Order</th>
+                <th className="text-left py-2 px-3 text-zinc-500">Table</th>
+                <th className="text-left py-2 px-3 text-zinc-500">Items</th>
+                <th className="text-left py-2 px-3 text-zinc-500">Status</th>
+                <th className="text-right py-2 px-4 text-zinc-500">Total</th>
               </tr>
             </thead>
             <tbody>
               {orders.slice(0, 8).map((order) => (
-                <tr key={order._id} className="border-t border-black/50 hover:bg-white/30">
+                <tr key={order._id} className="border-t border-zinc-800/50 hover:bg-zinc-800/30">
                   <td className="py-2 px-4 font-medium">#{order.orderNumber || order._id.slice(-4)}</td>
-                  <td className="py-2 px-3 text-black">{order.tableId}</td>
+                  <td className="py-2 px-3 text-zinc-500">{order.tableId}</td>
                   <td className="py-2 px-3">
                     <div className="flex gap-1">
                       {order.items.slice(0, 3).map((item, i) => (
                         <MenuItemImage key={i} storageId={item.image} alt={item.name} className="w-6 h-6 rounded object-cover" />
                       ))}
-                      {order.items.length > 3 && <span className="text-black text-xs">+{order.items.length - 3}</span>}
+                      {order.items.length > 3 && <span className="text-zinc-600 text-xs">+{order.items.length - 3}</span>}
                     </div>
                   </td>
                   <td className="py-2 px-3">
@@ -162,15 +162,15 @@ export default function AdminDashboard() {
 
 function MetricCard({ label, value, highlight }) {
   const colors = {
-    green: 'border-l-emerald-500 text-black',
-    red: 'border-l-red-500 text-black',
-    amber: 'border-l-amber-500 text-black',
-    blue: 'border-l-blue-500 text-black',
+    green: 'border-l-emerald-500 text-emerald-400',
+    red: 'border-l-red-500 text-red-400',
+    amber: 'border-l-amber-500 text-amber-400',
+    blue: 'border-l-blue-500 text-blue-400',
   };
   
   return (
-    <div className={`bg-white border border-black p-4 ${highlight ? `border-l-4 ${colors[highlight].split(' ')[0]}` : ''}`}>
-      <p className="text-[10px] text-black uppercase tracking-widest mb-1">{label}</p>
+    <div className={`bg-zinc-900 border border-zinc-800 p-4 ${highlight ? `border-l-4 ${colors[highlight].split(' ')[0]}` : ''}`}>
+      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{label}</p>
       <p className={`text-xl font-bold ${highlight ? colors[highlight].split(' ')[1] : 'text-white'}`}>{value}</p>
     </div>
   );
@@ -178,10 +178,10 @@ function MetricCard({ label, value, highlight }) {
 
 function StatusBadge({ status }) {
   const styles = {
-    pending: 'bg-amber-950 text-black border-amber-800',
-    preparing: 'bg-blue-950 text-black border-blue-800',
-    ready: 'bg-emerald-950 text-black border-emerald-800',
-    completed: 'bg-white text-black border-black',
+    pending: 'bg-amber-950 text-amber-400 border-amber-800',
+    preparing: 'bg-blue-950 text-blue-400 border-blue-800',
+    ready: 'bg-emerald-950 text-emerald-400 border-emerald-800',
+    completed: 'bg-zinc-800 text-zinc-400 border-zinc-700',
   };
   
   return (

@@ -82,28 +82,28 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
   return (
     <>
       {/* Help Bubble */}
-      <div className={`fixed right-3 z-30 transition-all duration-300 ${cartCount > 0 ? 'bottom-24' : 'bottom-20'}`}>
+      <div className={`fixed right-3 z-30 transition-all duration-300 ${cartCount > 0 ? 'bottom-24' : 'bottom-3'}`}>
         {/* Menu Options */}
         {isOpen && (
           <div className="absolute bottom-12 right-0 mb-2 animate-scale-in" style={{animationFillMode: 'forwards'}}>
-            <div className="card rounded-none p-1.5 min-w-[140px] shadow-none">
+            <div className="card rounded-xl p-1.5 min-w-[140px] shadow-xl">
               <button
                 onClick={() => { handleCall("Asking for water"); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none text-[--text-secondary] hover:bg-[--bg-elevated] hover:text-[--text-primary] transition-all text-[11px]"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[--text-secondary] hover:bg-[--bg-elevated] hover:text-[--text-primary] transition-all text-[11px]"
               >
-                <GlassWater size={14} className="text-black" />
+                <GlassWater size={14} className="text-blue-400" />
                 Water
               </button>
               <button
                 onClick={() => { router.push('/my-orders'); setIsOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none text-[--text-secondary] hover:bg-[--bg-elevated] hover:text-[--text-primary] transition-all text-[11px]"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[--text-secondary] hover:bg-[--bg-elevated] hover:text-[--text-primary] transition-all text-[11px]"
               >
                 <ClipboardList size={14} className="text-[--primary]" />
                 Order Status
               </button>
               <button
                 onClick={() => { setShowCallModal(true); setIsOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-none text-[--text-secondary] hover:bg-[--bg-elevated] hover:text-[--text-primary] transition-all text-[11px]"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[--text-secondary] hover:bg-[--bg-elevated] hover:text-[--text-primary] transition-all text-[11px]"
               >
                 <Bell size={14} className="text-[--primary]" />
                 Call Staff
@@ -115,7 +115,7 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
         {/* Bubble Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-10 h-10 rounded-none flex items-center justify-center shadow-none active:scale-95 transition-all ${
+          className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${
             isOpen 
               ? 'bg-[--primary] text-[--bg]' 
               : 'bg-[--card] border border-[--border] text-[--text-muted] hover:border-[--primary]/30 hover:text-[--primary]'
@@ -127,7 +127,7 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
 
       {/* Success Toast */}
       <AnimatedToast show={showSuccess} onClose={() => setShowSuccess(false)}>
-        <div className="flex items-center gap-2 bg-black/5 border border-black/10 text-black px-3 py-2 rounded-none text-[11px]">
+        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-2 rounded-lg text-[11px]">
           <Check size={12} />
           Staff notified
         </div>
@@ -143,7 +143,7 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
             </div>
             <button 
               onClick={() => setShowCallModal(false)}
-              className="w-7 h-7 rounded-none bg-[--bg-elevated] flex items-center justify-center"
+              className="w-7 h-7 rounded-md bg-[--bg-elevated] flex items-center justify-center"
             >
               <X size={12} className="text-[--text-muted]" />
             </button>
@@ -154,7 +154,7 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
               <button
                 key={r}
                 onClick={() => handleCall(r)}
-                className="w-full text-left px-3 py-2.5 rounded-none bg-[--bg-elevated] border border-[--border] text-[--text-secondary] text-[11px] hover:border-[--primary]/30 hover:text-[--text-primary] transition-all active:scale-[0.98]"
+                className="w-full text-left px-3 py-2.5 rounded-lg bg-[--bg-elevated] border border-[--border] text-[--text-secondary] text-[11px] hover:border-[--primary]/30 hover:text-[--text-primary] transition-all active:scale-[0.98]"
               >
                 {r}
               </button>
@@ -167,12 +167,12 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Or type a message..."
-              className="w-full rounded-none px-3 py-2.5 text-[11px] pr-14"
+              className="w-full rounded-lg px-3 py-2.5 text-[11px] pr-14"
             />
             {reason && (
               <button
                 onClick={() => handleCall(reason)}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 btn-primary px-2.5 py-1 rounded-none text-[10px]"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 btn-primary px-2.5 py-1 rounded-md text-[10px]"
               >
                 Send
               </button>
@@ -187,8 +187,8 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
         onClose={() => setShowWaterOnWay(false)}
         bottomClass={cartCount > 0 ? 'bottom-4' : 'bottom-4'}
       >
-        <div className="card rounded-none p-3 flex items-center gap-3 shadow-none max-w-sm mx-auto">
-          <img src="/water-loading.gif" alt="Loading" className="w-10 h-10 rounded-none" />
+        <div className="card rounded-xl p-3 flex items-center gap-3 shadow-lg max-w-sm mx-auto">
+          <img src="/assets/gifs/water-loading.gif" alt="Loading" className="w-10 h-10 rounded-lg" />
           <div className="flex-1">
             <p className="text-[--text-primary] font-medium text-sm">Water on the way!</p>
             <p className="text-[--text-dim] text-[10px]">Staff is bringing it to you</p>

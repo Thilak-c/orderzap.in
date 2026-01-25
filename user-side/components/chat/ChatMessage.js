@@ -6,7 +6,7 @@ export default function ChatMessage({ message }) {
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} animate-fade-in`}>
       <div
-        className={`max-w-[80%] px-3 py-2 rounded-none text-sm ${
+        className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
           isUser
             ? "bg-[--primary] text-black rounded-br-sm"
             : "bg-[--card] text-[--text-primary] border border-[--border] rounded-bl-sm"

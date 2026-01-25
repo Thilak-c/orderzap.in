@@ -66,7 +66,7 @@ export function AnimatedBottomSheet({ show, onClose, children, maxHeight = '50vh
         style={{ maxHeight, paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-10 h-1 bg-[--border] rounded-none mx-auto mb-5" />
+        <div className="w-10 h-1 bg-[--border] rounded-full mx-auto mb-5" />
         {children}
       </div>
     </div>

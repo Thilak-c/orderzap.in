@@ -8,17 +8,17 @@ import { useSession } from "@/lib/session";
 import { useTable } from "@/lib/table";
 import { 
   CheckCircle, ChefHat, Truck, Clock, Plus, 
-  ChevronRight, Package, X, ArrowRight, Phone 
+  ChevronRight, Package, X, ArrowRight 
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
 import { AnimatedPopup } from "@/components/AnimatedPopup";
 import { HandPlatter } from "lucide-react";
 
 const statusConfig = {
-  pending: { label: "Received", cls: "status-pending", icon: Clock, color: "#000000" },
-  preparing: { label: "Preparing", cls: "status-preparing", icon: ChefHat, color: "#000000" },
-  ready: { label: "Ready", cls: "status-ready", icon: Truck, color: "#000000" },
-  completed: { label: "Done", cls: "status-completed", icon: CheckCircle, color: "#737373" },
+  pending: { label: "Received", cls: "status-pending", icon: Clock },
+  preparing: { label: "Preparing", cls: "status-preparing", icon: ChefHat },
+  ready: { label: "Ready", cls: "status-ready", icon: Truck },
+  completed: { label: "Done", cls: "status-completed", icon: CheckCircle },
 };
 
 export default function MyOrdersPage() {
@@ -62,14 +62,14 @@ export default function MyOrdersPage() {
   }, [lastTableId, table?.zone?.name]);
 
   const handleSameTable = () => { 
-    if (lastTableId) router.push(`/menu/${lastTableId}`); 
+    if (lastTableId) router.push(`/m/${lastTableId}`); 
     setShowPopup(false); 
   };
   
   const handleNewTable = () => { 
     const num = parseInt(newTableNumber); 
     if (newTableNumber && !isNaN(num) && num > 0) { 
-      router.push(`/menu/${num}`); 
+      router.push(`/m/${num}`); 
       setShowPopup(false); 
     } 
   };
@@ -101,42 +101,34 @@ export default function MyOrdersPage() {
   // Empty state - ask for phone number or show no orders message
   if ((!orders || orders.length === 0) && !searchedButNoOrders) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[--bg]">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6">
         <div className="text-center animate-scale-in w-full max-w-sm">
-          <div className="w-16 h-16 border-2 border-[--border] rounded-none flex items-center justify-center mx-auto mb-5">
-            <Phone size={28} className="text-[--primary]" />
+          <div className="w-24 h-24 border border-[--border] rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <HandPlatter size={36} className="text-[--primary]" />
           </div>
-          <h1 className="text-2xl font-bold text-[--text-primary] mb-2">
-            Track Your Orders
+          <h1 className="font-luxury text-2xl font-semibold text-[--text-primary] mb-3">
+            Wanna see your orders?
           </h1>
-          <p className="text-sm text-[--text-muted] mb-6">
-            Enter your phone number to view order history
+          <p className="text-[--text-muted] text-sm mb-6">
+            Enter your phone number to view your orders
           </p>
-          
-          <div className="bg-[--card] border border-[--border] rounded-none p-4 mb-5">
-            <div className="flex items-center border-2 border-[--border] rounded-none overflow-hidden focus-within:border-[--primary] transition-colors">
-              <span className="px-3 py-3 text-[--text-secondary] font-semibold border-r-2 border-[--border] bg-[--bg-elevated] text-sm">
-                +91
-              </span>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => { setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
-                placeholder="10 digit number"
-                maxLength={10}
-                className="flex-1 bg-[--bg] px-3 py-3 text-base outline-none text-[--text-primary] font-medium"
-              />
-            </div>
-            {phoneError && (
-              <p className="text-red-600 text-xs mt-2 text-left">{phoneError}</p>
-            )}
+          <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden mb-4">
+            <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => { setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
+              placeholder="10 digit number"
+              maxLength={10}
+              className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
+            />
           </div>
-          
+          {phoneError && <p className="text-red-400 text-xs mb-4">{phoneError}</p>}
           <button 
             onClick={handleViewOrders}
-            className="w-full btn-primary px-6 py-3.5 rounded-none text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            className="w-full btn-primary px-8 py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
           >
-            View My Orders
+            View Orders
             <ArrowRight size={16} />
           </button>
         </div>
@@ -147,23 +139,23 @@ export default function MyOrdersPage() {
   // No orders found for this phone number
   if (searchedButNoOrders) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[--bg]">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6">
         <div className="text-center animate-scale-in w-full max-w-sm">
-          <div className="w-16 h-16 border-2 border-[--border] rounded-none flex items-center justify-center mx-auto mb-5 opacity-50">
-            <Package size={28} className="text-[--text-muted]" />
+          <div className="w-24 h-24 border border-[--border] rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <HandPlatter size={36} className="text-[--text-muted]" />
           </div>
-          <h1 className="text-xl font-bold text-[--text-primary] mb-2">
-            No Orders Found
+          <h1 className="font-luxury text-2xl font-semibold text-[--text-primary] mb-3">
+            No orders found
           </h1>
-          <p className="text-sm text-[--text-muted] mb-1">
-            We couldn't find any orders for
+          <p className="text-[--text-muted] text-sm mb-6">
+            There are no orders with this phone number
           </p>
-          <p className="text-sm text-[--text-secondary] font-semibold mb-6">{searchPhone}</p>
+          <p className="text-[--text-dim] text-xs mb-6">{searchPhone}</p>
           <button 
             onClick={() => { setSearchPhone(''); setPhoneNumber(''); localStorage.removeItem('customerPhone'); }}
-            className="w-full btn-secondary px-6 py-3.5 rounded-none text-sm font-semibold active:scale-95 transition-transform"
+            className="w-full btn-secondary px-8 py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
           >
-            Try Another Number
+            Try another number
           </button>
         </div>
       </div>
@@ -174,63 +166,52 @@ export default function MyOrdersPage() {
   const pastOrders = orders.filter(o => o.status === "completed");
 
   return (
-    <div className="min-h-screen bg-[--bg] pb-20">
+    <div className="min-h-screen pb-8">
       {/* New Order Popup */}
       <AnimatedPopup 
         show={showPopup} 
         onClose={() => setShowPopup(false)}
-        className="absolute inset-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 flex items-center justify-center p-6"
       >
-        <div className="card rounded-none p-5 w-full max-w-sm animate-scale-in">
+        <div className="card rounded-2xl p-6 w-full max-w-sm">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-[--text-primary]">New Order</h2>
+            <h2 className="font-luxury text-xl font-semibold text-[--text-primary]">New Order</h2>
             <button 
               onClick={() => setShowPopup(false)} 
-              className="w-9 h-9 rounded-none bg-[--bg-elevated] border-2 border-[--border] flex items-center justify-center active:scale-95 transition-transform"
+              className="w-10 h-10 rounded-xl bg-[--bg-elevated] border border-[--border] flex items-center justify-center hover:border-[--border-light] transition-colors"
             >
               <X size={18} className="text-[--text-muted]" />
             </button>
           </div>
           
+          <div className="divider-glow mb-6" />
+          
           {lastTableId && (
-            <>
-              <button 
-                onClick={handleSameTable} 
-                className="w-full p-4 rounded-none border-2 border-[--border] bg-[--card] active:scale-95 transition-all mb-3 text-left group"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[--text-primary] font-bold mb-0.5">Same Table</p>
-                    <p className="text-[--text-muted] text-sm">Continue at Table {lastTableId}</p>
-                  </div>
-                  <ChevronRight size={20} className="text-[--text-dim]" />
-                </div>
-              </button>
-              
-              <div className="flex items-center gap-2 my-4">
-                <div className="flex-1 h-px bg-[--border]" />
-                <span className="text-xs text-[--text-muted] uppercase">Or</span>
-                <div className="flex-1 h-px bg-[--border]" />
-              </div>
-            </>
+            <button 
+              onClick={handleSameTable} 
+              className="w-full p-5 rounded-xl border border-[--border] bg-[--card] hover:border-[--primary]/30 transition-all mb-4 text-left group"
+            >
+              <p className="text-[--text-primary] font-medium mb-1">Same Table</p>
+              <p className="text-[--text-muted] text-sm">Continue ordering at Table {lastTableId}</p>
+            </button>
           )}
           
-          <div className="p-4 rounded-none border-2 border-[--border] bg-[--bg-elevated]">
-            <p className="text-[--text-primary] font-bold mb-3">Different Table</p>
+          <div className="p-5 rounded-xl border border-[--border] bg-[--card]">
+            <p className="text-[--text-primary] font-medium mb-4">Different Table</p>
             <input 
               type="number" 
               value={newTableNumber} 
               onChange={(e) => setNewTableNumber(e.target.value)} 
-              placeholder="Table number" 
-              className="w-full text-center text-xl font-bold rounded-none py-3 px-3 mb-3 border-2 border-[--border] focus:border-[--primary] transition-colors" 
+              placeholder="Enter table number" 
+              className="w-full text-center text-xl font-luxury font-semibold rounded-xl py-4 px-4 mb-3 !bg-[--bg-elevated]" 
               min="1" 
             />
             <button 
               onClick={handleNewTable} 
               disabled={!newTableNumber} 
-              className={`w-full rounded-none py-3 text-sm flex items-center justify-center gap-2 font-bold transition-all ${
+              className={`w-full rounded-xl py-4 text-sm flex items-center justify-center gap-2 font-semibold ${
                 newTableNumber 
-                  ? "btn-primary active:scale-95" 
+                  ? "btn-primary" 
                   : "bg-[--border] text-[--text-dim] cursor-not-allowed"
               }`}
             >
@@ -241,106 +222,84 @@ export default function MyOrdersPage() {
       </AnimatedPopup>
 
       {/* Header */}
-      <header className="glass sticky top-0 z-10 border-b border-[--border]">
-        <div className="px-4 py-4">
+      <header className="glass sticky top-0 z-10">
+        <div className="max-w-lg mx-auto px-5 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-[--text-primary]">My Orders</h1>
-              {lastTableId && (
-                <p className="text-xs text-[--text-muted] mt-0.5">Table {lastTableId}</p>
-              )}
-            </div>
+            <h1 className="font-luxury text-xl font-semibold text-[--text-primary]">My Orders</h1>
             <button 
               onClick={() => setShowPopup(true)} 
-              className="btn-primary px-4 py-2.5 rounded-none font-bold flex items-center gap-1.5 text-sm active:scale-95 transition-transform"
+              className="text-sm text-[--primary] hover:text-[--primary-light] transition-colors font-medium flex items-center gap-1"
             >
               <Plus size={16} />
-              New
+              New Order
             </button>
           </div>
         </div>
       </header>
 
-      <div className="px-4 py-5">
+      <div className="max-w-lg mx-auto px-5 py-6">
         {/* Active Orders */}
         {activeOrders.length > 0 && (
           <div className="mb-8 animate-slide-up">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="relative flex h-2.5 w-2.5">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[--primary] opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[--primary]" />
-              </div>
-              <h2 className="text-[10px] tracking-[0.15em] text-[--text-muted] uppercase font-bold">Active Orders</h2>
+              </span>
+              <h2 className="text-[10px] tracking-[0.2em] text-[--text-muted] uppercase">Active Orders</h2>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               {activeOrders.map((order) => {
                 const status = statusConfig[order.status];
                 const StatusIcon = status.icon;
-                const progress = {
-                  pending: 25,
-                  preparing: 50,
-                  ready: 75,
-                  completed: 100
-                }[order.status] || 0;
-                
                 return (
                   <Link 
                     key={order._id} 
                     href={`/order-status/${order._id}`} 
-                    className="block card rounded-none overflow-hidden active:scale-[0.98] transition-transform border border-[--border]"
+                    className="block card card-glow rounded-xl overflow-hidden group"
                   >
                     {/* Progress bar */}
-                    <div className="h-1.5 bg-[--bg-elevated] relative overflow-hidden">
-                      <div 
-                        className="h-full bg-[--primary] transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
+                    <div className="h-1 bg-gradient-to-r from-[--primary] to-[--primary-light]" />
                     
-                    <div className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-bold text-[--text-primary] mb-0.5 truncate">
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <p className="font-semibold text-[--text-primary]">
                             Order #{order.orderNumber || order._id.slice(-4)}
                           </p>
-                          <p className="text-xs text-[--text-muted]">
-                            Table {order.tableId} • {new Date(order._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          <p className="text-xs text-[--text-muted] mt-0.5">Table {order.tableId}</p>
                         </div>
-                        <div 
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-none border border-[--border] ml-2 flex-shrink-0"
-                          style={{ backgroundColor: `${status.color}10` }}
-                        >
-                          <StatusIcon size={12} style={{ color: status.color }} />
-                          <span className="text-xs font-bold whitespace-nowrap" style={{ color: status.color }}>{status.label}</span>
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${status.cls}`}>
+                          <StatusIcon size={14} />
+                          <span className="text-xs font-medium">{status.label}</span>
                         </div>
                       </div>
                       
                       {/* Item previews */}
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-4">
                         {order.items.slice(0, 4).map((item, i) => (
                           <div 
                             key={i} 
-                            className="w-11 h-11 bg-[--bg-elevated] border border-[--border] rounded-none flex items-center justify-center overflow-hidden flex-shrink-0"
+                            className="w-10 h-10 bg-[--bg-elevated] border border-[--border] rounded-lg flex items-center justify-center overflow-hidden"
                           >
                             <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
                           </div>
                         ))}
                         {order.items.length > 4 && (
-                          <div className="w-11 h-11 bg-[--bg-elevated] border border-[--border] rounded-none flex items-center justify-center text-xs font-bold text-[--text-muted] flex-shrink-0">
+                          <div className="w-10 h-10 bg-[--bg-elevated] border border-[--border] rounded-lg flex items-center justify-center text-xs text-[--text-muted]">
                             +{order.items.length - 4}
                           </div>
                         )}
                       </div>
                       
-                      <div className="flex items-center justify-between pt-3 border-t border-[--border]">
-                        <span className="text-xs text-[--text-muted] font-medium">
-                          {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-[--text-dim]">
+                          {new Date(order._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-[--primary]">₹{order.total.toFixed(0)}</span>
-                          <ChevronRight size={16} className="text-[--text-dim]" />
+                          <span className="price-tag">₹{order.total.toFixed(0)}</span>
+                          <ChevronRight size={16} className="text-[--text-dim] group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </div>
@@ -354,36 +313,34 @@ export default function MyOrdersPage() {
         {/* Past Orders */}
         {pastOrders.length > 0 && (
           <div className="animate-fade-in">
-            <h2 className="text-[10px] tracking-[0.15em] text-[--text-muted] uppercase font-bold mb-4">Order History</h2>
+            <h2 className="text-[10px] tracking-[0.2em] text-[--text-muted] uppercase mb-4">Order History</h2>
             <div className="space-y-3">
               {pastOrders.map((order) => (
-                <div key={order._id} className="card rounded-none p-4 border border-[--border] opacity-60">
+                <div key={order._id} className="card rounded-xl p-4 opacity-70">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="font-bold text-[--text-primary] text-sm mb-0.5">
+                      <p className="font-medium text-[--text-muted] text-sm">
                         #{order.orderNumber || order._id.slice(-4)}
                       </p>
-                      <p className="text-xs text-[--text-muted]">
-                        {new Date(order._creationTime).toLocaleDateString()} • Table {order.tableId}
+                      <p className="text-xs text-[--text-dim]">
+                        {new Date(order._creationTime).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[--text-muted]">
+                    <div className="flex items-center gap-2 text-[--success]">
                       <CheckCircle size={14} />
-                      <span className="text-xs font-semibold">Done</span>
+                      <span className="text-xs font-medium">Completed</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       {order.items.slice(0, 3).map((item, i) => (
-                        <div key={i} className="w-8 h-8 bg-[--bg-elevated] border border-[--border] rounded-none overflow-hidden flex-shrink-0">
-                          <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
-                        </div>
+                        <MenuItemImage key={i} storageId={item.image} alt={item.name} className="w-6 h-6 rounded object-cover" />
                       ))}
                       {order.items.length > 3 && (
-                        <span className="text-xs text-[--text-muted] font-semibold ml-0.5">+{order.items.length - 3}</span>
+                        <span className="text-xs text-[--text-dim] ml-1">+{order.items.length - 3}</span>
                       )}
                     </div>
-                    <span className="text-base font-bold text-[--text-primary]">₹{order.total.toFixed(0)}</span>
+                    <span className="font-medium text-[--text-muted]">₹{order.total.toFixed(0)}</span>
                   </div>
                 </div>
               ))}
@@ -392,11 +349,11 @@ export default function MyOrdersPage() {
         )}
 
         {/* New Order CTA */}
-        {activeOrders.length === 0 && pastOrders.length > 0 && (
+        {activeOrders.length === 0 && (
           <div className="mt-8 animate-scale-in">
             <button 
               onClick={() => setShowPopup(true)} 
-              className="flex items-center justify-center gap-2 btn-primary py-3.5 rounded-none font-bold text-sm w-full active:scale-95 transition-transform"
+              className="flex items-center justify-center gap-2 btn-primary py-4 rounded-xl font-semibold text-sm w-full"
             >
               <Plus size={18} />
               Place New Order
@@ -404,6 +361,9 @@ export default function MyOrdersPage() {
           </div>
         )}
       </div>
+
+      {/* AI Chat Assistant */}
+   
     </div>
   );
 }

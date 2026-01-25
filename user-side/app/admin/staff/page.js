@@ -62,7 +62,7 @@ export default function StaffPage() {
   });
 
   if (!staff || !tables) {
-    return <div className="p-6 text-black">LOADING...</div>;
+    return <div className="p-6 text-zinc-500">LOADING...</div>;
   }
 
   const activeStaff = staff.filter(s => s.active);
@@ -70,14 +70,14 @@ export default function StaffPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6 border-b border-black pb-4">
+      <div className="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight">STAFF</h1>
-          <p className="text-black text-xs uppercase tracking-widest">Manage staff & table assignments</p>
+          <p className="text-zinc-600 text-xs uppercase tracking-widest">Manage staff & table assignments</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wide hover:bg-white transition-colors"
+          className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors"
         >
           + Add Staff
         </button>
@@ -85,47 +85,47 @@ export default function StaffPage() {
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="mb-6 bg-white border border-black p-4">
+        <div className="mb-6 bg-zinc-900 border border-zinc-800 p-4">
           <h2 className="text-sm font-bold text-white mb-4 uppercase tracking-wide">
             {editingId ? 'Edit Staff' : 'Add New Staff'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-[10px] text-black uppercase tracking-wide mb-1">Name</label>
+                <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Name</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full bg-white border border-black px-3 py-2 text-sm text-white"
+                  className="w-full bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white"
                   placeholder="Staff name"
                   required
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-black uppercase tracking-wide mb-1">Role</label>
+                <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Role</label>
                 <select
                   value={form.role}
                   onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="w-full bg-white border border-black px-3 py-2 text-sm text-white"
+                  className="w-full bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white"
                 >
                   {roles.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] text-black uppercase tracking-wide mb-1">Phone</label>
+                <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Phone</label>
                 <input
                   type="text"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full bg-white border border-black px-3 py-2 text-sm text-white"
+                  className="w-full bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white"
                   placeholder="Optional"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] text-black uppercase tracking-wide mb-2">
+              <label className="block text-[10px] text-zinc-500 uppercase tracking-wide mb-2">
                 Assigned Tables ({form.assignedTables.length} selected)
               </label>
               <div className="flex flex-wrap gap-2">
@@ -143,8 +143,8 @@ export default function StaffPage() {
                         isSelected
                           ? 'bg-white text-black'
                           : hasConflict
-                          ? 'bg-white border border-black/10 text-black'
-                          : 'bg-white border border-black text-black hover:border-black'
+                          ? 'bg-zinc-800 border border-amber-500/50 text-amber-500'
+                          : 'bg-zinc-800 border border-zinc-700 text-zinc-400 hover:border-zinc-500'
                       }`}
                       title={hasConflict ? `Assigned to: ${assignedTo.join(', ')}` : ''}
                     >
@@ -154,7 +154,7 @@ export default function StaffPage() {
                 })}
               </div>
               {form.assignedTables.length > 0 && (
-                <p className="text-black text-xs mt-2">
+                <p className="text-zinc-500 text-xs mt-2">
                   Tables: {form.assignedTables.join(', ')}
                 </p>
               )}
@@ -163,14 +163,14 @@ export default function StaffPage() {
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wide hover:bg-white"
+                className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wide hover:bg-zinc-200"
               >
                 {editingId ? 'Update' : 'Add Staff'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wide hover:bg-white"
+                className="px-4 py-2 bg-zinc-800 text-zinc-400 text-xs font-bold uppercase tracking-wide hover:bg-zinc-700"
               >
                 Cancel
               </button>
@@ -181,31 +181,31 @@ export default function StaffPage() {
 
       {/* Active Staff */}
       <div className="mb-8">
-        <h2 className="text-xs text-black uppercase tracking-widest mb-3">Active Staff ({activeStaff.length})</h2>
+        <h2 className="text-xs text-zinc-500 uppercase tracking-widest mb-3">Active Staff ({activeStaff.length})</h2>
         {activeStaff.length === 0 ? (
-          <p className="text-black text-sm">No active staff members</p>
+          <p className="text-zinc-600 text-sm">No active staff members</p>
         ) : (
           <div className="grid gap-3">
             {activeStaff.map(s => (
-              <div key={s._id} className="bg-white border border-black p-4 flex items-center justify-between">
+              <div key={s._id} className="bg-zinc-900 border border-zinc-800 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-white flex items-center justify-center text-lg relative">
+                  <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center text-lg relative">
                     {s.name.charAt(0).toUpperCase()}
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-none border-2 border-black ${s.isOnline === true ? 'bg-green-500' : 'bg-white'}`} />
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-zinc-900 ${s.isOnline === true ? 'bg-green-500' : 'bg-zinc-600'}`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-white font-medium">{s.name}</p>
-                      <span className={`text-[9px] px-1.5 py-0.5 ${s.isOnline === true ? 'bg-black/5 text-black' : 'bg-white text-black'}`}>
+                      <span className={`text-[9px] px-1.5 py-0.5 ${s.isOnline === true ? 'bg-green-500/20 text-green-400' : 'bg-zinc-700 text-zinc-500'}`}>
                         {s.isOnline === true ? 'ONLINE' : 'OFFLINE'}
                       </span>
                     </div>
-                    <p className="text-black text-xs">{s.role} {s.phone && `• ${s.phone}`}</p>
+                    <p className="text-zinc-500 text-xs">{s.role} {s.phone && `• ${s.phone}`}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-[10px] text-black uppercase tracking-wide">Tables</p>
+                    <p className="text-[10px] text-zinc-600 uppercase tracking-wide">Tables</p>
                     <p className="text-white text-sm font-mono">
                       {s.assignedTables.length > 0 ? s.assignedTables.join(', ') : '—'}
                     </p>
@@ -213,25 +213,25 @@ export default function StaffPage() {
                   <div className="flex gap-1">
                     <Link
                       href={`/admin/staff/${s._id}`}
-                      className="px-2 py-1 text-[10px] bg-white text-black font-bold uppercase tracking-wide hover:bg-white"
+                      className="px-2 py-1 text-[10px] bg-white text-black font-bold uppercase tracking-wide hover:bg-zinc-200"
                     >
                       Portal
                     </Link>
                     <button
                       onClick={() => handleEdit(s)}
-                      className="px-2 py-1 text-[10px] bg-white text-black hover:text-white uppercase tracking-wide"
+                      className="px-2 py-1 text-[10px] bg-zinc-800 text-zinc-400 hover:text-white uppercase tracking-wide"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => toggleActive({ id: s._id })}
-                      className="px-2 py-1 text-[10px] bg-white text-black hover:text-black uppercase tracking-wide"
+                      className="px-2 py-1 text-[10px] bg-zinc-800 text-amber-500 hover:text-amber-400 uppercase tracking-wide"
                     >
                       Deactivate
                     </button>
                     <button
                       onClick={() => removeStaff({ id: s._id })}
-                      className="px-2 py-1 text-[10px] bg-white text-black hover:text-black uppercase tracking-wide"
+                      className="px-2 py-1 text-[10px] bg-zinc-800 text-red-500 hover:text-red-400 uppercase tracking-wide"
                     >
                       Delete
                     </button>
@@ -246,29 +246,29 @@ export default function StaffPage() {
       {/* Inactive Staff */}
       {inactiveStaff.length > 0 && (
         <div>
-          <h2 className="text-xs text-black uppercase tracking-widest mb-3">Inactive ({inactiveStaff.length})</h2>
+          <h2 className="text-xs text-zinc-500 uppercase tracking-widest mb-3">Inactive ({inactiveStaff.length})</h2>
           <div className="grid gap-2">
             {inactiveStaff.map(s => (
-              <div key={s._id} className="bg-white/50 border border-black/50 p-3 flex items-center justify-between opacity-60">
+              <div key={s._id} className="bg-zinc-900/50 border border-zinc-800/50 p-3 flex items-center justify-between opacity-60">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white flex items-center justify-center text-sm">
+                  <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center text-sm">
                     {s.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-black text-sm">{s.name}</p>
-                    <p className="text-black text-xs">{s.role}</p>
+                    <p className="text-zinc-400 text-sm">{s.name}</p>
+                    <p className="text-zinc-600 text-xs">{s.role}</p>
                   </div>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => toggleActive({ id: s._id })}
-                    className="px-2 py-1 text-[10px] bg-white text-black hover:text-black uppercase tracking-wide"
+                    className="px-2 py-1 text-[10px] bg-zinc-800 text-green-500 hover:text-green-400 uppercase tracking-wide"
                   >
                     Activate
                   </button>
                   <button
                     onClick={() => removeStaff({ id: s._id })}
-                    className="px-2 py-1 text-[10px] bg-white text-black hover:text-black uppercase tracking-wide"
+                    className="px-2 py-1 text-[10px] bg-zinc-800 text-red-500 hover:text-red-400 uppercase tracking-wide"
                   >
                     Delete
                   </button>
@@ -280,8 +280,8 @@ export default function StaffPage() {
       )}
 
       {/* Table Assignment Overview */}
-      <div className="mt-8 pt-6 border-t border-black">
-        <h2 className="text-xs text-black uppercase tracking-widest mb-3">Table Assignment Overview</h2>
+      <div className="mt-8 pt-6 border-t border-zinc-800">
+        <h2 className="text-xs text-zinc-500 uppercase tracking-widest mb-3">Table Assignment Overview</h2>
         <div className="grid grid-cols-6 gap-2">
           {tables.map(t => {
             const assigned = staff.filter(s => s.active && s.assignedTables.includes(t.number));
@@ -290,10 +290,10 @@ export default function StaffPage() {
                 key={t._id} 
                 className={`p-2 text-center border ${
                   assigned.length === 0 
-                    ? 'bg-white border-black text-black' 
+                    ? 'bg-zinc-900 border-zinc-800 text-zinc-600' 
                     : assigned.length > 1
-                    ? 'bg-black/5 border-black/10 text-black'
-                    : 'bg-white border-black text-white'
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                    : 'bg-zinc-900 border-zinc-700 text-white'
                 }`}
               >
                 <p className="text-lg font-mono font-bold">{t.number}</p>

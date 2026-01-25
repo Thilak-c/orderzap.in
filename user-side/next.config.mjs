@@ -11,7 +11,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/logo.png',
+        source: '/assets/logos/favicon_io/android-chrome-192x192.png',
         headers: [
           {
             key: 'Cache-Control',

@@ -129,9 +129,9 @@ export default function AdminReportsPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 border-b border-black pb-4">
+      <div className="mb-6 border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold text-white tracking-tight">REPORTS</h1>
-        <p className="text-black text-xs uppercase tracking-widest">Order Analytics & Insights</p>
+        <p className="text-zinc-600 text-xs uppercase tracking-widest">Order Analytics & Insights</p>
       </div>
 
       {/* Date Filter */}
@@ -140,7 +140,7 @@ export default function AdminReportsPage() {
           <button
             key={f}
             onClick={() => setDateRange(f)}
-            className={`px-3 py-1.5 text-xs uppercase tracking-wide ${dateRange === f ? 'bg-white text-black font-bold' : 'bg-white text-black hover:bg-white'}`}
+            className={`px-3 py-1.5 text-xs uppercase tracking-wide ${dateRange === f ? 'bg-white text-black font-bold' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'}`}
           >
             {f === 'all' ? 'All Time' : f === 'week' ? 'This Week' : f === 'month' ? 'This Month' : f}
           </button>
@@ -148,8 +148,8 @@ export default function AdminReportsPage() {
       </div>
 
       {!analytics ? (
-        <div className="bg-white border border-black p-8 text-center">
-          <p className="text-black">No orders for this period</p>
+        <div className="bg-zinc-900 border border-zinc-800 p-8 text-center">
+          <p className="text-zinc-600">No orders for this period</p>
         </div>
       ) : (
         <>
@@ -164,33 +164,33 @@ export default function AdminReportsPage() {
 
           {/* Top Tables */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white border border-black">
-              <div className="px-4 py-3 border-b border-black">
-                <h2 className="text-xs font-bold text-black uppercase tracking-wide">▲ TOP PERFORMING TABLES</h2>
+            <div className="bg-zinc-900 border border-zinc-800">
+              <div className="px-4 py-3 border-b border-zinc-800">
+                <h2 className="text-xs font-bold text-emerald-400 uppercase tracking-wide">▲ TOP PERFORMING TABLES</h2>
               </div>
               {analytics.tableRanking.length === 0 ? (
-                <p className="text-center py-6 text-black text-sm">No data</p>
+                <p className="text-center py-6 text-zinc-600 text-sm">No data</p>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-white text-[10px] uppercase tracking-wide">
+                  <thead className="bg-zinc-950 text-[10px] uppercase tracking-wide">
                     <tr>
-                      <th className="text-left py-2 px-4 text-black">#</th>
-                      <th className="text-left py-2 px-3 text-black">Table</th>
-                      <th className="text-right py-2 px-3 text-black">Orders</th>
-                      <th className="text-right py-2 px-4 text-black">Revenue</th>
+                      <th className="text-left py-2 px-4 text-zinc-500">#</th>
+                      <th className="text-left py-2 px-3 text-zinc-500">Table</th>
+                      <th className="text-right py-2 px-3 text-zinc-500">Orders</th>
+                      <th className="text-right py-2 px-4 text-zinc-500">Revenue</th>
                     </tr>
                   </thead>
                   <tbody>
                     {analytics.tableRanking.slice(0, 5).map((table, i) => (
-                      <tr key={table.tableId} className="border-t border-black/50">
+                      <tr key={table.tableId} className="border-t border-zinc-800/50">
                         <td className="py-2 px-4">
-                          <span className={`w-5 h-5 inline-flex items-center justify-center text-[10px] font-bold ${i === 0 ? 'bg-emerald-600 text-white' : 'bg-white text-black'}`}>
+                          <span className={`w-5 h-5 inline-flex items-center justify-center text-[10px] font-bold ${i === 0 ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
                             {i + 1}
                           </span>
                         </td>
                         <td className="py-2 px-3 font-medium">Table {table.tableId}</td>
-                        <td className="py-2 px-3 text-right text-black">{table.orders}</td>
-                        <td className="py-2 px-4 text-right font-bold text-black">₹{table.revenue.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right text-zinc-500">{table.orders}</td>
+                        <td className="py-2 px-4 text-right font-bold text-emerald-400">₹{table.revenue.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -199,9 +199,9 @@ export default function AdminReportsPage() {
             </div>
 
             {/* Payment Methods */}
-            <div className="bg-white border border-black">
-              <div className="px-4 py-3 border-b border-black">
-                <h2 className="text-xs font-bold text-black uppercase tracking-wide">PAYMENT BREAKDOWN</h2>
+            <div className="bg-zinc-900 border border-zinc-800">
+              <div className="px-4 py-3 border-b border-zinc-800">
+                <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wide">PAYMENT BREAKDOWN</h2>
               </div>
               <div className="p-4 space-y-3">
                 {Object.entries(analytics.paymentCounts).map(([method, data]) => {
@@ -209,17 +209,17 @@ export default function AdminReportsPage() {
                     'pay-now': { name: 'Paid Online', color: 'bg-emerald-600' },
                     'pay-counter': { name: 'Pay at Counter', color: 'bg-amber-600' },
                     'pay-table': { name: 'Pay at Table', color: 'bg-blue-600' },
-                    'unknown': { name: 'Unknown', color: 'bg-white' },
+                    'unknown': { name: 'Unknown', color: 'bg-zinc-600' },
                   };
                   const label = labels[method] || labels.unknown;
                   const percent = (data.count / analytics.totalOrders * 100).toFixed(0);
                   return (
                     <div key={method}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-black">{label.name}</span>
+                        <span className="text-zinc-400">{label.name}</span>
                         <span>{data.count} orders (₹{data.revenue.toFixed(0)})</span>
                       </div>
-                      <div className="h-2 bg-white">
+                      <div className="h-2 bg-zinc-800">
                         <div className={`h-full ${label.color}`} style={{ width: `${percent}%` }} />
                       </div>
                     </div>
@@ -232,30 +232,30 @@ export default function AdminReportsPage() {
           {/* Top & Bottom Items */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             {/* Top Items */}
-            <div className="bg-white border border-black/10">
-              <div className="px-4 py-3 border-b border-black">
-                <h2 className="text-xs font-bold text-black uppercase tracking-wide">★ BEST SELLERS</h2>
-                <p className="text-[10px] text-black">Most ordered items by revenue</p>
+            <div className="bg-zinc-900 border border-emerald-900/50">
+              <div className="px-4 py-3 border-b border-zinc-800">
+                <h2 className="text-xs font-bold text-emerald-400 uppercase tracking-wide">★ BEST SELLERS</h2>
+                <p className="text-[10px] text-zinc-600">Most ordered items by revenue</p>
               </div>
               <table className="w-full text-sm">
-                <thead className="bg-white text-[10px] uppercase tracking-wide">
+                <thead className="bg-zinc-950 text-[10px] uppercase tracking-wide">
                   <tr>
-                    <th className="text-left py-2 px-4 text-black">Item</th>
-                    <th className="text-right py-2 px-3 text-black">Qty</th>
-                    <th className="text-right py-2 px-4 text-black">Revenue</th>
+                    <th className="text-left py-2 px-4 text-zinc-500">Item</th>
+                    <th className="text-right py-2 px-3 text-zinc-500">Qty</th>
+                    <th className="text-right py-2 px-4 text-zinc-500">Revenue</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.topItems.map((item, i) => (
-                    <tr key={item.name} className="border-t border-black/50">
+                    <tr key={item.name} className="border-t border-zinc-800/50">
                       <td className="py-2 px-4">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{item.image}</span>
                           <span className="font-medium">{item.name}</span>
                         </div>
                       </td>
-                      <td className="py-2 px-3 text-right text-black">{item.quantity}</td>
-                      <td className="py-2 px-4 text-right font-bold text-black">₹{item.revenue.toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right text-zinc-500">{item.quantity}</td>
+                      <td className="py-2 px-4 text-right font-bold text-emerald-400">₹{item.revenue.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -263,30 +263,30 @@ export default function AdminReportsPage() {
             </div>
 
             {/* Bottom Items */}
-            <div className="bg-white border border-black/10">
-              <div className="px-4 py-3 border-b border-black">
-                <h2 className="text-xs font-bold text-black uppercase tracking-wide">⚠ SLOW MOVERS</h2>
-                <p className="text-[10px] text-black">Least ordered items - consider removing?</p>
+            <div className="bg-zinc-900 border border-red-900/50">
+              <div className="px-4 py-3 border-b border-zinc-800">
+                <h2 className="text-xs font-bold text-red-400 uppercase tracking-wide">⚠ SLOW MOVERS</h2>
+                <p className="text-[10px] text-zinc-600">Least ordered items - consider removing?</p>
               </div>
               <table className="w-full text-sm">
-                <thead className="bg-white text-[10px] uppercase tracking-wide">
+                <thead className="bg-zinc-950 text-[10px] uppercase tracking-wide">
                   <tr>
-                    <th className="text-left py-2 px-4 text-black">Item</th>
-                    <th className="text-right py-2 px-3 text-black">Qty</th>
-                    <th className="text-right py-2 px-4 text-black">Revenue</th>
+                    <th className="text-left py-2 px-4 text-zinc-500">Item</th>
+                    <th className="text-right py-2 px-3 text-zinc-500">Qty</th>
+                    <th className="text-right py-2 px-4 text-zinc-500">Revenue</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.bottomItems.map((item, i) => (
-                    <tr key={item.name} className="border-t border-black/50">
+                    <tr key={item.name} className="border-t border-zinc-800/50">
                       <td className="py-2 px-4">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{item.image}</span>
                           <span className="font-medium">{item.name}</span>
                         </div>
                       </td>
-                      <td className="py-2 px-3 text-right text-black">{item.quantity}</td>
-                      <td className="py-2 px-4 text-right text-black">₹{item.revenue.toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right text-zinc-500">{item.quantity}</td>
+                      <td className="py-2 px-4 text-right text-red-400">₹{item.revenue.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -295,37 +295,37 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Order Movement / History */}
-          <div className="bg-white border border-black">
-            <div className="px-4 py-3 border-b border-black flex justify-between items-center">
-              <h2 className="text-xs font-bold text-black uppercase tracking-wide">ORDER MOVEMENT</h2>
-              <span className="text-[10px] text-black">{filteredOrders.length} orders</span>
+          <div className="bg-zinc-900 border border-zinc-800">
+            <div className="px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
+              <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wide">ORDER MOVEMENT</h2>
+              <span className="text-[10px] text-zinc-600">{filteredOrders.length} orders</span>
             </div>
             <table className="w-full text-sm">
-              <thead className="bg-white text-[10px] uppercase tracking-wide">
+              <thead className="bg-zinc-950 text-[10px] uppercase tracking-wide">
                 <tr>
-                  <th className="text-left py-2 px-4 text-black">Time</th>
-                  <th className="text-left py-2 px-3 text-black">Order</th>
-                  <th className="text-left py-2 px-3 text-black">Table</th>
-                  <th className="text-left py-2 px-3 text-black">Items</th>
-                  <th className="text-left py-2 px-3 text-black">Status</th>
-                  <th className="text-right py-2 px-4 text-black">Total</th>
+                  <th className="text-left py-2 px-4 text-zinc-500">Time</th>
+                  <th className="text-left py-2 px-3 text-zinc-500">Order</th>
+                  <th className="text-left py-2 px-3 text-zinc-500">Table</th>
+                  <th className="text-left py-2 px-3 text-zinc-500">Items</th>
+                  <th className="text-left py-2 px-3 text-zinc-500">Status</th>
+                  <th className="text-right py-2 px-4 text-zinc-500">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.slice(0, 20).map((order) => (
-                  <tr key={order._id} className="border-t border-black/50 hover:bg-white/30">
+                  <tr key={order._id} className="border-t border-zinc-800/50 hover:bg-zinc-800/30">
                     <td className="py-2 px-4">
-                      <p className="text-black">{new Date(order._creationTime).toLocaleDateString()}</p>
-                      <p className="text-[10px] text-black">{new Date(order._creationTime).toLocaleTimeString()}</p>
+                      <p className="text-zinc-300">{new Date(order._creationTime).toLocaleDateString()}</p>
+                      <p className="text-[10px] text-zinc-600">{new Date(order._creationTime).toLocaleTimeString()}</p>
                     </td>
                     <td className="py-2 px-3 font-medium">#{order.orderNumber || order._id.slice(-4)}</td>
-                    <td className="py-2 px-3 text-black">{order.tableId}</td>
+                    <td className="py-2 px-3 text-zinc-500">{order.tableId}</td>
                     <td className="py-2 px-3">
                       <div className="flex gap-0.5">
                         {order.items.slice(0, 4).map((item, i) => (
                           <span key={i} className="text-sm">{item.image}</span>
                         ))}
-                        {order.items.length > 4 && <span className="text-black text-xs">+{order.items.length - 4}</span>}
+                        {order.items.length > 4 && <span className="text-zinc-600 text-xs">+{order.items.length - 4}</span>}
                       </div>
                     </td>
                     <td className="py-2 px-3">
@@ -337,8 +337,8 @@ export default function AdminReportsPage() {
               </tbody>
             </table>
             {filteredOrders.length > 20 && (
-              <div className="px-4 py-3 border-t border-black text-center">
-                <span className="text-[10px] text-black">Showing 20 of {filteredOrders.length} orders</span>
+              <div className="px-4 py-3 border-t border-zinc-800 text-center">
+                <span className="text-[10px] text-zinc-600">Showing 20 of {filteredOrders.length} orders</span>
               </div>
             )}
           </div>
@@ -350,28 +350,28 @@ export default function AdminReportsPage() {
 
 function HardNumber({ label, value, prefix = '', sub, highlight }) {
   const colors = {
-    green: 'border-l-emerald-500 text-black',
-    red: 'border-l-red-500 text-black',
-    amber: 'border-l-amber-500 text-black',
+    green: 'border-l-emerald-500 text-emerald-400',
+    red: 'border-l-red-500 text-red-400',
+    amber: 'border-l-amber-500 text-amber-400',
   };
   
   return (
-    <div className={`bg-white border border-black p-4 ${highlight ? `border-l-4 ${colors[highlight]?.split(' ')[0] || ''}` : ''}`}>
-      <p className="text-[10px] text-black uppercase tracking-widest mb-1">{label}</p>
+    <div className={`bg-zinc-900 border border-zinc-800 p-4 ${highlight ? `border-l-4 ${colors[highlight]?.split(' ')[0] || ''}` : ''}`}>
+      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">{label}</p>
       <p className={`text-2xl font-bold ${highlight ? colors[highlight]?.split(' ')[1] || 'text-white' : 'text-white'}`}>
         {prefix}{typeof value === 'number' ? value.toLocaleString() : value}
       </p>
-      {sub && <p className="text-[10px] text-black mt-1">{sub}</p>}
+      {sub && <p className="text-[10px] text-zinc-600 mt-1">{sub}</p>}
     </div>
   );
 }
 
 function StatusBadge({ status }) {
   const styles = {
-    pending: 'bg-amber-950 text-black border-amber-800',
-    preparing: 'bg-blue-950 text-black border-blue-800',
-    ready: 'bg-emerald-950 text-black border-emerald-800',
-    completed: 'bg-white text-black border-black',
+    pending: 'bg-amber-950 text-amber-400 border-amber-800',
+    preparing: 'bg-blue-950 text-blue-400 border-blue-800',
+    ready: 'bg-emerald-950 text-emerald-400 border-emerald-800',
+    completed: 'bg-zinc-800 text-zinc-400 border-zinc-700',
   };
   
   return (

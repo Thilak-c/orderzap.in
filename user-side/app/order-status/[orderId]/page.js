@@ -3,8 +3,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { 
-  CheckCircle, ChefHat, Truck, Clock, ArrowLeft, 
+import {
+  CheckCircle, ChefHat, Truck, Clock, ArrowLeft,
   CreditCard, Banknote, UserRound, RefreshCw, IndianRupee, StickyNote
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
@@ -63,9 +63,9 @@ export default function OrderStatusPage() {
       <header className="glass sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-5 py-4">
           <div className="flex items-center justify-between">
-            <Link 
-              href="/my-orders" 
-              className="w-11 h-11 flex items-center justify-center rounded-none bg-[--card] border border-[--border] hover:border-[--border-light] transition-all"
+            <Link
+              href="/my-orders"
+              className="w-11 h-11 flex items-center justify-center rounded-xl bg-[--card] border border-[--border] hover:border-[--border-light] transition-all"
             >
               <ArrowLeft size={18} className="text-[--text-muted]" />
             </Link>
@@ -82,15 +82,63 @@ export default function OrderStatusPage() {
         {/* Current Status Hero */}
         <div className="text-center mb-10 animate-scale-in">
           {order.status === "pending" ? (
-            <img src="/cooking.gif" alt="Cooking" className="w-32 h-32 mx-auto mb-5" />
+            <video
+              src="/assets/videos/cooking.mp4"
+              autoPlay
+              loop
+              muted
+              preload="metadata"
+              poster="/cooking-poster.jpg"
+              onContextMenu={(e) => e.preventDefault()}
+              playsInline
+              className="w-32 h-32 mx-auto mb-5"
+            >
+              Your browser does not support the video tag.
+            </video>
           ) : order.status === "preparing" ? (
-            <img src="/prepare-food.gif" alt="Preparing" className="w-32 h-32 mx-auto mb-5" />
+            <video
+              src="/assets/videos/prepare-food.mp4"
+              autoPlay
+              loop
+              muted
+              preload="metadata"
+              poster="/prepare-food-poster.jpg"
+              onContextMenu={(e) => e.preventDefault()}
+              playsInline
+              className="w-32 h-32 mx-auto mb-5"
+            >
+              Your browser does not support the video tag.
+            </video>
           ) : order.status === "ready" ? (
-            <img src="/pickup-order.gif" alt="Ready" className="w-32 h-32 mx-auto mb-5" />
+          <video
+              src="/assets/videos/pickup-order.mp4"
+              autoPlay
+              loop
+              muted
+              preload="metadata"
+              poster="/pickup-order-poster.jpg"
+              onContextMenu={(e) => e.preventDefault()}
+              playsInline
+              className="w-32 h-32 mx-auto mb-5"
+            >
+              Your browser does not support the video tag.
+            </video>
           ) : order.status === "completed" ? (
-            <img src="/food-delivered.gif" alt="Completed" className="w-32 h-32 mx-auto mb-5" />
+            <video
+              src="/assets/videos/food-delivered.mp4"
+              autoPlay
+              loop
+              muted
+              preload="metadata"
+              poster="/food-delivered-poster.jpg"
+              onContextMenu={(e) => e.preventDefault()}
+              playsInline
+              className="w-[180] mx-auto mb-"
+            >
+              Your browser does not support the video tag.
+            </video>
           ) : (
-            <div className={`w-24 h-24 mx-auto mb-5 rounded-none flex items-center justify-center ${currentStatus.cls} animate-glow`}>
+            <div className={`w-24 h-24 mx-auto mb-5 rounded-2xl flex items-center justify-center ${currentStatus.cls} animate-glow`}>
               <currentStatus.icon size={40} />
             </div>
           )}
@@ -98,7 +146,7 @@ export default function OrderStatusPage() {
             {currentStatus.label}
           </h2>
           {order.paymentMethod && paymentLabels[order.paymentMethod] && (
-            <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-none bg-[--card] border border-[--border] text-[--text-muted] text-xs">
+            <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-full bg-[--card] border border-[--border] text-[--text-muted] text-xs">
               {PaymentIcon && <PaymentIcon size={14} />}
               {paymentLabels[order.paymentMethod].label}
             </div>
@@ -106,7 +154,7 @@ export default function OrderStatusPage() {
         </div>
 
         {/* Progress Steps - Clean Timeline */}
-        <div className="card rounded-none p-6 mb-6 animate-slide-up">
+        <div className="card rounded-2xl p-6 mb-6 animate-slide-up">
           <div className="relative">
             {statusSteps.map((step, index) => {
               const Icon = step.icon;
@@ -114,10 +162,10 @@ export default function OrderStatusPage() {
               const isCurrent = index === currentStepIndex;
               const isLast = index === statusSteps.length - 1;
               const isPast = index < currentStepIndex;
-              
+
               return (
-                <div 
-                  key={step.key} 
+                <div
+                  key={step.key}
                   className="flex items-start gap-4 relative"
                   style={{
                     opacity: 0,
@@ -128,54 +176,52 @@ export default function OrderStatusPage() {
                   {!isLast && (
                     <div className="absolute left-5 top-12 w-px h-10">
                       <div className="absolute inset-0 bg-[--border]" />
-                      <div 
+                      <div
                         className="absolute top-0 left-0 w-full bg-[--primary] transition-all duration-500"
                         style={{ height: isPast ? '100%' : '0%' }}
                       />
                     </div>
                   )}
-                  
+
                   {/* Step icon */}
                   <div className="relative flex-shrink-0">
                     {isCurrent && !isCompleted && (
-                      <div 
-                        className="absolute inset-0 rounded-none border border-[--primary] opacity-0"
+                      <div
+                        className="absolute inset-0 rounded-xl border border-[--primary] opacity-0"
                         style={{ animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }}
                       />
                     )}
-                    
-                    <div 
-                      className={`relative z-10 w-10 h-10 rounded-none flex items-center justify-center transition-all duration-300 ${
-                        isActive 
-                          ? 'bg-[--primary]/10 border border-[--primary]/30' 
+
+                    <div
+                      className={`relative z-10 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive
+                          ? 'bg-[--primary]/10 border border-[--primary]/30'
                           : 'bg-[--card] border border-[--border]'
-                      }`}
+                        }`}
                     >
-                      <Icon 
-                        size={18} 
+                      <Icon
+                        size={18}
                         className={`transition-colors ${isActive ? 'text-[--primary]' : 'text-[--text-dim]'}`}
                       />
                     </div>
                   </div>
-                  
+
                   {/* Step content */}
                   <div className={`flex-1 pt-2 ${isLast ? "pb-0" : "pb-8"}`}>
-                    <p className={`text-sm font-medium transition-colors ${
-                      isActive ? "text-[--text-primary]" : "text-[--text-dim]"
-                    }`}>
+                    <p className={`text-sm font-medium transition-colors ${isActive ? "text-[--text-primary]" : "text-[--text-dim]"
+                      }`}>
                       {step.label}
                     </p>
-                    
+
                     {isCurrent && !isCompleted && (
                       <div className="flex items-center gap-2 mt-1">
                         <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-[--primary] opacity-75" />
-                          <span className="relative inline-flex rounded-none h-2 w-2 bg-[--primary]" />
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[--primary] opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-[--primary]" />
                         </span>
                         <span className="text-xs text-[--text-muted]">In Progress</span>
                       </div>
                     )}
-                    
+
                     {isPast && (
                       <p className="text-xs text-[--text-dim] mt-0.5">✓</p>
                     )}
@@ -184,7 +230,7 @@ export default function OrderStatusPage() {
               );
             })}
           </div>
-          
+
           <style jsx>{`
             @keyframes fadeSlide {
               from { opacity: 0; transform: translateX(-10px); }
@@ -197,7 +243,7 @@ export default function OrderStatusPage() {
         </div>
 
         {/* Order Summary */}
-        <div className="card rounded-none p-6 mb-6 animate-slide-up delay-100" style={{animationFillMode: 'forwards'}}>
+        <div className="card rounded-xl p-6 mb-6 animate-slide-up delay-100" style={{ animationFillMode: 'forwards' }}>
           <h3 className="text-[10px] tracking-[0.2em] text-[--text-muted] uppercase mb-5">
             Bill Summary
           </h3>
@@ -205,7 +251,7 @@ export default function OrderStatusPage() {
             {order.items.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[--bg-elevated] border border-[--border] rounded-none flex items-center justify-center overflow-hidden">
+                  <div className="w-10 h-10 bg-[--bg-elevated] border border-[--border] rounded-lg flex items-center justify-center overflow-hidden">
                     <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div>
@@ -219,9 +265,9 @@ export default function OrderStatusPage() {
               </div>
             ))}
           </div>
-          
+
           <div className="divider-glow my-5" />
-          
+
           {/* Subtotal */}
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-[--text-muted]">Subtotal</span>
@@ -229,20 +275,20 @@ export default function OrderStatusPage() {
               ₹{(order.total + (order.depositUsed || 0)).toFixed(0)}
             </span>
           </div>
-          
+
           {/* Credit Applied */}
           {order.depositUsed > 0 && (
-            <div className="flex justify-between items-center mb-2 text-black">
+            <div className="flex justify-between items-center mb-2 text-emerald-400">
               <div>
                 <span className="text-sm">Credit Applied</span>
                 {order.customerPhone && (
-                  <p className="text-[10px] text-black/60">{order.customerPhone}</p>
+                  <p className="text-[10px] text-emerald-400/60">{order.customerPhone}</p>
                 )}
               </div>
               <span className="text-sm">-₹{order.depositUsed.toFixed(0)}</span>
             </div>
           )}
-          
+
           {/* Total */}
           <div className="flex justify-between items-center pt-2 border-t border-[--border]">
             <span className="text-sm font-bold text-[--text-primary]">Total Paid</span>
@@ -250,9 +296,9 @@ export default function OrderStatusPage() {
               ₹{order.total.toFixed(0)}
             </span>
           </div>
-          
+
           {order.notes && (
-            <div className="mt-5 p-4 bg-[--primary]/5 border border-[--primary]/20 rounded-none">
+            <div className="mt-5 p-4 bg-[--primary]/5 border border-[--primary]/20 rounded-xl">
               <p className="text-xs text-[--primary] flex items-center gap-1.5">
                 <StickyNote size={12} />
                 {order.notes}
@@ -267,17 +313,17 @@ export default function OrderStatusPage() {
         </div>
 
         {/* Actions */}
-        <div className="space-y-3 animate-fade-in delay-200" style={{animationFillMode: 'forwards'}}>
-          <Link 
-            href="/my-orders" 
-            className="block text-center btn-secondary py-4 rounded-none text-sm font-medium"
+        <div className="space-y-3 animate-fade-in delay-200" style={{ animationFillMode: 'forwards' }}>
+          <Link
+            href="/my-orders"
+            className="block text-center btn-secondary py-4 rounded-xl text-sm font-medium"
           >
             ← All Orders
           </Link>
           {isCompleted && (
-            <Link 
-              href="/" 
-              className="block text-center btn-primary py-4 rounded-none text-sm font-semibold"
+            <Link
+              href="/"
+              className="block text-center btn-primary py-4 rounded-xl text-sm font-semibold"
             >
               Order Again
             </Link>
@@ -286,7 +332,7 @@ export default function OrderStatusPage() {
 
         {/* Live update notice */}
         {!isCompleted && (
-          <div className="mt-6 p-4 bg-[--primary]/5 border border-[--primary]/20 rounded-none text-center animate-fade-in delay-300" style={{animationFillMode: 'forwards'}}>
+          <div className="mt-6 p-4 bg-[--primary]/5 border border-[--primary]/20 rounded-xl text-center animate-fade-in delay-300" style={{ animationFillMode: 'forwards' }}>
             <p className="text-xs text-[--primary] flex items-center justify-center gap-2">
               <RefreshCw size={14} className="animate-spin" />
               Live updates enabled • Sit back and relax

@@ -76,7 +76,7 @@ export default function ChatSheet() {
           </div>
           <button
             onClick={closeChat}
-            className="w-8 h-8 rounded-none bg-[--card] border border-[--border] flex items-center justify-center hover:border-[--primary]/30 transition-all"
+            className="w-8 h-8 rounded-lg bg-[--card] border border-[--border] flex items-center justify-center hover:border-[--primary]/30 transition-all"
             aria-label="Close chat"
           >
             <X size={16} className="text-[--muted]" />
@@ -90,9 +90,9 @@ export default function ChatSheet() {
           ))}
           {isLoading && (
             <div className="flex gap-1 px-3 py-2">
-              <span className="w-2 h-2 bg-[--primary] rounded-none animate-pulse" />
-              <span className="w-2 h-2 bg-[--primary] rounded-none animate-pulse delay-75" />
-              <span className="w-2 h-2 bg-[--primary] rounded-none animate-pulse delay-150" />
+              <span className="w-2 h-2 bg-[--primary] rounded-full animate-pulse" />
+              <span className="w-2 h-2 bg-[--primary] rounded-full animate-pulse delay-75" />
+              <span className="w-2 h-2 bg-[--primary] rounded-full animate-pulse delay-150" />
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -109,12 +109,12 @@ export default function ChatSheet() {
               type="text"
               placeholder="Ask me anything..."
               disabled={isLoading}
-              className="flex-1 px-4 py-2.5 rounded-none text-sm"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm"
             />
             <button
               type="submit"
               disabled={isLoading}
-              className="w-10 h-10 rounded-none bg-[--primary] flex items-center justify-center hover:bg-[--primary-hover] transition-all disabled:opacity-50"
+              className="w-10 h-10 rounded-xl bg-[--primary] flex items-center justify-center hover:bg-[--primary-hover] transition-all disabled:opacity-50"
               aria-label="Send message"
             >
               <Send size={18} className="text-black" />

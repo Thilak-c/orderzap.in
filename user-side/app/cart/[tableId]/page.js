@@ -10,6 +10,7 @@ import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
 import { useBranding } from "@/lib/useBranding";
 import { checkLocationPermission, RESTAURANT_LOCATION } from "@/lib/location";
+import { isQRSessionValid } from "@/lib/qrAuth";
 import { 
   Trash2, Plus, Minus, CreditCard, Banknote, 
   UserRound, ArrowLeft, 
@@ -169,6 +170,16 @@ export default function CartPage() {
       setOrderPhone(storedPhone.replace('+91', ''));
     }
   }, [storedPhone]);
+
+  // Check QR session validity
+  useEffect(() => {
+    const session = typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('qr_scan_session') || 'null') : null;
+    
+    if (!session || session.tableId !== String(tableId)) {
+      // No valid session - redirect to home
+      router.replace('/');
+    }
+  }, [tableId, router]);
   
   // Calculate totals including tip and customizations
   const subtotal = cartTotal + customizationTotal;
@@ -353,6 +364,7 @@ export default function CartPage() {
     // Create order in background during animation
     let orderCreated = false;
     let orderError = null;
+    let orderId = null;
     
     const orderPromise = createOrder({ 
       tableId: tableId.toString(), 
@@ -369,8 +381,9 @@ export default function CartPage() {
       customerSessionId: sessionId,
       customerPhone: phoneForDeposit,
       depositUsed: depositToUse || 0
-    }).then(() => {
+    }).then((result) => {
       orderCreated = true;
+      orderId = result;
       clearCart();
     }).catch((err) => {
       orderError = err;
@@ -381,14 +394,17 @@ export default function CartPage() {
       setOrderAnimationStage('paper');
       
       setTimeout(() => {
-        // Stage 3: Paper flies up
+        // Stage 3: Paper flies up with acceleration
         setOrderAnimationStage('flying');
         vibrateStage('flying');
         
         let currentBottom = 100;
+        let velocity = 5; // Start slow
+        const acceleration = 0.8; // Speed up over time
         
         const flyInterval = setInterval(() => {
-          currentBottom += 15;
+          velocity += acceleration; // Increase speed
+          currentBottom += velocity;
           setPaperPosition({ 
             bottom: currentBottom, 
             opacity: currentBottom > 500 ? Math.max(0, 1 - (currentBottom - 500) / 200) : 1 
@@ -407,16 +423,13 @@ export default function CartPage() {
                 return;
               }
               
-              // Stage 4: Success
+              // Stage 4: Success - redirect to order status
               vibrateStage('success');
               setTimeout(() => {
                 setOrderAnimationStage('success');
-                setShowOrderSuccess(true);
                 setIsOrdering(false);
-                setTimeout(() => {
-                  setOrderAnimationStage('idle');
-                  setPaperPosition({ bottom: 100, opacity: 1 });
-                }, 500);
+                // Redirect to order status page
+                router.push(`/order-status/${orderId}`);
               }, 300);
             });
           }
@@ -544,7 +557,7 @@ export default function CartPage() {
           // Payment successful - create order
           console.log("Razorpay payment success, creating order...", response);
           try {
-            const orderResult = await createOrder({ 
+            const orderId = await createOrder({ 
               tableId: tableId.toString(), 
               items: cart.map((item) => ({ 
                 menuItemId: item.menuItemId, 
@@ -560,28 +573,10 @@ export default function CartPage() {
               customerPhone: phoneForDeposit,
               depositUsed: depositToUse || 0
             });
-            console.log("Order created:", orderResult);
+            console.log("Order created:", orderId);
             clearCart();
-            // Show success, play sound
-            console.log("Order created successfully, showing success screen");
-            setShowOrderSuccess(true);
-            // Play success sound
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.frequency.value = 800;
-              gain.gain.value = 0.3;
-              osc.start();
-              osc.frequency.setValueAtTime(800, ctx.currentTime);
-              osc.frequency.setValueAtTime(1000, ctx.currentTime + 0.1);
-              osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.2);
-              gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.3);
-              gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-              osc.stop(ctx.currentTime + 0.5);
-            } catch(e) {}
+            // Redirect to order status page
+            router.push(`/order-status/${orderId}`);
           } catch (error) {
             console.error("Failed to place order:", error);
             alert("Order failed: " + error.message);
@@ -616,7 +611,7 @@ export default function CartPage() {
     setIsOrdering(true);
     try {
       console.log("Creating order for", paymentMethod);
-      await createOrder({ 
+      const orderId = await createOrder({ 
         tableId: tableId.toString(), 
         items: cart.map((item) => ({ 
           menuItemId: item.menuItemId, 
@@ -632,28 +627,10 @@ export default function CartPage() {
         customerPhone: phoneForDeposit,
         depositUsed: depositToUse || 0
       });
-      console.log("Order created successfully");
+      console.log("Order created successfully:", orderId);
       clearCart();
-      // Show success, play sound
-      console.log("Showing success screen");
-      setShowOrderSuccess(true);
-      // Play success sound
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 800;
-        gain.gain.value = 0.3;
-        osc.start();
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.setValueAtTime(1000, ctx.currentTime + 0.1);
-        osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.3);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-        osc.stop(ctx.currentTime + 0.5);
-      } catch(e) {}
+      // Redirect to order status page
+      router.push(`/order-status/${orderId}`);
     } catch (error) {
       console.error("Failed to place order:", error);
       setIsOrdering(false);
@@ -666,14 +643,14 @@ export default function CartPage() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg] overflow-hidden">
         {/* Subtle glow effect */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[--primary]/10 rounded-none blur-3xl animate-pulse-soft" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[--primary]/10 rounded-full blur-3xl animate-pulse-soft" />
         </div>
 
         {/* Main content */}
         <div className="text-center z-10 px-6">
           {/* Checkmark circle */}
-          <div className="w-20 h-20 mx-auto mb-6 rounded-none bg-black/5 border border-black/10 flex items-center justify-center animate-scale-in">
-            <Check size={40} className="text-black" />
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center animate-scale-in">
+            <Check size={40} className="text-emerald-400" />
           </div>
           
           <h1 className="font-luxury text-2xl font-semibold text-[--text-primary] mb-2 animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'forwards', opacity: 0 }}>
@@ -688,7 +665,7 @@ export default function CartPage() {
           
           <Link 
             href="/my-orders" 
-            className="btn-primary px-8 py-4 rounded-none text-sm font-semibold inline-flex items-center gap-2 animate-slide-up"
+            className="btn-primary px-8 py-4 rounded-xl text-sm font-semibold inline-flex items-center gap-2 animate-slide-up"
             style={{ animationDelay: '0.4s', animationFillMode: 'forwards', opacity: 0 }}
           >
             View Order Status
@@ -703,7 +680,7 @@ export default function CartPage() {
   if (brandingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg]">
-        <div className="w-12 h-12 border-2 border-[--border] border-t-[--primary] rounded-none animate-spin" />
+        <div className="loader" />
       </div>
     );
   }
@@ -716,7 +693,7 @@ export default function CartPage() {
       {/* Header */}
       <header className="sticky top-0 z-20 bg-[--bg]/90 backdrop-blur-xl border-b border-[--border]">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href={`/menu/${tableId}`} className="w-10 h-10 flex items-center justify-center rounded-none bg-[--card] border border-[--border]">
+          <Link href={`/m/${tableId}`} className="w-10 h-10 flex items-center justify-center rounded-xl bg-[--card] border border-[--border]">
             <ArrowLeft size={18} className="text-[--text-muted]" />
           </Link>
           <div className="text-center">
@@ -730,21 +707,21 @@ export default function CartPage() {
       <div className="max-w-lg mx-auto px-4 py-4">
         {/* Deposit Banner - show if has credit AND cart has items */}
         {cart.length > 0 && depositBalance > 0 && (
-          <div className="rounded-none p-4 mb-4 animate-slide-down" style={{ animationFillMode: 'forwards' }}>
+          <div className="rounded-2xl p-4 mb-4 animate-slide-down" style={{ animationFillMode: 'forwards' }}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-none bg-black/5 flex items-center justify-center">
-                <Ticket size={20} className="text-black" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Ticket size={20} className="text-emerald-400" />
               </div>
               <div className="flex-1">
-                <p className="text-black font-semibold text-sm">₹{depositBalance} Credit Applied</p>
-                <p className="text-black/60 text-xs">From reservation deposit</p>
+                <p className="text-emerald-400 font-semibold text-sm">₹{depositBalance} Credit Applied</p>
+                <p className="text-emerald-400/60 text-xs">From reservation deposit</p>
               </div>
               {couponApplied && (
-                <button onClick={handleRemoveCoupon} className="text-black/60 hover:text-black">
+                <button onClick={handleRemoveCoupon} className="text-emerald-400/60 hover:text-emerald-400">
                   <X size={18} />
                 </button>
               )}
-              <Check size={18} className="text-black" />
+              <Check size={18} className="text-emerald-400" />
             </div>
           </div>
         )}
@@ -755,16 +732,16 @@ export default function CartPage() {
             {!showCouponInput ? (
               <button 
                 onClick={() => setShowCouponInput(true)}
-                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[--border] rounded-none text-[--text-muted] text-sm hover:border-[--primary] hover:text-[--primary] transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[--border] rounded-xl text-[--text-muted] text-sm hover:border-[--primary] hover:text-[--primary] transition-colors"
               >
                 <Ticket size={16} />
                 Have a reservation? Enter phone for credit
               </button>
             ) : (
-              <div className="bg-[--card] border border-[--border] rounded-none p-4 animate-scale-in" style={{ animationFillMode: 'forwards' }}>
+              <div className="bg-[--card] border border-[--border] rounded-xl p-4 animate-scale-in" style={{ animationFillMode: 'forwards' }}>
                 <p className="text-xs text-[--text-dim] mb-3">Enter reservation phone number</p>
                 <div className="flex gap-2">
-                  <div className="flex items-center bg-[--bg-elevated] border border-[--border] rounded-none overflow-hidden flex-1">
+                  <div className="flex items-center bg-[--bg-elevated] border border-[--border] rounded-lg overflow-hidden flex-1">
                     <span className="px-3 py-2.5 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
                     <input
                       type="tel"
@@ -779,7 +756,7 @@ export default function CartPage() {
                   <button 
                     onClick={handleApplyCoupon}
                     disabled={couponPhone.length !== 10}
-                    className="px-4 py-2.5 bg-[--primary] text-[--bg] rounded-none text-sm font-semibold disabled:opacity-50"
+                    className="px-4 py-2.5 bg-[--primary] text-[--bg] rounded-lg text-sm font-semibold disabled:opacity-50"
                   >
                     Apply
                   </button>
@@ -790,9 +767,9 @@ export default function CartPage() {
                     <X size={18} />
                   </button>
                 </div>
-                {couponError && <p className="text-black text-xs mt-2">{couponError}</p>}
+                {couponError && <p className="text-red-400 text-xs mt-2">{couponError}</p>}
                 {couponApplied && depositBalance === 0 && (
-                  <p className="text-black text-xs mt-2">No credit found for this number</p>
+                  <p className="text-amber-400 text-xs mt-2">No credit found for this number</p>
                 )}
               </div>
             )}
@@ -803,15 +780,15 @@ export default function CartPage() {
         <div>
           {cart.length === 0 && !isAddingToCart ? (
             <div 
-              className={`bg-[--card] border border-[--border] rounded-none text-center mb-4 overflow-hidden ${isTransitioning ? 'animate-expand-height p-0' : 'animate-scale-in p-8'}`} 
+              className={`bg-[--card] border border-[--border] rounded-2xl text-center mb-4 overflow-hidden ${isTransitioning ? 'animate-expand-height p-0' : 'animate-scale-in p-8'}`} 
               style={{ animationFillMode: 'forwards' }}
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-none bg-[--bg-elevated] flex items-center justify-center animate-bounce-in" style={{ animationDelay: isTransitioning ? '0.25s' : '0.1s', animationFillMode: 'forwards', opacity: 0 }}>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[--bg-elevated] flex items-center justify-center animate-bounce-in" style={{ animationDelay: isTransitioning ? '0.25s' : '0.1s', animationFillMode: 'forwards', opacity: 0 }}>
                 <Plus size={24} className="text-[--text-dim]" />
               </div>
               <p className="text-[--text-muted] text-sm mb-4">Your cart is empty</p>
               <Link 
-                href={`/menu/${tableId}`} 
+                href={`/m/${tableId}`} 
                 className="inline-flex items-center gap-2 text-[--primary] text-sm font-medium hover:underline"
               >
                 Add items from menu
@@ -828,7 +805,7 @@ export default function CartPage() {
             {cart.map((item, index) => (
               <div 
                 key={item.menuItemId} 
-                className={`bg-[--card] border border-[--border] rounded-none p-3 ${
+                className={`bg-[--card] border border-[--border] rounded-2xl p-3 ${
                   removingItemId === item.menuItemId 
                     ? 'animate-slide-out-left' 
                     : 'animate-slide-up'
@@ -837,7 +814,7 @@ export default function CartPage() {
               >
                 <div className="flex gap-3">
                   {/* Image */}
-                  <div className="w-20 h-20 rounded-none overflow-hidden flex-shrink-0 bg-[--bg-elevated]">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[--bg-elevated]">
                     <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   
@@ -860,17 +837,17 @@ export default function CartPage() {
                     
                     {/* Quantity & Actions */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 bg-[--bg-elevated] rounded-none p-0.5">
+                      <div className="flex items-center gap-1 bg-[--bg-elevated] rounded-lg p-0.5">
                         <button 
                           onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)} 
-                          className="w-7 h-7 rounded-none flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
+                          className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
                         >
                           <Minus size={14} className="text-[--text-muted]" />
                         </button>
                         <span className="w-6 text-center text-sm font-bold text-[--text-primary]">{item.quantity}</span>
                         <button 
                           onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)} 
-                          className="w-7 h-7 rounded-none flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
+                          className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
                         >
                           <Plus size={14} className="text-[--primary]" />
                         </button>
@@ -879,21 +856,21 @@ export default function CartPage() {
                         {/* Edit/Customize button */}
                         <button 
                           onClick={() => openItemEdit(item)} 
-                          className="w-8 h-8 rounded-none bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-[--primary]/10 hover:text-[--primary] active:scale-95 transition-all"
+                          className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-[--primary]/10 hover:text-[--primary] active:scale-95 transition-all"
                         >
                           <Edit3 size={14} />
                         </button>
                         {/* Save for later */}
                         <button 
                           onClick={() => handleSaveForLater(item)} 
-                          className="w-8 h-8 rounded-none bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-black/5 hover:text-black active:scale-95 transition-all"
+                          className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-amber-500/10 hover:text-amber-400 active:scale-95 transition-all"
                         >
                           <Bookmark size={14} />
                         </button>
                         {/* Delete */}
                         <button 
                           onClick={() => removeFromCart(item.menuItemId)} 
-                          className="w-8 h-8 rounded-none bg-black/5 text-black flex items-center justify-center hover:bg-black/5 active:scale-95 transition-all"
+                          className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20 active:scale-95 transition-all"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -911,7 +888,7 @@ export default function CartPage() {
           
             {/* Add More */}
             <Link 
-              href={`/menu/${tableId}`}
+              href={`/m/${tableId}`}
               className="flex items-center justify-center gap-2 py-3 text-[--primary] text-sm font-medium hover:underline"
             >
               <Plus size={16} />
@@ -932,14 +909,14 @@ export default function CartPage() {
               {savedItems.map((item, index) => (
                 <div 
                   key={item.menuItemId} 
-                  className={`bg-[--card] border border-[--border] rounded-none p-3 flex items-center gap-3 ${
+                  className={`bg-[--card] border border-[--border] rounded-xl p-3 flex items-center gap-3 ${
                     addingToCartId === item.menuItemId 
                       ? 'animate-slide-out-left' 
                       : 'animate-scale-in'
                   }`}
                   style={{ animationDelay: addingToCartId === item.menuItemId ? '0s' : `${index * 0.05}s`, animationFillMode: 'forwards' }}
                 >
-                  <div className="w-12 h-12 rounded-none overflow-hidden flex-shrink-0 bg-[--bg-elevated]">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-[--bg-elevated]">
                     <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -948,13 +925,13 @@ export default function CartPage() {
                   </div>
                   <button 
                     onClick={() => handleMoveToCart(item)}
-                    className="px-3 py-1.5 bg-[--primary]/10 text-[--primary] rounded-none text-xs font-medium hover:bg-[--primary]/20 active:scale-95 transition-all"
+                    className="px-3 py-1.5 bg-[--primary]/10 text-[--primary] rounded-lg text-xs font-medium hover:bg-[--primary]/20 active:scale-95 transition-all"
                   >
                     Add to Cart
                   </button>
                   <button 
                     onClick={() => removeFromSaved(item.menuItemId)}
-                    className="text-[--text-dim] hover:text-black"
+                    className="text-[--text-dim] hover:text-red-400"
                   >
                     <X size={16} />
                   </button>
@@ -968,7 +945,7 @@ export default function CartPage() {
         <div className="mt-4">
           <button 
             onClick={() => setShowNotes(!showNotes)}
-            className="w-full flex items-center justify-between p-4 bg-[--card] border border-[--border] rounded-none transition-all duration-300 hover:border-[--primary]/30"
+            className="w-full flex items-center justify-between p-4 bg-[--card] border border-[--border] rounded-xl transition-all duration-300 hover:border-[--primary]/30"
           >
             <div className="flex items-center gap-3">
               <MessageSquare size={18} className={`transition-colors duration-300 ${showNotes ? 'text-[--primary]' : 'text-[--text-muted]'}`} />
@@ -984,7 +961,7 @@ export default function CartPage() {
                 value={notes} 
                 onChange={(e) => setNotes(e.target.value)} 
                 placeholder="Allergies, spice level, special requests..." 
-                className="w-full rounded-none p-4 text-sm resize-none bg-[--card] border border-[--border] focus:border-[--primary] outline-none transition-all duration-300" 
+                className="w-full rounded-xl p-4 text-sm resize-none bg-[--card] border border-[--border] focus:border-[--primary] outline-none transition-all duration-300" 
                 rows={3}
               />
             </div>
@@ -994,7 +971,7 @@ export default function CartPage() {
         {/* Phone Number */}
         <div className="mt-6">
           <p className="text-[10px] tracking-[0.2em] text-[--text-dim] mb-3 uppercase font-medium">Your Phone Number</p>
-              <div className="flex items-center bg-[--card] border border-[--border] rounded-none overflow-hidden">
+              <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden">
                 <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
                 <input
                   type="tel"
@@ -1005,7 +982,7 @@ export default function CartPage() {
                   className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
                 />
               </div>
-              {phoneError && <p className="text-black text-xs mt-2">{phoneError}</p>}
+              {phoneError && <p className="text-red-400 text-xs mt-2">{phoneError}</p>}
             </div>
 
         {/* Payment Method */}
@@ -1019,13 +996,13 @@ export default function CartPage() {
                 <button 
                   key={option.id} 
                   onClick={() => setPaymentMethod(option.id)} 
-                  className={`flex flex-col items-center p-4 rounded-none border transition-all active:scale-95 ${
+                  className={`flex flex-col items-center p-4 rounded-xl border transition-all active:scale-95 ${
                     isSelected 
                       ? "border-[--primary] bg-[--primary]/10" 
                       : "border-[--border] bg-[--card]"
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-none flex items-center justify-center mb-2 ${
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
                     isSelected ? "bg-[--primary] text-[--bg]" : "bg-[--bg-elevated] text-[--text-muted]"
                   }`}>
                     <Icon size={18} />
@@ -1055,13 +1032,13 @@ export default function CartPage() {
                     setTipError(false);
                     if (tip.id !== 'custom') setCustomTipAmount('');
                   }}
-                  className={`px-4 py-2 rounded-none text-sm font-medium transition-all duration-300 active:scale-95 ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 active:scale-95 ${
                     tip.id === 'custom'
                       ? selectedTip === 'custom'
                         ? 'text-[--primary]'
                         : 'text-[--text-muted] hover:text-[--primary]'
                       : selectedTip === tip.id
-                        ? 'bg-[--primary] text-[--bg] scale-105 shadow-none shadow-[--primary]/25'
+                        ? 'bg-[--primary] text-[--bg] scale-105 shadow-lg shadow-[--primary]/25'
                         : 'bg-[--card] border border-[--border] text-[--text-muted] hover:border-[--primary]/50'
                   }`}
                   style={{ animationDelay: `${index * 0.05}s` }}
@@ -1071,11 +1048,11 @@ export default function CartPage() {
               ))}
             </div>
             {tipError && (
-              <p className="text-black text-xs mt-2 text-center animate-scale-in">Please select a tip option or choose "+ Custom" with ₹0</p>
+              <p className="text-red-400 text-xs mt-2 text-center animate-scale-in">Please select a tip option or choose "+ Custom" with ₹0</p>
             )}
             <div className={`grid transition-all duration-300 ease-out ${selectedTip === 'custom' ? 'grid-rows-[1fr] mt-3 opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
               <div className="overflow-hidden">
-                <div className="flex items-center bg-[--card] border border-[--border] rounded-none overflow-hidden">
+                <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden">
                   <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">₹</span>
                   <input
                     type="number"
@@ -1100,7 +1077,7 @@ export default function CartPage() {
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1 bg-[--border] rounded-none mx-auto mb-5" />
+            <div className="w-10 h-1 bg-[--border] rounded-full mx-auto mb-5" />
             
             <h3 className="text-[--text-primary] font-semibold text-lg mb-4">Customize Item</h3>
             
@@ -1111,7 +1088,7 @@ export default function CartPage() {
                 value={editingItemNote}
                 onChange={(e) => setEditingItemNote(e.target.value)}
                 placeholder="No onions, extra spicy, etc..."
-                className="w-full rounded-none p-3 text-sm resize-none bg-[--bg] border border-[--border] focus:border-[--primary] outline-none transition-all duration-300"
+                className="w-full rounded-xl p-3 text-sm resize-none bg-[--bg] border border-[--border] focus:border-[--primary] outline-none transition-all duration-300"
                 rows={2}
               />
             </div>
@@ -1124,7 +1101,7 @@ export default function CartPage() {
                   <button
                     key={cust.id}
                     onClick={() => toggleCustomization(cust.id)}
-                    className={`px-3 py-2 rounded-none text-xs font-medium transition-all duration-300 active:scale-95 ${
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 active:scale-95 ${
                       editingCustomizations.includes(cust.id)
                         ? 'bg-[--primary] text-[--bg] scale-105'
                         : 'bg-[--bg] border border-[--border] text-[--text-muted] hover:border-[--primary]/50'
@@ -1140,7 +1117,7 @@ export default function CartPage() {
             {/* Save Button */}
             <button
               onClick={saveItemEdit}
-              className="w-full btn-primary py-3 rounded-none text-sm font-semibold"
+              className="w-full btn-primary py-3 rounded-xl text-sm font-semibold"
             >
               Save Changes
             </button>
@@ -1162,7 +1139,7 @@ export default function CartPage() {
                 <span className="text-pink-400 text-xs bg-pink-500/10 px-2 py-0.5 rounded">+₹{tipAmount} tip</span>
               )}
               {depositToUse > 0 && (
-                <span className="text-black text-xs bg-black/5 px-2 py-0.5 rounded">-₹{depositToUse}</span>
+                <span className="text-emerald-400 text-xs bg-emerald-500/10 px-2 py-0.5 rounded">-₹{depositToUse}</span>
               )}
               <ChevronRight size={14} className={`text-[--text-dim] transition-transform ${showBillDetails ? 'rotate-90' : ''}`} />
             </div>
@@ -1174,7 +1151,7 @@ export default function CartPage() {
             className={`grid transition-all duration-300 ease-out ${showBillDetails ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
           >
             <div className="overflow-hidden">
-              <div className="bg-[--card] border border-[--border] rounded-none p-3 mb-3 text-sm animate-fade-in">
+              <div className="bg-[--card] border border-[--border] rounded-xl p-3 mb-3 text-sm animate-fade-in">
                 <div className="space-y-2">
                   {cart.map(item => (
                     <div key={item.menuItemId} className="flex justify-between text-[--text-muted]">
@@ -1199,7 +1176,7 @@ export default function CartPage() {
                     </div>
                   )}
                   {depositToUse > 0 && (
-                    <div className="flex justify-between text-black">
+                    <div className="flex justify-between text-emerald-400">
                       <span>Credit Applied</span>
                       <span>-₹{depositToUse.toFixed(0)}</span>
                     </div>
@@ -1217,24 +1194,27 @@ export default function CartPage() {
           <button 
             onClick={startOrderAnimation} 
             disabled={orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || cart.length === 0} 
-            className={`w-full py-4 rounded-none font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+            className={`w-full py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
               orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || cart.length === 0
                 ? "bg-[--border] text-[--text-dim] cursor-not-allowed" 
                 : locationStatus === 'denied' || locationStatus === 'too_far'
-                  ? "bg-black/5 text-black border border-black/10"
+                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
                   : "btn-primary"
             }`}
           >
             {orderAnimationStage === 'loading' ? (
               <>
-                <div className="w-5 h-5 spinner rounded-none" />
+                <div className="w-5 h-5 spinner rounded-full" />
                 Preparing...
               </>
             ) : orderAnimationStage === 'paper' ? (
-              <span className="text-2xl animate-scale-in">📄</span>
+              <>
+                <div className="w-5 h-5 spinner rounded-full" />
+                Processing...
+              </>
             ) : locationStatus === 'checking' ? (
               <>
-                <div className="w-5 h-5 spinner rounded-none" />
+                <div className="w-5 h-5 spinner rounded-full" />
                 Verifying Location...
               </>
             ) : locationStatus === 'denied' ? (
@@ -1264,9 +1244,9 @@ export default function CartPage() {
       {/* Saved for Later Toast */}
       {savedToast && (
         <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
-          <div className="bg-[--card] border border-black/10 rounded-none px-4 py-3 shadow-none flex items-center gap-3">
-            <div className="w-8 h-8 rounded-none bg-black/5 flex items-center justify-center">
-              <Bookmark size={16} className="text-black" />
+          <div className="bg-[--card] border border-amber-500/30 rounded-xl px-4 py-3 shadow-lg flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+              <Bookmark size={16} className="text-amber-400" />
             </div>
             <div>
               <p className="text-sm text-[--text-primary] font-medium">Saved for later</p>
@@ -1278,7 +1258,7 @@ export default function CartPage() {
 
       {/* Clouds at top - show during flying animation */}
       {(orderAnimationStage === 'flying' || orderAnimationStage === 'success') && (
-        <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none overflow-hidden">
+        <div className="fixed top-0 left-0 right-0 pointer-events-none overflow-hidden" style={{ zIndex: 9998 }}>
           <div className="flex justify-between pt-8 px-4">
             {/* Left clouds - slide in from left */}
             <div className="flex gap-2 animate-slide-in-left" style={{ animationDuration: '0.6s' }}>
@@ -1294,16 +1274,24 @@ export default function CartPage() {
         </div>
       )}
 
-      {/* Flying paper emoji */}
-      {orderAnimationStage === 'flying' && (
+      {/* Flying paper ball - transformed from button */}
+      {(orderAnimationStage === 'loading' || orderAnimationStage === 'paper' || orderAnimationStage === 'flying') && (
         <div 
-          className="fixed left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all"
+          className="fixed left-1/2 -translate-x-1/2 pointer-events-none transition-all"
           style={{ 
             bottom: `${paperPosition.bottom}px`,
             opacity: paperPosition.opacity,
+            zIndex: 9999,
           }}
         >
-          <span className="text-4xl">📄</span>
+          <video 
+            key="flying-paper"
+            src="/assets/videos/paper-flying.mp4"
+            autoPlay 
+            muted 
+            playsInline 
+            className="w-20 h-20 object-contain"
+          />
         </div>
       )}
     </div>

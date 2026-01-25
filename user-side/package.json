@@ -6,6 +6,7 @@
     "dev": "npm-run-all --parallel dev:frontend dev:backend",
     "dev:frontend": "next dev -p 3001",
     "dev:backend": "convex dev",
+    "prebuild": "node scripts/git-info.js",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint"

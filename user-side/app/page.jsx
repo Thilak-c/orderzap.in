@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { useBranding } from "@/lib/useBranding";
 import { ChevronRight, History, ScanLine, X } from "lucide-react";
-import { isRestaurantOpen } from "@/components/ClosedPopup";
+import LogoLoop from "@/components/LogoLoop";
 
 export default function Home() {
   const router = useRouter();
@@ -18,9 +18,9 @@ export default function Home() {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
   const [Html5Qrcode, setHtml5Qrcode] = useState(null);
-  const html5QrCodeRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarClosing, setSidebarClosing] = useState(false);
+  const html5QrCodeRef = useRef(null);
 
   const activeOrder = useQuery(
     api.orders.getActiveBySession,
@@ -100,7 +100,7 @@ export default function Home() {
         }
         html5QrCodeRef.current.clear();
       } catch (err) {
-        console.log("Scanner stop:", err.message);
+        // console.log("Scanner stop:", err.message);
       }
     }
   };
@@ -147,11 +147,7 @@ export default function Home() {
   };
 
   const closeSidebar = () => {
-    setSidebarClosing(true);
-    setTimeout(() => {
-      setSidebarOpen(false);
-      setSidebarClosing(false);
-    }, 300);
+    setSidebarOpen(false);
   };
 
   const onScanFailure = (error) => {
@@ -180,7 +176,7 @@ export default function Home() {
   if (brandingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg]">
-        <img className="w-14" src="/assets/logos/favicon_io/android-chrome-192x192.png" alt="" />
+        <img className="w-14 mx-4" src="/assets/logos/favicon_io/android-chrome-192x192.png" alt="" />
         <div className="loader-2" />
       </div>
     );
@@ -255,20 +251,18 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-[--bg]">
       {/* Sidebar Overlay */}
-      {sidebarOpen && (
+      <div 
+        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 pointer-events-none ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`}
+        onClick={closeSidebar}
+      >
         <div 
-          className={`fixed inset-0 bg-black/50 z-50 ${sidebarClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
-          onClick={closeSidebar}
+          className={`w-64 h-full bg-white shadow-2xl transition-transform duration-300 ease-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          onClick={(e) => e.stopPropagation()}
         >
-          <div 
-            className={`w-64 h-full bg-white shadow-2xl ${sidebarClosing ? 'animate-slide-out-left' : 'animate-slide-in-left'}`}
-            onClick={(e) => e.stopPropagation()}
-          >
             {/* Sidebar Header */}
             <div className="p- border-b border-[--border] flex items-center justify-between">
               <div className="flex items-center gap-">
                 <img src="/assets/logos/logo_full.png" alt="OrderZap" className="" />
-                {/* <span className="text-lg font-bold text-[--primary]">OrderZap</span> */}
               </div>
            
             </div>
@@ -292,7 +286,8 @@ export default function Home() {
                 <Image src="/assets/icons/book-table.png" alt="Book Table" width={28} height={28} />
                 <span className="text-sm font-medium">Book a Table</span>
               </Link>
- <button
+
+              <button
                 onClick={closeSidebar}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-[--bg-elevated] transition-colors w-full text-left"
               >
@@ -307,6 +302,7 @@ export default function Home() {
                 <Image src="/assets/icons/order-online.png" alt="Order Online" width={28} height={28} />
                 <span className="text-sm font-medium">Order Online</span>
               </button>
+
               {hasOrders && (
                 <Link
                   href="/my-orders"
@@ -325,8 +321,6 @@ export default function Home() {
                 <Image src="/assets/icons/help.png" alt="Help" width={28} height={28} />
                 <span className="text-sm font-medium">Help</span>
               </button>
-
-             
             </nav>
 
             {/* Sidebar Footer */}
@@ -344,7 +338,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      )}
+      
 
       {/* Header */}
       <div className="p-3 flex items-center justify-between opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
@@ -390,8 +384,20 @@ export default function Home() {
               <div id="qr-reader" className="w-full h-full" />
               
               {error && (
-                <div className="absolute bottom-3 left-3 right-3 p-2 bg-red-500/90 rounded-lg animate-slide-up">
-                  <p className="text-white text-xs text-center font-medium">{error}</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center mx-auto mb-4">
+                      <ScanLine size={32} className="text-red-500" />
+                    </div>
+                    <p className="text-white text-sm font-medium mb-2">Camera Access Required</p>
+                    <p className="text-white/70 text-xs mb-6">Please allow camera access to scan QR codes</p>
+                    <button
+                      onClick={startScanner}
+                      className="btn-primary w-full py-3 rounded-xl text-sm font-semibold"
+                    >
+                      Grant Access
+                    </button>
+                  </div>
                 </div>
               )}
               
@@ -418,40 +424,25 @@ export default function Home() {
       </div>
 
       {/* Partner Restaurants - Flowing Wave */}
-      <div className="relative py-8 overflow-hidden bg-gradient-to-b from-white to-[--bg-elevated]">
-    
-        
-        <div className="relative h-32">
-          <div className="absolute inset-0 flex items-center animate-wave-flow">
-            <div className="flex gap-16 whitespace-nowrap">
-              <span className="text-5xl font-serif italic text-[--primary] opacity-80">Bts Disc</span>
-              <span className="text-5xl tracking-widest text-[--primary] opacity-80" style={{ fontFamily: 'Georgia, serif' }}>Magnet Cafe</span>
-              <span className="text-5xl font-bold text-[--primary] opacity-80" style={{ fontFamily: 'Impact, sans-serif' }}>Hunter Biryani</span>
-            </div>
-            <div className="flex gap-16 whitespace-nowrap ml-16">
-              <span className="text-5xl font-serif italic text-[--primary] opacity-80">Bts Disc</span>
-              <span className="text-5xl tracking-widest text-[--primary] opacity-80" style={{ fontFamily: 'Georgia, serif' }}>Magnet Cafe</span>
-              <span className="text-5xl font-bold text-[--primary] opacity-80" style={{ fontFamily: 'Impact, sans-serif' }}>Hunter Biryani</span>
-            </div>
-          </div>
-
-          <div className="absolute inset-0 flex items-center animate-wave-flow-slow" style={{ top: '60px' }}>
-            <div className="flex gap-16 whitespace-nowrap">
-              <span className="text-4xl tracking-widest text-[--text-muted] opacity-50" style={{ fontFamily: 'Georgia, serif' }}>Magnet Cafe</span>
-              <span className="text-4xl font-bold text-[--text-muted] opacity-50" style={{ fontFamily: 'Impact, sans-serif' }}>Hunter Biryani</span>
-              <span className="text-4xl font-serif italic text-[--text-muted] opacity-50">Bts Disc</span>
-            </div>
-            <div className="flex gap-16 whitespace-nowrap ml-16">
-              <span className="text-4xl tracking-widest text-[--text-muted] opacity-50" style={{ fontFamily: 'Georgia, serif' }}>Magnet Cafe</span>
-              <span className="text-4xl font-bold text-[--text-muted] opacity-50" style={{ fontFamily: 'Impact, sans-serif' }}>Hunter Biryani</span>
-              <span className="text-4xl font-serif italic text-[--text-muted] opacity-50">Bts Disc</span>
-            </div>
-          </div>
-
-          <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10"></div>
-        </div>
-      </div>
+      {/* <div className="relative py-8 overflow-hidden bg-gradient-to-b from-white to-[--bg-elevated]">
+        <LogoLoop
+          logos={[
+            { src: "/assets/partners/bts-disc-cafe-and-restro.png", alt: "BTS Disc", href: "#" },
+            { src: "/assets/partners/manget-club-and-restro.png", alt: "Magnet Cafe", href: "#" },
+            { src: "/assets/partners/bts-disc-cafe-and-restro.png", alt: "BTS Disc", href: "#" },
+            { src: "/assets/partners/manget-club-and-restro.png", alt: "Magnet Cafe", href: "#" },
+          ]}
+          speed={50}
+          direction="left"
+          logoHeight={64}
+          gap={48}
+          hoverSpeed={20}
+          scaleOnHover
+          fadeOut
+          fadeOutColor="#ffffff"
+          ariaLabel="Partner restaurants"
+        />
+      </div> */}
 
  
     </div>

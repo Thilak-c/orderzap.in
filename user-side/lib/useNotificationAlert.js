@@ -39,7 +39,7 @@ export function useNotificationAlert(currentCount, options = {}) {
         renotify: true,
       });
     } catch (e) {
-      console.log('Push notification failed:', e);
+      // console.log('Push notification failed:', e);
     }
   }, [options.title, options.body]);
 
@@ -80,7 +80,7 @@ export function useNotificationAlert(currentCount, options = {}) {
       playAlarmSequence(ctx.currentTime + 0.5);
       
     } catch (e) {
-      console.log('Audio not supported');
+      // console.log('Audio not supported');
     }
   }, []);
 

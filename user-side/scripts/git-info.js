@@ -23,7 +23,7 @@ try {
   const outputPath = path.join(__dirname, '../public/git-info.json');
   fs.writeFileSync(outputPath, JSON.stringify(gitInfo, null, 2));
   
-  console.log('✓ Git info saved:', gitInfo.message);
+  // console.log('✓ Git info saved:', gitInfo.message);
 } catch (error) {
   console.warn('⚠ Could not get git info:', error.message);
   

@@ -503,7 +503,7 @@ export default function CartPage() {
   // Removed auto-redirect to /my-orders when activeOrder exists
 
   const handleOrder = async () => {
-    console.log("handleOrder called", { cartLength: cart.length, paymentMethod, sessionId });
+    // console.log("handleOrder called", { cartLength: cart.length, paymentMethod, sessionId });
     
     // Validate phone number
     if (orderPhone.length !== 10) {
@@ -520,7 +520,7 @@ export default function CartPage() {
     }
     
     if (cart.length === 0 || !paymentMethod || !sessionId) {
-      console.log("Early return - missing data");
+      // console.log("Early return - missing data");
       return;
     }
     
@@ -539,11 +539,11 @@ export default function CartPage() {
     // Use the phone that has the deposit (could be from coupon or order phone)
     const phoneForDeposit = depositToUse > 0 ? phoneToCheck : customerPhone;
     
-    console.log("Order details - depositToUse:", depositToUse, "phoneForDeposit:", phoneForDeposit, "phoneToCheck:", phoneToCheck);
+    // console.log("Order details - depositToUse:", depositToUse, "phoneForDeposit:", phoneForDeposit, "phoneToCheck:", phoneToCheck);
     
     // If pay now, open Razorpay
     if (paymentMethod === 'pay-now') {
-      console.log("Payment method is pay-now, opening Razorpay");
+      // console.log("Payment method is pay-now, opening Razorpay");
       setIsOrdering(true);
       
       const options = {
@@ -555,7 +555,7 @@ export default function CartPage() {
         image: "https://bts-club-one.vercel.app/logo.png",
         handler: async function (response) {
           // Payment successful - create order
-          console.log("Razorpay payment success, creating order...", response);
+          // console.log("Razorpay payment success, creating order...", response);
           try {
             const orderId = await createOrder({ 
               tableId: tableId.toString(), 
@@ -573,7 +573,7 @@ export default function CartPage() {
               customerPhone: phoneForDeposit,
               depositUsed: depositToUse || 0
             });
-            console.log("Order created:", orderId);
+            // console.log("Order created:", orderId);
             clearCart();
             // Redirect to order status page
             router.push(`/order-status/${orderId}`);
@@ -602,7 +602,7 @@ export default function CartPage() {
         alert("Payment failed: " + response.error.description);
         setIsOrdering(false);
       });
-      console.log("Opening Razorpay...");
+      // console.log("Opening Razorpay...");
       razorpay.open();
       return;
     }
@@ -610,7 +610,7 @@ export default function CartPage() {
     // For other payment methods, create order directly
     setIsOrdering(true);
     try {
-      console.log("Creating order for", paymentMethod);
+      // console.log("Creating order for", paymentMethod);
       const orderId = await createOrder({ 
         tableId: tableId.toString(), 
         items: cart.map((item) => ({ 
@@ -627,7 +627,7 @@ export default function CartPage() {
         customerPhone: phoneForDeposit,
         depositUsed: depositToUse || 0
       });
-      console.log("Order created successfully:", orderId);
+      // console.log("Order created successfully:", orderId);
       clearCart();
       // Redirect to order status page
       router.push(`/order-status/${orderId}`);

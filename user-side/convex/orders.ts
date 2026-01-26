@@ -119,17 +119,17 @@ export const create = mutation({
 
     // If deposit was used, deduct from customer's balance immediately
     if (args.depositUsed && args.depositUsed > 0 && args.customerPhone) {
-      console.log("Deducting deposit:", args.depositUsed, "from phone:", args.customerPhone);
+      // console.log("Deducting deposit:", args.depositUsed, "from phone:", args.customerPhone);
       const customer = await ctx.db
         .query("customers")
         .withIndex("by_phone", (q) => q.eq("phone", args.customerPhone))
         .first();
       
-      console.log("Found customer:", customer);
+      // console.log("Found customer:", customer);
       
       if (customer) {
         const newBalance = Math.max(0, customer.depositBalance - args.depositUsed);
-        console.log("Old balance:", customer.depositBalance, "New balance:", newBalance);
+        // console.log("Old balance:", customer.depositBalance, "New balance:", newBalance);
         await ctx.db.patch(customer._id, { 
           depositBalance: newBalance,
           lastVisit: Date.now(),
@@ -138,7 +138,7 @@ export const create = mutation({
         });
       }
     } else {
-      console.log("No deposit to deduct. depositUsed:", args.depositUsed, "customerPhone:", args.customerPhone);
+      // console.log("No deposit to deduct. depositUsed:", args.depositUsed, "customerPhone:", args.customerPhone);
     }
 
     return await ctx.db.insert("orders", {

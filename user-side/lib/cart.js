@@ -3,130 +3,201 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 const CartContext = createContext();
 
-const CART_STORAGE_KEY = 'bts-cart';
-const SAVED_STORAGE_KEY = 'bts-saved';
+// Helper to get table-specific storage keys
+const getStorageKeys = (tableId) => ({
+  cart: tableId ? `oz-cart-table-${tableId}` : 'oz-cart',
+  saved: tableId ? `oz-saved-table-${tableId}` : 'oz-saved'
+});
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([]);
-  const [savedItems, setSavedItems] = useState([]);
+  const [carts, setCarts] = useState({}); // Store carts by tableId
+  const [savedItemsByTable, setSavedItemsByTable] = useState({});
   const [hideCartBar, setHideCartBar] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [currentTableId, setCurrentTableId] = useState(null);
 
-  // Load cart and saved items from localStorage on mount
+  // Mark as hydrated on mount
   useEffect(() => {
-    const storedCart = localStorage.getItem(CART_STORAGE_KEY);
-    const storedSaved = localStorage.getItem(SAVED_STORAGE_KEY);
+    setIsHydrated(true);
+  }, []);
+
+  const getCart = (tableId) => {
+    return carts[tableId] || [];
+  };
+
+  const getSavedItems = (tableId) => savedItemsByTable[tableId] || [];
+
+  // Initialize cart for a table if not already loaded
+  const initializeCart = (tableId) => {
+    if (!tableId || carts[tableId] !== undefined) return;
+    
+    const keys = getStorageKeys(tableId);
+    const storedCart = localStorage.getItem(keys.cart);
+    const storedSaved = localStorage.getItem(keys.saved);
+    
+    let cart = [];
+    let saved = [];
+    
     if (storedCart) {
       try {
-        setCart(JSON.parse(storedCart));
+        cart = JSON.parse(storedCart);
       } catch (e) {
         console.error('Failed to parse cart from localStorage');
       }
     }
+    
     if (storedSaved) {
       try {
-        setSavedItems(JSON.parse(storedSaved));
+        saved = JSON.parse(storedSaved);
       } catch (e) {
         console.error('Failed to parse saved items from localStorage');
       }
     }
-    setIsHydrated(true);
-  }, []);
+    
+    setCarts(prev => ({ ...prev, [tableId]: cart }));
+    setSavedItemsByTable(prev => ({ ...prev, [tableId]: saved }));
+  };
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    if (isHydrated && currentTableId && carts[currentTableId]) {
+      const keys = getStorageKeys(currentTableId);
+      localStorage.setItem(keys.cart, JSON.stringify(carts[currentTableId]));
     }
-  }, [cart, isHydrated]);
+  }, [carts, isHydrated, currentTableId]);
 
   // Save saved items to localStorage whenever it changes
   useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(savedItems));
+    if (isHydrated && currentTableId && savedItemsByTable[currentTableId]) {
+      const keys = getStorageKeys(currentTableId);
+      localStorage.setItem(keys.saved, JSON.stringify(savedItemsByTable[currentTableId]));
     }
-  }, [savedItems, isHydrated]);
+  }, [savedItemsByTable, isHydrated, currentTableId]);
 
-  const addToCart = (item) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.menuItemId === item.menuItemId);
+  const addToCart = (tableId, item) => {
+    setCurrentTableId(tableId);
+    setCarts((prev) => {
+      const cart = prev[tableId] || [];
+      const existing = cart.find((i) => i.menuItemId === item.menuItemId);
       if (existing) {
-        return prev.map((i) =>
-          i.menuItemId === item.menuItemId ? { ...i, quantity: i.quantity + 1 } : i
-        );
+        return {
+          ...prev,
+          [tableId]: cart.map((i) =>
+            i.menuItemId === item.menuItemId ? { ...i, quantity: i.quantity + 1 } : i
+          )
+        };
       }
-      return [...prev, { ...item, quantity: 1, itemNote: '', customizations: [] }];
+      return {
+        ...prev,
+        [tableId]: [...cart, { ...item, quantity: 1, itemNote: '', customizations: [] }]
+      };
     });
   };
 
-  const removeFromCart = (menuItemId) => {
-    setCart((prev) => prev.filter((i) => i.menuItemId !== menuItemId));
+  const removeFromCart = (tableId, menuItemId) => {
+    setCurrentTableId(tableId);
+    setCarts((prev) => ({
+      ...prev,
+      [tableId]: (prev[tableId] || []).filter((i) => i.menuItemId !== menuItemId)
+    }));
   };
 
-  const updateQuantity = (menuItemId, quantity) => {
+  const updateQuantity = (tableId, menuItemId, quantity) => {
+    setCurrentTableId(tableId);
     if (quantity <= 0) {
-      removeFromCart(menuItemId);
+      removeFromCart(tableId, menuItemId);
       return;
     }
-    setCart((prev) =>
-      prev.map((i) => (i.menuItemId === menuItemId ? { ...i, quantity } : i))
-    );
+    setCarts((prev) => ({
+      ...prev,
+      [tableId]: (prev[tableId] || []).map((i) => 
+        i.menuItemId === menuItemId ? { ...i, quantity } : i
+      )
+    }));
   };
 
-  // Update item note for a specific item
-  const updateItemNote = (menuItemId, note) => {
-    setCart((prev) =>
-      prev.map((i) => (i.menuItemId === menuItemId ? { ...i, itemNote: note } : i))
-    );
+  const updateItemNote = (tableId, menuItemId, note) => {
+    setCurrentTableId(tableId);
+    setCarts((prev) => ({
+      ...prev,
+      [tableId]: (prev[tableId] || []).map((i) => 
+        i.menuItemId === menuItemId ? { ...i, itemNote: note } : i
+      )
+    }));
   };
 
-  // Update customizations for a specific item
-  const updateCustomizations = (menuItemId, customizations) => {
-    setCart((prev) =>
-      prev.map((i) => (i.menuItemId === menuItemId ? { ...i, customizations } : i))
-    );
+  const updateCustomizations = (tableId, menuItemId, customizations) => {
+    setCurrentTableId(tableId);
+    setCarts((prev) => ({
+      ...prev,
+      [tableId]: (prev[tableId] || []).map((i) => 
+        i.menuItemId === menuItemId ? { ...i, customizations } : i
+      )
+    }));
   };
 
-  // Save item for later
-  const saveForLater = (menuItemId) => {
+  const saveForLater = (tableId, menuItemId) => {
+    setCurrentTableId(tableId);
+    const cart = carts[tableId] || [];
     const item = cart.find((i) => i.menuItemId === menuItemId);
     if (item) {
-      setSavedItems((prev) => {
-        const exists = prev.find((i) => i.menuItemId === menuItemId);
+      setSavedItemsByTable((prev) => {
+        const saved = prev[tableId] || [];
+        const exists = saved.find((i) => i.menuItemId === menuItemId);
         if (exists) return prev;
-        return [...prev, { ...item, quantity: 1 }];
+        return {
+          ...prev,
+          [tableId]: [...saved, { ...item, quantity: 1 }]
+        };
       });
-      removeFromCart(menuItemId);
+      removeFromCart(tableId, menuItemId);
     }
   };
 
-  // Move saved item back to cart
-  const moveToCart = (menuItemId) => {
-    const item = savedItems.find((i) => i.menuItemId === menuItemId);
+  const moveToCart = (tableId, menuItemId) => {
+    setCurrentTableId(tableId);
+    const saved = savedItemsByTable[tableId] || [];
+    const item = saved.find((i) => i.menuItemId === menuItemId);
     if (item) {
-      addToCart(item);
-      setSavedItems((prev) => prev.filter((i) => i.menuItemId !== menuItemId));
+      addToCart(tableId, item);
+      setSavedItemsByTable((prev) => ({
+        ...prev,
+        [tableId]: (prev[tableId] || []).filter((i) => i.menuItemId !== menuItemId)
+      }));
     }
   };
 
-  // Remove from saved items
-  const removeFromSaved = (menuItemId) => {
-    setSavedItems((prev) => prev.filter((i) => i.menuItemId !== menuItemId));
+  const removeFromSaved = (tableId, menuItemId) => {
+    setCurrentTableId(tableId);
+    setSavedItemsByTable((prev) => ({
+      ...prev,
+      [tableId]: (prev[tableId] || []).filter((i) => i.menuItemId !== menuItemId)
+    }));
   };
 
-  const clearCart = () => {
-    setCart([]);
-    localStorage.removeItem(CART_STORAGE_KEY);
+  const clearCart = (tableId) => {
+    setCurrentTableId(tableId);
+    setCarts((prev) => ({ ...prev, [tableId]: [] }));
+    const keys = getStorageKeys(tableId);
+    localStorage.removeItem(keys.cart);
   };
 
-  const cartTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+  const getCartTotal = (tableId) => {
+    const cart = getCart(tableId);
+    return cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  };
+
+  const getCartCount = (tableId) => {
+    const cart = getCart(tableId);
+    return cart.reduce((sum, i) => sum + i.quantity, 0);
+  };
 
   return (
     <CartContext.Provider
       value={{
-        cart,
-        savedItems,
+        getCart,
+        getSavedItems,
+        initializeCart,
         addToCart,
         removeFromCart,
         updateQuantity,
@@ -136,8 +207,8 @@ export function CartProvider({ children }) {
         moveToCart,
         removeFromSaved,
         clearCart,
-        cartTotal,
-        cartCount,
+        getCartTotal,
+        getCartCount,
         hideCartBar,
         setHideCartBar,
       }}

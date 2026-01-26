@@ -56,7 +56,7 @@ export const getCurrentForTable = query({
     const tables = await ctx.db.query("tables").collect();
     const table = tables.find(t => t.number === args.tableNumber);
     if (!table) {
-      console.log('DEBUG: Table not found for number:', args.tableNumber);
+      // console.log('DEBUG: Table not found for number:', args.tableNumber);
       return null;
     }
 
@@ -74,7 +74,7 @@ export const getCurrentForTable = query({
     // Current time in HH:MM format (IST for comparison)
     const currentTime = istNow.toISOString().split('T')[1].substring(0, 5);
     
-    console.log('DEBUG: Looking for reservations - UTC date:', today, 'IST date:', todayIST, 'Current time:', currentTime, 'Table ID:', table._id);
+    // console.log('DEBUG: Looking for reservations - UTC date:', today, 'IST date:', todayIST, 'Current time:', currentTime, 'Table ID:', table._id);
 
     // Get today's confirmed reservations for this table (check both UTC and IST dates)
     const reservations = await ctx.db
@@ -83,14 +83,14 @@ export const getCurrentForTable = query({
       .filter((q) => q.eq(q.field("status"), "confirmed"))
       .collect();
     
-    console.log('DEBUG: All confirmed reservations for table:', reservations.map(r => ({ date: r.date, start: r.startTime, end: r.endTime, name: r.customerName })));
+    // console.log('DEBUG: All confirmed reservations for table:', reservations.map(r => ({ date: r.date, start: r.startTime, end: r.endTime, name: r.customerName })));
     
     // Filter for today's reservations (either UTC or IST date)
     const todayReservations = reservations.filter(r => 
       r.date === today || r.date === todayIST
     );
     
-    console.log('DEBUG: Today reservations:', todayReservations.length);
+    // console.log('DEBUG: Today reservations:', todayReservations.length);
 
     if (todayReservations.length === 0) return null;
 

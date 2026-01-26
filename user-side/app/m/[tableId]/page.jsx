@@ -11,7 +11,7 @@ import { useBranding } from "@/lib/useBranding";
 import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import { 
-  ShoppingBag, Plus, Minus, ArrowLeft, Armchair, 
+  ChevronRight, Plus, Minus, ArrowLeft, Armchair, 
   UtensilsCrossed, Search, X, Phone, Lock, GlassWater
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
@@ -51,7 +51,24 @@ export default function MenuPage() {
   const [unavailablePopup, setUnavailablePopup] = useState(null);
   const [showAddedGif, setShowAddedGif] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const { cart, addToCart, updateQuantity, cartCount, cartTotal, hideCartBar } = useCart();
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [prevCartCount, setPrevCartCount] = useState(0);
+  const [countAnimating, setCountAnimating] = useState(false);
+  const [countDirection, setCountDirection] = useState('up'); // 'up' or 'down'
+  const cartContext = useCart();
+  
+  // Initialize cart for this table
+  useEffect(() => {
+    if (tableId) {
+      cartContext.initializeCart(tableId);
+    }
+  }, [tableId, cartContext]);
+  
+  // Get table-specific cart data
+  const cart = cartContext.getCart(tableId);
+  const cartCount = cartContext.getCartCount(tableId);
+  const cartTotal = cartContext.getCartTotal(tableId);
+  const { hideCartBar, setHideCartBar } = cartContext;
   
   // Pagination state
   const [displayCount, setDisplayCount] = useState(6);
@@ -133,6 +150,36 @@ export default function MenuPage() {
     }
   }, [cartCount, tableId, router]);
 
+  // Preload cart bar video
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.src = '/assets/videos/added-animation.mp4';
+    video.preload = 'auto';
+    video.onloadeddata = () => {
+      setVideoLoaded(true);
+    };
+    video.onerror = () => {
+      // If video fails to load, still show the page
+      setVideoLoaded(true);
+    };
+    video.load();
+  }, []);
+
+  // Animate cart count changes
+  useEffect(() => {
+    if (cartCount !== prevCartCount && prevCartCount !== 0) {
+      // Determine direction: up if increasing, down if decreasing
+      setCountDirection(cartCount > prevCartCount ? 'up' : 'down');
+      setCountAnimating(true);
+      setTimeout(() => {
+        setCountAnimating(false);
+        setPrevCartCount(cartCount);
+      }, 300);
+    } else {
+      setPrevCartCount(cartCount);
+    }
+  }, [cartCount, prevCartCount]);
+
   // Infinite scroll - load more items when scrolling near bottom
   useEffect(() => {
     const handleScroll = () => {
@@ -151,7 +198,7 @@ export default function MenuPage() {
   }, [activeCategory, searchQuery]);
 
   // Don't show popups until hydrated (sessionStorage checked)
-  if (!isHydrated || checkingSession) {
+  if (!isHydrated || checkingSession || menuLoading || !videoLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="loader-4">Table {tableId}</div>
@@ -469,15 +516,15 @@ export default function MenuPage() {
   const triggerAddedGif = () => {
     setShowAddedGif(true);
     // Vibrate if supported
-    if (navigator.vibrate) {
       navigator.vibrate(50);
-    }
-    setTimeout(() => setShowAddedGif(false), 1500);
+    
+    // Show GIF for 2 seconds to let it play fully
+    setTimeout(() => setShowAddedGif(false), 2000);
   };
   
   const handleAddToCart = (item) => {
-    addToCart({ 
-      menuItemId: item._id, 
+    cartContext.addToCart(tableId, { 
+      menuItemId: item._id,
       name: item.name, 
       price: item.price, 
       image: item.image 
@@ -487,7 +534,7 @@ export default function MenuPage() {
   
   const handleUpdateQuantity = (menuItemId, newQty) => {
     const oldQty = getItemQuantity(menuItemId);
-    updateQuantity(menuItemId, newQty);
+    cartContext.updateQuantity(tableId, menuItemId, newQty);
     // Only show gif when increasing quantity
     if (newQty > oldQty) {
       triggerAddedGif();
@@ -504,47 +551,81 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-30 glass">
-        <div className="max-w-lg mx-auto">
-          {/* Top row */}
-          <div className="px-3 py-2 flex items-center justify-between">
-            <button 
-              onClick={() => router.back()} 
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[--card] border border-[--border] active:scale-95"
-            >
-              <ArrowLeft size={14} className="text-[--text-muted]" />
-            </button>
+      {/* Left Sidebar - Quick Access */}
+      <aside className="fixed left-0 top-14 bottom-0 w-16 bg-[--bg-elevated] border-r border-[--border] z-20 overflow-y-auto scrollbar-hide">
+        <div className="flex flex-col gap-1.5 p-1.5">
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat.id;
+            const categoryName = cat.id.toLowerCase();
+            // Count cart items in this category
+            const cartItemsInCategory = cat.id === "All"
+              ? cartCount
+              : cart.filter(cartItem => {
+                  const menuItem = menuItems?.find(m => m._id === cartItem.menuItemId);
+                  return menuItem?.category === cat.id;
+                }).reduce((sum, item) => sum + item.quantity, 0);
             
-            <div className="text-center flex-1 px-2">
-              <p className="text-[--text-primary] font-semibold text-xs">Table {tableId}</p>
-              {table?.zone && (
-                <p className="text-[8px] text-[--primary] uppercase tracking-wider">
-                  {table.zone.name}
-                </p>
-              )}
-              {sessionTimeLeft && sessionTimeLeft < 15 * 60 * 1000 && (
-                <p className="text-[8px] text-amber-500 mt-0.5">
-                  {formatTimeRemaining(sessionTimeLeft)} left
-                </p>
-              )}
+            return (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  navigator.vibrate(50);
+    
+                  setActiveCategory(cat.id);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="relative flex flex-col items-center justify-center g 'active' :1.5 rounded-lg transition-all active:scale-95 bg-transparent"
+              >
+                <img 
+                  src={`/assets/icons/categories/${categoryName}-${isActive ? 'active' : 'inactive'}.png`}
+                  alt={cat.id}
+                  className="w-14 my-2 h-14 object-contain"
+                />
+                {/* Cart count badge */}
+                {cartItemsInCategory > 0 && (
+                  <div className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[--primary] text-white text-[9px] font-bold flex items-center justify-center shadow-md">
+                    {cartItemsInCategory}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Header - Full width */}
+      <header className="sticky  top-0 z-30 glass">
+          {/* Top row */}
+          <div className="px-2 bg-[#ff2530] py-3 flex items-center justify-between">
+     
+            
+            <div className=" flex-1 px-2 min-w-0">
+             <img src="/assets/logos/orderzap-logo.png" className="h-8" alt="" />
             </div>
             
             <button 
               onClick={() => setShowSearch(!showSearch)} 
-              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 ${
+              className={`w-10 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 flex-shrink-0 ${
                 showSearch 
-                  ? 'bg-[--primary] text-[--bg]' 
-                  : 'bg-[--card] border border-[--border] text-[--text-muted]'
+                  ? 'bg-[--primary] text-white' 
+                  : 'bg-transparent'
               }`}
             >
-              {showSearch ? <X size={14} /> : <Search size={14} />}
+              {showSearch ? (
+                <X size={14} className="text-white" />
+              ) : (
+                <img 
+                  src="/assets/icons/search-food.png" 
+                  alt="Search" 
+                  className="w-10 h-10 object-contain"
+                />
+              )}
             </button>
           </div>
 
           {/* Search bar */}
           {showSearch && (
-            <div className="px-3 pb-2 animate-slide-down" style={{animationFillMode: 'forwards'}}>
+            <div className="px-2 pb-2 animate-slide-down" style={{animationFillMode: 'forwards'}}>
               <div className="relative">
                 <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[--text-dim]" />
                 <input
@@ -553,7 +634,7 @@ export default function MenuPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search menu..."
                   autoFocus
-                  className="w-full !bg-[--card] rounded-lg pl-8 pr-3 py-2 text-[11px] placeholder:text-[--text-dim]"
+                  className="w-full !bg-[--card] rounded-lg pl-8 pr-8 py-2 text-[11px] placeholder:text-[--text-dim]"
                 />
                 {searchQuery && (
                   <button 
@@ -567,8 +648,8 @@ export default function MenuPage() {
             </div>
           )}
 
-          {/* Categories */}
-          <div className="px-3 pb-2 overflow-x-auto scrollbar-hide">
+          {/* Categories - Hidden since we have sidebar */}
+          <div className="px-2 pb-2 overflow-x-auto scrollbar-hide hidden">
             <div className="flex gap-1.5">
               {categories.map((cat) => (
                 <button 
@@ -585,11 +666,10 @@ export default function MenuPage() {
               ))}
             </div>
           </div>
-        </div>
       </header>
 
-      {/* Menu Content */}
-      <div className="max-w-lg mx-auto px-2 py-3">
+      {/* Menu Content - with left padding for sidebar */}
+      <div className="pl-16 px-2 py-3">
         {searchQuery && (
           <p className="text-[--text-dim] text-[9px] mb-3 px-1">
             {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''} for "{searchQuery}"
@@ -612,16 +692,21 @@ export default function MenuPage() {
                   </h2>
                   <span className="text-[--text-dim] text-[9px]">{group.items.length}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 menu-card-grid">
-                  {group.items.map((item) => (
-                    <MenuItem 
-                      key={item._id} 
-                      item={item} 
-                      qty={getItemQuantity(item._id)}
-                      onAdd={() => handleAddToCart(item)}
-                      onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
-                      onUnavailable={() => setUnavailablePopup(item)}
-                    />
+                <div className="grid grid-cols-1 gap-2 menu-card-grid">
+                  {group.items.map((item, itemIndex) => (
+                    <div
+                      key={item._id}
+                      className="opacity-0 animate-slide-in-right"
+                      style={{animationDelay: `${itemIndex * 0.05}s`, animationFillMode: 'forwards'}}
+                    >
+                      <MenuItem 
+                        item={item} 
+                        qty={getItemQuantity(item._id)}
+                        onAdd={() => handleAddToCart(item)}
+                        onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
+                        onUnavailable={() => setUnavailablePopup(item)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -629,16 +714,21 @@ export default function MenuPage() {
           </div>
         ) : (
           /* Single category view */
-          <div className="grid grid-cols-2 gap-2 stagger-children menu-card-grid">
-            {displayedItems.map((item) => (
-              <MenuItem 
-                key={item._id} 
-                item={item} 
-                qty={getItemQuantity(item._id)}
-                onAdd={() => handleAddToCart(item)}
-                onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
-                onUnavailable={() => setUnavailablePopup(item)}
-              />
+          <div className="grid grid-cols-1 gap-2 menu-card-grid">
+            {displayedItems.map((item, itemIndex) => (
+              <div
+                key={item._id}
+                className="opacity-0 animate-slide-in-right"
+                style={{animationDelay: `${itemIndex * 0.05}s`, animationFillMode: 'forwards'}}
+              >
+                <MenuItem 
+                  item={item} 
+                  qty={getItemQuantity(item._id)}
+                  onAdd={() => handleAddToCart(item)}
+                  onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
+                  onUnavailable={() => setUnavailablePopup(item)}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -669,65 +759,53 @@ export default function MenuPage() {
         )}
       </div>
 
-      {/* Cart Bar */}
+      {/* Cart Bar - Redesigned with gradient and better styling */}
       {cartCount > 0 && !hideCartBar && (
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-3 pb-5">
-  <div className="max-w-lg mx-auto">
-    <button
-      onClick={() => router.push(`/cart/${tableId}`)}
-      className="
-        relative overflow-hidden
-        flex items-center justify-between
-        rounded-2xl px-4 py-3
-        border border-white/10
-        bg-white/5 backdrop-blur-xl
-        shadow-[0_10px_30px_rgba(0,0,0,0.35)]
-        active:scale-[0.985]
-        transition-transform duration-100
-        w-full
-      "
-    >
-      {/* Left */}
-      <div className="relative flex items-center gap-3">
-        <div
-          className="
-            w-10 h-10 rounded-xl
-            bg-[--primary]/15 border border-[--primary]/25
-            flex items-center justify-center
-            shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]
-            overflow-hidden
-          "
-        >
-          {showAddedGif ? (
-            <img src="/assets/gifs/added.gif" alt="Added" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-[--primary] font-semibold text-sm">
-              {cartCount}
-            </span>
-          )}
-        </div>
+      <div className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
+        <div className="bg-white px-4 py-4">
+          <button
+            onClick={() => router.push(`/cart/${tableId}`)}
+            className="flex items-center justify-between w-full active:scale-[0.98] transition-transform"
+          >
+            {/* Left */}
+            <div className="relative flex items-center gap-3">
+              {/* Video overlay that appears when item is added */}
+              {showAddedGif && (
+                <div className="absolute left-0 z-10 animate-scale-bounce">
+                  <video 
+                    src="/assets/videos/added-animation.mp4" 
+                    autoPlay 
+                    muted 
+                    playsInline
+                    className="w-12 h-12 object-cover rounded-lg"
+                  />
+                </div>
+              )}
 
-        <div className="leading-tight">
-          <p className="text-[--text-primary] text-xs font-semibold tracking-wide">
-            View Cart
-          </p>
-          <p className="text-[--text-dim] text-[10px]">
-            {cartCount} item{cartCount !== 1 ? "s" : ""} added
-          </p>
+              <div className={`leading-tight transition-transform duration-300 ${showAddedGif ? 'translate-x-14' : 'translate-x-0'}`}>
+                <div className="flex items-baseline gap-1">
+                  <OdometerNumber value={cartCount} className="text-black text-base font-bold" />
+                  <span className="text-black text-base font-bold ml-1">
+                    {cartCount === 1 ? 'Item' : 'Items'}
+                  </span>
+                </div>
+                <p className="text-black/90 text-xs">
+                  View Cart
+                </p>
+              </div>
+            </div>
+
+            {/* Right */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-black text-lg font-bold font-['Montserrat']">₹</span>
+                <OdometerNumber value={cartTotal.toFixed(0)} className="text-black text-lg font-bold font-['Montserrat']" />
+              </div>
+              <ChevronRight size={20} className="text-black" />
+            </div>
+          </button>
         </div>
       </div>
-
-      {/* Right */}
-      <div className="relative flex items-center gap-2">
-        <span className="text-[--text-primary] font-semibold text-base">
-          ₹{cartTotal.toFixed(0)}
-        </span>
-      </div>
-
-    </button>
-  </div>
-</div>
-
       )}
 
       {/* Unavailable Item Popup */}
@@ -828,51 +906,32 @@ export default function MenuPage() {
           </div>
         </div>
       </AnimatedBottomSheet>
+    </div>
+  );
+}
 
-      {/* Session Expiry Warning */}
-      <AnimatedPopup 
-        show={showSessionWarning} 
-        onClose={() => setShowSessionWarning(false)}
-        className="absolute inset-0 flex items-center justify-center p-4"
-      >
-        <div className="card rounded-2xl p-6 max-w-[320px] w-full text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
-          
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
-              <ScanLine size={28} className="text-amber-400" />
-            </div>
-            
-            <h3 className="text-[--text-primary] font-luxury text-lg mb-2">
-              Session Expiring Soon
-            </h3>
-            <p className="text-[--text-muted] text-sm mb-1">
-              Your menu access will expire in
-            </p>
-            <p className="text-[--primary] text-xl font-semibold mb-5">
-              {sessionTimeLeft ? formatTimeRemaining(sessionTimeLeft) : ''}
-            </p>
-            <p className="text-[--text-dim] text-xs mb-5">
-              Scan the QR code again to continue browsing
-            </p>
-            
-            <div className="space-y-2">
-              <button 
-                onClick={() => setShowSessionWarning(false)}
-                className="w-full py-3 rounded-xl text-sm font-semibold bg-[--primary] text-[--bg] hover:opacity-90 active:scale-[0.98] transition-all"
-              >
-                Got it
-              </button>
-              <Link
-                href="/"
-                className="block w-full py-3 rounded-xl text-sm font-semibold bg-[--card] border border-[--border] text-[--text-primary] hover:bg-[--bg-elevated] active:scale-[0.98] transition-all"
-              >
-                Scan QR Again
-              </Link>
-            </div>
+// Odometer Number Component
+function OdometerNumber({ value, className = "" }) {
+  const digits = value.toString().split('');
+  
+  return (
+    <div className={`inline-flex ${className}`}>
+      {digits.map((digit, idx) => (
+        <div key={idx} className="relative h-5 w-3 overflow-hidden">
+          <div 
+            className="flex flex-col transition-transform duration-300 ease-out"
+            style={{
+              transform: `translateY(-${parseInt(digit) * 20}px)`
+            }}
+          >
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <span key={num} className="h-5 leading-5 text-center block">
+                {num}
+              </span>
+            ))}
           </div>
         </div>
-      </AnimatedPopup>
+      ))}
     </div>
   );
 }
@@ -894,6 +953,10 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
       triggerRestrictedFeedback();
       return;
     }
+    // Vibrate on successful add
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
     onAdd();
   }, [isRestricted, onAdd, triggerRestrictedFeedback]);
 
@@ -911,14 +974,14 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
 
   return (
     <div
-      className={`menu-card-item rounded-lg overflow-hidden border border-[--border] bg-[--bg] ${
+      className={`menu-card-item rounded-xl overflow-hidden border border-[--border] bg-[--card] flex h-32 ${
         isRestricted ? "opacity-70" : ""
       }`}
     >
-      {/* IMAGE / ACTION ZONE */}
+      {/* IMAGE - Left side, fixed width */}
       <div
         onClick={handleAdd}
-        className="relative aspect-[4/3] cursor-pointer overflow-hidden group"
+        className="relative w-32 h-32 flex-shrink-0 cursor-pointer overflow-hidden group"
         role="button"
         aria-disabled={isRestricted}
       >
@@ -932,65 +995,67 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
         {isRestricted && (
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-[10px] text-white font-medium gap-1">
             <Lock size={14} />
-            <span>Unavailable here</span>
+            <span>Unavailable</span>
           </div>
         )}
 
         {/* Quantity Badge */}
         {qty > 0 && !isRestricted && (
-          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[--primary] text-[--bg] text-[9px] font-bold flex items-center justify-center">
+          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[--primary] text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
             {qty}
           </div>
         )}
       </div>
 
-      {/* INFO */}
-      <div className="p-2 space-y-1">
-        <h3 className="text-[11px] font-semibold text-[--text-primary] line-clamp-1">
-          {item.name}
-        </h3>
+      {/* INFO - Right side, takes remaining space */}
+      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+        <div className="flex-1 min-h-0">
+          <h3 className="text-sm font-semibold text-[--text-primary] line-clamp-2 mb-1 leading-tight">
+            {item.name}
+          </h3>
 
-        <p className="text-[8px] text-[--text-dim] line-clamp-1">
-          {item.description}
-        </p>
+          <p className="text-[10px] text-[--text-muted] line-clamp-2 leading-snug">
+            {item.description}
+          </p>
+        </div>
 
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-xs font-semibold">₹{item.price.toFixed(0)}</span>
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-base font-bold text-[--text-primary] font-['Montserrat']">₹{item.price.toFixed(0)}/-</span>
 
           {/* ACTIONS */}
           {isRestricted ? (
-            <span className="text-[8px] text-red-400">Unavailable</span>
+            <span className="text-[9px] text-red-400 font-medium">Unavailable</span>
           ) : qty > 0 ? (
             <div
-              className="flex items-center rounded border border-[--border] bg-[--bg-elevated]"
+              className="flex items-center rounded-lg border border-[--border] bg-[--bg-elevated] shadow-sm"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={handleDecrement}
-                className="w-6 h-6 flex items-center justify-center active:scale-90"
+                className="w-8 h-8 flex items-center justify-center active:scale-90 text-[--text-primary]"
                 aria-label="Decrease quantity"
               >
-                <Minus size={12} />
+                <Minus size={14} />
               </button>
 
-              <span className="w-4 text-center text-[10px] font-semibold">
-                {qty}
-              </span>
+              <div className="w-6 flex justify-center">
+                <OdometerNumber value={qty} className="text-xs font-semibold text-[--text-primary]" />
+              </div>
 
               <button
                 onClick={handleIncrement}
-                className="w-6 h-6 flex items-center justify-center text-[--primary] active:scale-90"
+                className="w-8 h-8 flex items-center justify-center text-[--primary] active:scale-90"
                 aria-label="Increase quantity"
               >
-                <Plus size={12} />
+                <Plus size={14} />
               </button>
             </div>
           ) : (
             <button
               onClick={handleAdd}
-              className="text-[9px] font-medium text-[--primary] active:scale-95"
+              className="px-4 py-2 rounded-lg bg-[--primary] text-white text-xs font-semibold active:scale-95 transition-transform shadow-sm"
             >
-              Add
+              Add +
             </button>
           )}
         </div>

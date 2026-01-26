@@ -27,7 +27,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg] px-4">
       <div className="text-center">
       
-        <p className="loader"></p>
+        <p className="loader-4">Table {tableId}</p>
       </div>
     </div>
   );

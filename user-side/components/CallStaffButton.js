@@ -26,11 +26,11 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
 
   // Show "Water on the way" popup when staff acknowledges
   useEffect(() => {
-    console.log("waterAcknowledged:", waterAcknowledged);
+    // console.log("waterAcknowledged:", waterAcknowledged);
     if (waterAcknowledged && waterAcknowledged.acknowledgedAt) {
       const lastSeenTime = sessionStorage.getItem(`waterAck-${waterAcknowledged._id}`);
       const ackTime = String(waterAcknowledged.acknowledgedAt);
-      console.log("lastSeenTime:", lastSeenTime, "ackTime:", ackTime);
+      // console.log("lastSeenTime:", lastSeenTime, "ackTime:", ackTime);
       
       // Only show if we haven't seen this specific acknowledgment time
       if (lastSeenTime !== ackTime) {

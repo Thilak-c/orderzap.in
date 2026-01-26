@@ -98,7 +98,7 @@ export default function QRScanPage() {
         html5QrCodeRef.current.clear();
       } catch (err) {
         // Silently handle stop errors
-        console.log("Scanner stop:", err.message);
+        // console.log("Scanner stop:", err.message);
       }
     }
   };

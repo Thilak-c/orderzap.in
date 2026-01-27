@@ -376,7 +376,7 @@ export default function CartPage() {
         currency: "INR",
         name: "OrderZap",
         description: `Order - Table ${tableId}`,
-        image: "https://disappointed-olive-q3qrbjbe6s.edgeone.app/ChatGPT%20Image%20Jan%2025,%202026,%2008_12_38%20PM.png",
+        image: "https://orderzap-in.vercel.app/assets/logos/s-logo-sq.webp",
         handler: async function (response) {
           // Payment successful - now run animation and create order
           runOrderAnimation(phoneForDeposit, `Payment: ${response.razorpay_payment_id}`);

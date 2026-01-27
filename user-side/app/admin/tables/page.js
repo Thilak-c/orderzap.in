@@ -2,10 +2,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 
 export default function AdminTablesPage() {
-  const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const tables = useQuery(api.tables.list);
   const zones = useQuery(api.zones.list);
   const createTable = useMutation(api.tables.create);
@@ -15,8 +13,6 @@ export default function AdminTablesPage() {
   const [editingTable, setEditingTable] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: "", number: "", capacity: "", zoneId: "" });
-
-  if (authLoading || !isAuthenticated) return null;
 
   const handleSave = async () => {
     if (!formData.name || !formData.number) return;

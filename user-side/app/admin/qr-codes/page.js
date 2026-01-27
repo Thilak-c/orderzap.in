@@ -3,10 +3,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 
 export default function QRCodesPage() {
-  const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const tables = useQuery(api.tables.list);
   const settings = useQuery(api.settings.getAll);
   const updateSetting = useMutation(api.settings.set);
@@ -42,8 +40,6 @@ export default function QRCodesPage() {
     const authUrl = `${baseUrl}a/${tableNumber}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(authUrl)}&bgcolor=09090b&color=ffffff`;
   };
-
-  if (authLoading || !isAuthenticated) return null;
 
   return (
     <div className="p-6">

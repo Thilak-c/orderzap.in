@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { useAdminAuth } from '@/lib/useAdminAuth';
 import { useNotificationAlert } from '@/lib/useNotificationAlert';
-import { LayoutDashboard, ClipboardList, UtensilsCrossed, Grid3X3, Calendar, MapPin, QrCode, BarChart3, Users, ChevronDown, Check, ArrowLeft, LogOut, Settings, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, UtensilsCrossed, Grid3X3, Calendar, MapPin, QrCode, BarChart3, Users, ChevronDown, Check, ArrowLeft, Settings, Menu, X } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'DASHBOARD', icon: LayoutDashboard },
@@ -23,7 +22,6 @@ const navItems = [
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
-  const { isAuthenticated, loading, logout } = useAdminAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [staffDropdownOpen, setStaffDropdownOpen] = useState(false);
   
@@ -53,19 +51,6 @@ export default function AdminLayout({ children }) {
 
   // Don't show sidebar on login page
   if (pathname === '/admin/login') {
-    return <div className="min-h-screen bg-zinc-950 text-zinc-100 font-mono">{children}</div>;
-  }
-
-  // Show loading only for auth check
-  if (loading || isAuthenticated === null) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500 font-mono">
-        LOADING...
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
     return <div className="min-h-screen bg-zinc-950 text-zinc-100 font-mono">{children}</div>;
   }
 
@@ -106,7 +91,6 @@ export default function AdminLayout({ children }) {
                 isStaffActive={isStaffActive}
                 staffDropdownOpen={staffDropdownOpen}
                 setStaffDropdownOpen={setStaffDropdownOpen}
-                logout={logout}
                 onLinkClick={() => setMobileMenuOpen(false)}
                 isMobile={true}
               />
@@ -127,7 +111,6 @@ export default function AdminLayout({ children }) {
             isStaffActive={isStaffActive}
             staffDropdownOpen={staffDropdownOpen}
             setStaffDropdownOpen={setStaffDropdownOpen}
-            logout={logout}
             isMobile={false}
           />
         </aside>
@@ -142,7 +125,7 @@ export default function AdminLayout({ children }) {
 }
 
 // Sidebar Content Component
-function SidebarContent({ brandLogo, brandName, navItems, pathname, pendingCalls, pendingOrders, staff, isStaffActive, staffDropdownOpen, setStaffDropdownOpen, logout, onLinkClick, isMobile }) {
+function SidebarContent({ brandLogo, brandName, navItems, pathname, pendingCalls, pendingOrders, staff, isStaffActive, staffDropdownOpen, setStaffDropdownOpen, onLinkClick, isMobile }) {
   return (
     <div className="flex flex-col h-full">
       {/* Brand Header - Desktop only */}
@@ -333,12 +316,6 @@ function SidebarContent({ brandLogo, brandName, navItems, pathname, pendingCalls
         <Link href="/" className="flex items-center gap-2 text-[10px] text-zinc-600 hover:text-zinc-400 uppercase tracking-wide" onClick={onLinkClick}>
           <ArrowLeft size={12} /> Customer View
         </Link>
-        <button 
-          onClick={() => { logout(); onLinkClick?.(); }}
-          className="w-full flex items-center gap-2 text-left text-[10px] text-red-500 hover:text-red-400 uppercase tracking-wide"
-        >
-          <LogOut size={12} /> Logout
-        </button>
       </div>
     </div>
   );

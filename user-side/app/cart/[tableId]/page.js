@@ -78,9 +78,9 @@ const createConfetti = () => {
 };
 
 const paymentOptions = [
-  { id: "pay-now", label: "Pay Now", icon: CreditCard, desc: "Online payment" },
-  { id: "pay-counter", label: "At Counter", icon: Banknote, desc: "Pay when ready" },
-  { id: "pay-table", label: "At Table", icon: UserRound, desc: "Staff comes to you" },
+  { id: "pay-now", label: "Pay Now", image: "/assets/icons/payment/pay-now.png", imageActive: "/assets/icons/payment/pay-now-a.png", desc: "Online payment" },
+  { id: "pay-counter", label: "At Counter", image: "/assets/icons/payment/at-counter.png", imageActive: "/assets/icons/payment/at-counter-1.png", desc: "Pay when ready" },
+  { id: "pay-table", label: "At Table", image: "/assets/icons/payment/at-table.png", imageActive: "/assets/icons/payment/at-table-a.png", desc: "Staff comes to you" },
 ];
 
 export default function CartPage() {
@@ -89,10 +89,29 @@ export default function CartPage() {
   const { sessionId } = useSession();
   const { setTable } = useTable();
   const { brandName, brandLogo, isLoading: brandingLoading } = useBranding();
-  const { 
-    cart, updateQuantity, removeFromCart, cartTotal, clearCart, cartCount,
-    updateItemNote, updateCustomizations, saveForLater, savedItems, moveToCart, removeFromSaved
-  } = useCart();
+  const cartContext = useCart();
+  
+  // Initialize cart for this table
+  useEffect(() => {
+    if (tableId) {
+      cartContext.initializeCart(tableId);
+    }
+  }, [tableId, cartContext]);
+  
+  // Get table-specific cart data
+  const cart = cartContext.getCart(tableId);
+  const cartCount = cartContext.getCartCount(tableId);
+  const cartTotal = cartContext.getCartTotal(tableId);
+  const updateQuantity = (menuItemId, quantity) => cartContext.updateQuantity(tableId, menuItemId, quantity);
+  const removeFromCart = (menuItemId) => cartContext.removeFromCart(tableId, menuItemId);
+  const clearCart = () => cartContext.clearCart(tableId);
+  const updateItemNote = (menuItemId, note) => cartContext.updateItemNote(tableId, menuItemId, note);
+  const updateCustomizations = (menuItemId, customizations) => cartContext.updateCustomizations(tableId, menuItemId, customizations);
+  const saveForLater = (menuItemId) => cartContext.saveForLater(tableId, menuItemId);
+  const savedItems = cartContext.getSavedItems(tableId);
+  const moveToCart = (item) => cartContext.moveToCart(tableId, item);
+  const removeFromSaved = (menuItemId) => cartContext.removeFromSaved(tableId, menuItemId);
+  
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [isOrdering, setIsOrdering] = useState(false);
@@ -133,9 +152,16 @@ export default function CartPage() {
   const [addingToCartId, setAddingToCartId] = useState(null); // For move to cart animation
   const [isAddingToCart, setIsAddingToCart] = useState(false); // For cart appearing animation
   
+  // Order error state
+  const [orderError, setOrderError] = useState(null); // { message: 'Error text' }
+  
   // Order animation states
   const [orderAnimationStage, setOrderAnimationStage] = useState('idle'); // idle, loading, paper, flying, success
   const [paperPosition, setPaperPosition] = useState({ bottom: 100, opacity: 1 });
+  
+  // Image loading state
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [loadedImagesCount, setLoadedImagesCount] = useState(0);
 
   const activeOrder = useQuery(api.orders.getActiveBySession, sessionId ? { sessionId } : "skip");
   const createOrder = useMutation(api.orders.create);
@@ -152,7 +178,7 @@ export default function CartPage() {
     : (tipOptions.find(t => t.id === selectedTip)?.amount || 0);
   
   // Calculate customization extras
-  const customizationTotal = cart.reduce((sum, item) => {
+  const customizationTotal = (cart || []).reduce((sum, item) => {
     const itemCustomizations = item.customizations || [];
     const addonTotal = itemCustomizations.reduce((acc, custId) => {
       const cust = customizationOptions.find(c => c.id === custId);
@@ -180,6 +206,31 @@ export default function CartPage() {
       router.replace('/');
     }
   }, [tableId, router]);
+  
+  // Preload payment method images
+  useEffect(() => {
+    const imagesToLoad = paymentOptions.flatMap(option => [option.image, option.imageActive]);
+    let loaded = 0;
+    
+    imagesToLoad.forEach(src => {
+      const img = new Image();
+      img.onload = () => {
+        loaded++;
+        setLoadedImagesCount(loaded);
+        if (loaded === imagesToLoad.length) {
+          setImagesLoaded(true);
+        }
+      };
+      img.onerror = () => {
+        loaded++;
+        setLoadedImagesCount(loaded);
+        if (loaded === imagesToLoad.length) {
+          setImagesLoaded(true);
+        }
+      };
+      img.src = src;
+    });
+  }, []);
   
   // Calculate totals including tip and customizations
   const subtotal = cartTotal + customizationTotal;
@@ -323,9 +374,9 @@ export default function CartPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_yourkeyhere",
         amount: Math.round(finalTotal * 100),
         currency: "INR",
-        name: "BTS DISC",
+        name: "OrderZap",
         description: `Order - Table ${tableId}`,
-        image: "https://bts-club-one.vercel.app/logo.png",
+        image: "https://disappointed-olive-q3qrbjbe6s.edgeone.app/ChatGPT%20Image%20Jan%2025,%202026,%2008_12_38%20PM.png",
         handler: async function (response) {
           // Payment successful - now run animation and create order
           runOrderAnimation(phoneForDeposit, `Payment: ${response.razorpay_payment_id}`);
@@ -334,7 +385,7 @@ export default function CartPage() {
           contact: phoneToCheck?.replace('+', '') || '',
         },
         theme: {
-          color: "#d4af7d",
+          color: "#ff2530",
         },
         modal: {
           ondismiss: function () {
@@ -387,6 +438,7 @@ export default function CartPage() {
       clearCart();
     }).catch((err) => {
       orderError = err;
+      console.error("Order creation failed:", err);
     });
     
     setTimeout(() => {
@@ -416,10 +468,13 @@ export default function CartPage() {
             // Wait for order to complete
             orderPromise.finally(() => {
               if (orderError) {
-                alert("Order failed: " + orderError.message);
+                // Show error state
                 setOrderAnimationStage('idle');
                 setPaperPosition({ bottom: 100, opacity: 1 });
                 setIsOrdering(false);
+                setOrderError({ 
+                  message: orderError.message || "Failed to place order. Please try again." 
+                });
                 return;
               }
               
@@ -550,9 +605,9 @@ export default function CartPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_yourkeyhere",
         amount: Math.round(finalTotal * 100), // Amount in paise
         currency: "INR",
-        name: "BTS DISC",
+        name: "OrderZap",
         description: `Order - Table ${tableId}`,
-        image: "https://bts-club-one.vercel.app/logo.png",
+        image: "https://orderzap-in.vercel.app/assets/logos/favicon_io/android-chrome-192x192.png",
         handler: async function (response) {
           // Payment successful - create order
           // console.log("Razorpay payment success, creating order...", response);
@@ -676,11 +731,12 @@ export default function CartPage() {
     );
   }
 
-  // Show loading while branding loads
-  if (brandingLoading) {
+  // Show loading while branding or images load
+  if (brandingLoading || !imagesLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[--bg]">
-        <div className="loader" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg]">
+        <div className="loader mb-4" />
+        <p className="text-[--text-dim] text-xs">Loading assets... {loadedImagesCount}/{paymentOptions.length * 2}</p>
       </div>
     );
   }
@@ -691,29 +747,33 @@ export default function CartPage() {
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-[--bg]/90 backdrop-blur-xl border-b border-[--border]">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href={`/m/${tableId}`} className="w-10 h-10 flex items-center justify-center rounded-xl bg-[--card] border border-[--border]">
-            <ArrowLeft size={18} className="text-[--text-muted]" />
-          </Link>
-          <div className="text-center">
-            <h1 className="font-semibold text-[--text-primary]">Your Cart</h1>
-            <p className="text-[10px] text-[--text-dim]">{cartCount} items • Table {tableId}</p>
+      <header className="sticky top-0 z-30 glass">
+        {/* Top row */}
+        <div className="px-2 bg-[#ff2530] py-3 flex items-center justify-between">
+          <div className="flex-1 px-2 min-w-0">
+            <img src="/assets/logos/orderzap-logo.png" className="h-8" alt="OrderZap" />
           </div>
-          <div className="w-10" />
+          
+          <Link href={`/m/${tableId}`} className="w-10 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 flex-shrink-0">
+            <ArrowLeft size={18} className="text-white" />
+          </Link>
         </div>
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-4">
         {/* Deposit Banner - show if has credit AND cart has items */}
-        {cart.length > 0 && depositBalance > 0 && (
+        {(cart?.length || 0) > 0 && depositBalance > 0 && (
           <div className="rounded-2xl p-4 mb-4 animate-slide-down" style={{ animationFillMode: 'forwards' }}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
                 <Ticket size={20} className="text-emerald-400" />
               </div>
               <div className="flex-1">
-                <p className="text-emerald-400 font-semibold text-sm">₹{depositBalance} Credit Applied</p>
+                <div className="text-emerald-400 font-semibold text-sm flex items-baseline gap-0.5">
+                  <span>₹</span>
+                  <OdometerNumber value={depositBalance.toString()} />
+                  <span className="ml-1">Credit Applied</span>
+                </div>
                 <p className="text-emerald-400/60 text-xs">From reservation deposit</p>
               </div>
               {couponApplied && (
@@ -727,7 +787,7 @@ export default function CartPage() {
         )}
 
         {/* Coupon Input - show if no stored credit and no coupon applied with credit AND cart has items */}
-        {cart.length > 0 && !hasStoredCredit && !(couponApplied && depositBalance > 0) && (
+        {(cart?.length || 0) > 0 && !hasStoredCredit && !(couponApplied && depositBalance > 0) && (
           <div className="mb-4 animate-slide-down" style={{ animationFillMode: 'forwards' }}>
             {!showCouponInput ? (
               <button 
@@ -778,7 +838,7 @@ export default function CartPage() {
 
         {/* Cart Items or Empty State */}
         <div>
-          {cart.length === 0 && !isAddingToCart ? (
+          {(cart?.length || 0) === 0 && !isAddingToCart ? (
             <div 
               className={`bg-[--card] border border-[--border] rounded-2xl text-center mb-4 overflow-hidden ${isTransitioning ? 'animate-expand-height p-0' : 'animate-scale-in p-8'}`} 
               style={{ animationFillMode: 'forwards' }}
@@ -794,15 +854,23 @@ export default function CartPage() {
                 Add items from menu
               </Link>
             </div>
-          ) : cart.length > 0 ? (
+          ) : (cart?.length || 0) > 0 ? (
           <div className={`space-y-3 mb-4 ${isAddingToCart ? 'animate-slide-up' : ''}`} style={{ animationFillMode: 'forwards' }}>
             {/* Estimated Time */}
             <div className={`flex items-center gap-2 px-1 mb-2 ${isAddingToCart ? 'animate-fade-in' : ''}`} style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
               <Clock size={14} className="text-[--primary]" />
-              <span className="text-xs text-[--text-muted]">Estimated time: <span className="text-[--text-primary] font-medium">{estimatedTime}-{estimatedTime + 10} mins</span></span>
+              <span className="text-xs text-[--text-muted] flex items-baseline gap-1">
+                <span>Estimated time:</span>
+                <span className="text-[--text-primary] font-medium flex items-baseline gap-0.5">
+                  <OdometerNumber value={estimatedTime.toString()} />
+                  <span>-</span>
+                  <OdometerNumber value={(estimatedTime + 10).toString()} />
+                  <span className="ml-0.5">mins</span>
+                </span>
+              </span>
             </div>
 
-            {cart.map((item, index) => (
+            {(cart || []).map((item, index) => (
               <div 
                 key={item.menuItemId} 
                 className={`bg-[--card] border border-[--border] rounded-2xl p-3 ${
@@ -822,7 +890,10 @@ export default function CartPage() {
                   <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                     <div>
                       <h3 className="font-medium text-[--text-primary] text-sm line-clamp-1">{item.name}</h3>
-                      <p className="text-[--primary] font-semibold text-sm mt-0.5">₹{item.price}</p>
+                      <div className="text-[--primary] font-semibold text-sm mt-0.5 flex items-baseline gap-0.5">
+                        <span>₹</span>
+                        <OdometerNumber value={item.price.toString()} />
+                      </div>
                       {/* Show item note if exists */}
                       {item.itemNote && (
                         <p className="text-[--text-dim] text-[10px] mt-1 line-clamp-1">📝 {item.itemNote}</p>
@@ -844,7 +915,9 @@ export default function CartPage() {
                         >
                           <Minus size={14} className="text-[--text-muted]" />
                         </button>
-                        <span className="w-6 text-center text-sm font-bold text-[--text-primary]">{item.quantity}</span>
+                        <span className="w-6 text-center text-sm font-bold text-[--text-primary] flex items-center justify-center">
+                          <OdometerNumber value={item.quantity.toString()} />
+                        </span>
                         <button 
                           onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)} 
                           className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
@@ -880,7 +953,10 @@ export default function CartPage() {
 
                   {/* Item Total */}
                   <div className="text-right py-0.5">
-                    <p className="text-[--text-primary] font-bold text-sm">₹{(item.price * item.quantity).toFixed(0)}</p>
+                    <div className="text-[--text-primary] font-bold text-sm flex items-baseline gap-0.5 justify-end">
+                      <span>₹</span>
+                      <OdometerNumber value={(item.price * item.quantity).toFixed(0)} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -899,11 +975,15 @@ export default function CartPage() {
         </div>
 
         {/* Saved for Later */}
-        {savedItems.length > 0 && (
+        {savedItems?.length > 0 ? (
           <div className="mt-4 mb-4">
             <p className="text-[10px] tracking-[0.2em] text-[--text-dim] mb-3 uppercase font-medium flex items-center gap-2">
               <Bookmark size={12} />
-              Saved for Later ({savedItems.length})
+              <span className="flex items-baseline gap-1">
+                <span>Saved for Later (</span>
+                <OdometerNumber value={savedItems.length.toString()} />
+                <span>)</span>
+              </span>
             </p>
             <div className="space-y-2">
               {savedItems.map((item, index) => (
@@ -921,7 +1001,10 @@ export default function CartPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm text-[--text-primary] line-clamp-1">{item.name}</h4>
-                    <p className="text-xs text-[--primary]">₹{item.price}</p>
+                    <div className="text-xs text-[--primary] flex items-baseline gap-0.5">
+                      <span>₹</span>
+                      <OdometerNumber value={item.price.toString()} />
+                    </div>
                   </div>
                   <button 
                     onClick={() => handleMoveToCart(item)}
@@ -937,6 +1020,20 @@ export default function CartPage() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        ) : (cart?.length || 0) > 0 && (
+          <div className="mt-4 mb-4">
+            <p className="text-[10px] tracking-[0.2em] text-[--text-dim] mb-3 uppercase font-medium flex items-center gap-2">
+              <Bookmark size={12} />
+              Saved for Later
+            </p>
+            <div className="bg-[--card] border border-dashed border-[--border] rounded-xl p-6 text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[--bg-elevated] flex items-center justify-center">
+                <Bookmark size={18} className="text-[--text-dim]" />
+              </div>
+              <p className="text-[--text-muted] text-xs">No saved items yet</p>
+              <p className="text-[--text-dim] text-[10px] mt-1">Tap bookmark icon to save items for later</p>
             </div>
           </div>
         )}
@@ -990,22 +1087,28 @@ export default function CartPage() {
           <p className="text-[10px] tracking-[0.2em] text-[--text-dim] mb-3 uppercase font-medium">How would you like to pay?</p>
           <div className="grid grid-cols-3 gap-2">
             {paymentOptions.map((option) => {
-              const Icon = option.icon;
               const isSelected = paymentMethod === option.id;
               return (
                 <button 
                   key={option.id} 
-                  onClick={() => setPaymentMethod(option.id)} 
+                  onClick={() => {
+                    if (navigator.vibrate) {
+                      navigator.vibrate(50);
+                    }
+                    setPaymentMethod(option.id);
+                  }} 
                   className={`flex flex-col items-center p-4 rounded-xl border transition-all active:scale-95 ${
                     isSelected 
                       ? "border-[--primary] bg-[--primary]/10" 
                       : "border-[--border] bg-[--card]"
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
-                    isSelected ? "bg-[--primary] text-[--bg]" : "bg-[--bg-elevated] text-[--text-muted]"
-                  }`}>
-                    <Icon size={18} />
+                  <div className="w-16 h-16 mb-2">
+                    <img 
+                      src={isSelected ? option.imageActive : option.image} 
+                      alt={option.label}
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <p className={`text-xs font-medium text-center ${isSelected ? "text-[--primary]" : "text-[--text-muted]"}`}>
                     {option.label}
@@ -1017,7 +1120,7 @@ export default function CartPage() {
         </div>
 
         {/* Tip Option */}
-        {cart.length > 0 && (
+        {(cart?.length || 0) > 0 && (
           <div className="mt-6" ref={tipSectionRef}>
             <p className="text-[10px] tracking-[0.2em] text-[--text-dim] mb-3 uppercase font-medium flex items-center gap-2">
               <Heart size={12} />
@@ -1134,16 +1237,29 @@ export default function CartPage() {
             className="w-full flex items-center justify-between mb-3 text-sm"
           >
             <div className="flex items-center gap-3">
-              <span className="text-[--text-muted]">{cartCount} items</span>
+              <span className="text-[--text-muted] flex items-baseline gap-1">
+                <OdometerNumber value={cartCount.toString()} />
+                <span>items</span>
+              </span>
               {tipAmount > 0 && (
-                <span className="text-pink-400 text-xs bg-pink-500/10 px-2 py-0.5 rounded">+₹{tipAmount} tip</span>
+                <span className="text-pink-400 text-xs bg-pink-500/10 px-2 py-0.5 rounded flex items-baseline gap-0.5">
+                  <span>+₹</span>
+                  <OdometerNumber value={tipAmount.toString()} />
+                  <span className="ml-0.5">tip</span>
+                </span>
               )}
               {depositToUse > 0 && (
-                <span className="text-emerald-400 text-xs bg-emerald-500/10 px-2 py-0.5 rounded">-₹{depositToUse}</span>
+                <span className="text-emerald-400 text-xs bg-emerald-500/10 px-2 py-0.5 rounded flex items-baseline gap-0.5">
+                  <span>-₹</span>
+                  <OdometerNumber value={depositToUse.toString()} />
+                </span>
               )}
               <ChevronRight size={14} className={`text-[--text-dim] transition-transform ${showBillDetails ? 'rotate-90' : ''}`} />
             </div>
-            <span className="font-bold text-lg text-[--primary]">₹{finalTotal.toFixed(0)}</span>
+            <span className="font-bold text-lg text-[--primary] flex items-baseline gap-0.5">
+              <span>₹</span>
+              <OdometerNumber value={finalTotal.toFixed(0)} />
+            </span>
             </button>
 
           {/* Expanded Bill Details */}
@@ -1153,37 +1269,58 @@ export default function CartPage() {
             <div className="overflow-hidden">
               <div className="bg-[--card] border border-[--border] rounded-xl p-3 mb-3 text-sm animate-fade-in">
                 <div className="space-y-2">
-                  {cart.map(item => (
+                  {(cart || []).map(item => (
                     <div key={item.menuItemId} className="flex justify-between text-[--text-muted]">
-                      <span>{item.name} × {item.quantity}</span>
-                      <span>₹{(item.price * item.quantity).toFixed(0)}</span>
+                      <span className="flex items-baseline gap-1">
+                        <span>{item.name} ×</span>
+                        <OdometerNumber value={item.quantity.toString()} />
+                      </span>
+                      <span className="flex items-baseline gap-0.5">
+                        <span>₹</span>
+                        <OdometerNumber value={(item.price * item.quantity).toFixed(0)} />
+                      </span>
                     </div>
                   ))}
                   <div className="border-t border-[--border] pt-2 flex justify-between">
                     <span className="text-[--text-muted]">Subtotal</span>
-                    <span className="text-[--text-primary] font-medium">₹{cartTotal.toFixed(0)}</span>
+                    <span className="text-[--text-primary] font-medium flex items-baseline gap-0.5">
+                      <span>₹</span>
+                      <OdometerNumber value={(cartTotal || 0).toFixed(0)} />
+                    </span>
                   </div>
                   {customizationTotal > 0 && (
                     <div className="flex justify-between text-[--text-muted]">
                       <span>Customizations</span>
-                      <span>₹{customizationTotal.toFixed(0)}</span>
+                      <span className="flex items-baseline gap-0.5">
+                        <span>₹</span>
+                        <OdometerNumber value={(customizationTotal || 0).toFixed(0)} />
+                      </span>
                     </div>
                   )}
                   {tipAmount > 0 && (
                     <div className="flex justify-between text-pink-400">
                       <span>Tip</span>
-                      <span>+₹{tipAmount.toFixed(0)}</span>
+                      <span className="flex items-baseline gap-0.5">
+                        <span>+₹</span>
+                        <OdometerNumber value={(tipAmount || 0).toFixed(0)} />
+                      </span>
                     </div>
                   )}
                   {depositToUse > 0 && (
                     <div className="flex justify-between text-emerald-400">
                       <span>Credit Applied</span>
-                      <span>-₹{depositToUse.toFixed(0)}</span>
+                      <span className="flex items-baseline gap-0.5">
+                        <span>-₹</span>
+                        <OdometerNumber value={(depositToUse || 0).toFixed(0)} />
+                      </span>
                     </div>
                   )}
                   <div className="border-t border-[--border] pt-2 flex justify-between font-bold">
                     <span className="text-[--text-primary]">Total to Pay</span>
-                    <span className="text-[--primary] text-base">₹{finalTotal.toFixed(0)}</span>
+                    <span className="text-[--primary] text-base flex items-baseline gap-0.5">
+                      <span>₹</span>
+                      <OdometerNumber value={(finalTotal || 0).toFixed(0)} />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1193,9 +1330,9 @@ export default function CartPage() {
           {/* Place Order Button */}
           <button 
             onClick={startOrderAnimation} 
-            disabled={orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || cart.length === 0} 
+            disabled={orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || (cart?.length || 0) === 0} 
             className={`w-full py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-              orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || cart.length === 0
+              orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || (cart?.length || 0) === 0
                 ? "bg-[--border] text-[--text-dim] cursor-not-allowed" 
                 : locationStatus === 'denied' || locationStatus === 'too_far'
                   ? "bg-red-500/20 text-red-400 border border-red-500/30"
@@ -1225,15 +1362,20 @@ export default function CartPage() {
             ) : locationStatus === 'too_far' ? (
               <>
                 <Navigation size={18} />
-                You're too far • {userDistance}m away
+                <span className="flex items-baseline gap-1">
+                  <span>You're too far •</span>
+                  <OdometerNumber value={userDistance?.toString() || '0'} />
+                  <span>m away</span>
+                </span>
               </>
             ) : !paymentMethod ? (
               "Select Payment Method"
-            ) : cart.length === 0 ? (
+            ) : (cart?.length || 0) === 0 ? (
               "Add items to order"
             ) : (
               <>
-                Place Order • ₹{finalTotal.toFixed(0)}
+                <span>Place Order • ₹</span>
+                <OdometerNumber value={(finalTotal || 0).toFixed(0)} />
                 <ChevronRight size={18} />
               </>
             )}
@@ -1251,6 +1393,40 @@ export default function CartPage() {
             <div>
               <p className="text-sm text-[--text-primary] font-medium">Saved for later</p>
               <p className="text-xs text-[--text-dim]">{savedToast.name}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Error Toast */}
+      {orderError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" onClick={() => setOrderError(null)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div 
+            className="relative w-full max-w-sm mx-4 bg-[--card] rounded-2xl p-6 border border-red-500/30 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+              <X size={32} className="text-red-400" />
+            </div>
+            <h3 className="text-[--text-primary] font-semibold text-lg text-center mb-2">Order Failed</h3>
+            <p className="text-[--text-muted] text-sm text-center mb-6">{orderError.message}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setOrderError(null)}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[--bg-elevated] text-[--text-muted] hover:bg-[--border] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setOrderError(null);
+                  setTimeout(() => startOrderAnimation(), 100);
+                }}
+                className="flex-1 btn-primary py-3 rounded-xl text-sm font-semibold"
+              >
+                Try Again
+              </button>
             </div>
           </div>
         </div>
@@ -1294,6 +1470,32 @@ export default function CartPage() {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+// Odometer Number Component
+function OdometerNumber({ value, className = "" }) {
+  const digits = value.toString().split('');
+  
+  return (
+    <div className={`inline-flex ${className}`}>
+      {digits.map((digit, idx) => (
+        <div key={idx} className="relative h-5 w-3 overflow-hidden">
+          <div 
+            className="flex flex-col transition-transform duration-300 ease-out"
+            style={{
+              transform: `translateY(-${parseInt(digit) * 20}px)`
+            }}
+          >
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <span key={num} className="h-5 leading-5 text-center block">
+                {num}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

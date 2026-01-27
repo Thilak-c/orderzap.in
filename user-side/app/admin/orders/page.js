@@ -1,7 +1,6 @@
 "use client";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 import MenuItemImage from "@/components/MenuItemImage";
 
 const statusOptions = [
@@ -18,11 +17,8 @@ const paymentLabels = {
 };
 
 export default function AdminOrdersPage() {
-  const { isAuthenticated, loading } = useAdminAuth();
   const orders = useQuery(api.orders.list);
   const updateStatus = useMutation(api.orders.updateStatus);
-
-  if (loading || !isAuthenticated) return null;
 
   const totalRevenue = orders?.reduce((sum, o) => sum + o.total, 0) || 0;
   const pendingCount = orders?.filter(o => o.status === 'pending').length || 0;

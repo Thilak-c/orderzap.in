@@ -688,7 +688,6 @@ input::placeholder, textarea::placeholder {
 
 
 
-
 /* HTML: <div class="loader"></div> */
 .loader-4 {
   width: fit-content;
@@ -710,6 +709,28 @@ input::placeholder, textarea::placeholder {
     100% {text-shadow: -10ch 0 0 #000,0    0 0 #000}
 }
 
+
+
+
+.loader-r {
+  width: fit-content;
+  padding-bottom: 5px;
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 14px;
+  overflow: hidden;
+  color: #0000;
+  text-shadow: 0 0 0 #000,12ch 0 0 #000;
+  background: linear-gradient(#EF4444 0 0) bottom left/0% 3px no-repeat;
+  animation: l14 1.5s infinite;
+}
+/* .loader-4:before {
+  content: "OrderZap";
+} */
+@keyframes l14 {
+    80%  {text-shadow:    0  0 0 #000,12ch 0 0 #000;background-size:100% 3px}
+    100% {text-shadow: -12ch 0 0 #000,0    0 0 #000}
+}
 
 
 

@@ -2,10 +2,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 
 export default function AdminReservationsPage() {
-  const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,8 +22,6 @@ export default function AdminReservationsPage() {
   const todayStats = useQuery(api.reservations.getTodayStats);
   const createReservation = useMutation(api.reservations.create);
   const cancelReservation = useMutation(api.reservations.cancel);
-
-  if (authLoading || !isAuthenticated) return null;
 
   const handleCreate = async () => {
     if (!formData.tableId || !formData.customerName || !formData.date || !formData.startTime || !formData.endTime) {

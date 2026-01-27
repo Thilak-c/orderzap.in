@@ -2,10 +2,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 
 export default function AdminZonesPage() {
-  const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const zones = useQuery(api.zones.list);
   const tables = useQuery(api.tables.list);
   const createZone = useMutation(api.zones.create);
@@ -16,8 +14,6 @@ export default function AdminZonesPage() {
   const [editingZone, setEditingZone] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: "", description: "" });
-
-  if (authLoading || !isAuthenticated) return null;
 
   const handleSave = async () => {
     if (!formData.name) return;

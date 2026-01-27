@@ -2,7 +2,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 import { clearCache, CACHE_KEYS } from "@/lib/useCache";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
@@ -10,7 +9,6 @@ import MenuItemImage from "@/components/MenuItemImage";
 const categories = ["Starters", "Mains", "Sides", "Drinks", "Desserts", "Hookah"];
 
 export default function AdminMenuPage() {
-  const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const items = useQuery(api.menuItems.list);
   const zones = useQuery(api.zones.list);
   const createItem = useMutation(api.menuItems.create);
@@ -24,8 +22,6 @@ export default function AdminMenuPage() {
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-
-  if (authLoading || !isAuthenticated) return null;
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -59,8 +55,6 @@ export default function AdminMenuPage() {
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
-  if (authLoading || !isAuthenticated) return null;
 
   const handleSave = async () => {
     if (!formData.name || !formData.price) return;

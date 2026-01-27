@@ -1,0 +1,66 @@
+
+> qr-sys@0.1.0 prebuild
+> node scripts/git-info.js
+
+
+> qr-sys@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/thilak-c/Desktop/orderzap.in/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /home/thilak-c/Desktop/orderzap.in/user-side/package-lock.json
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 13.3s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/25) ...
+  Generating static pages using 7 workers (6/25) 
+  Generating static pages using 7 workers (12/25) 
+  Generating static pages using 7 workers (18/25) 
+✓ Generating static pages using 7 workers (25/25) in 1098.6ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /a/[tableId]
+├ ○ /admin
+├ ○ /admin/calls
+├ ○ /admin/login
+├ ○ /admin/menu
+├ ○ /admin/orders
+├ ○ /admin/qr-codes
+├ ○ /admin/reports
+├ ○ /admin/reservations
+├ ○ /admin/settings
+├ ○ /admin/staff
+├ ƒ /admin/staff/[staffId]
+├ ○ /admin/staff/balance
+├ ○ /admin/staff/reports
+├ ƒ /admin/staff/reports/[staffId]
+├ ○ /admin/tables
+├ ○ /admin/zones
+├ ƒ /api/chat
+├ ƒ /api/place-order
+├ ƒ /api/staff-call
+├ ƒ /api/zone-request
+├ ○ /book
+├ ƒ /cart/[tableId]
+├ ƒ /m/[tableId]
+├ ○ /my-orders
+├ ƒ /order-status/[orderId]
+├ ○ /qr-scan
+├ ○ /staff
+└ ƒ /staff/[staffId]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

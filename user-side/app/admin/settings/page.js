@@ -2,11 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 import { Upload, X } from "lucide-react";
 
 export default function AdminSettingsPage() {
-  const { isAuthenticated, loading } = useAdminAuth();
   const settings = useQuery(api.settings.getAll);
   const setSetting = useMutation(api.settings.set);
   const initDefaults = useMutation(api.settings.initDefaults);
@@ -127,9 +125,6 @@ export default function AdminSettingsPage() {
     setMessage("Default settings initialized!");
     setTimeout(() => setMessage(""), 3000);
   };
-
-  if (loading) return null;
-  if (!isAuthenticated) return null;
 
   return (
     <div className="p-6">

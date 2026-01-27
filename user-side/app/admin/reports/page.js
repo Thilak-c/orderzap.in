@@ -1,11 +1,9 @@
 "use client";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 import { useState, useMemo } from "react";
 
 export default function AdminReportsPage() {
-  const { isAuthenticated, loading } = useAdminAuth();
   const orders = useQuery(api.orders.list);
   const tables = useQuery(api.tables.list);
   const [dateRange, setDateRange] = useState('all');
@@ -116,8 +114,6 @@ export default function AdminReportsPage() {
       peakOrders,
     };
   }, [filteredOrders]);
-
-  if (loading || !isAuthenticated) return null;
 
   const dateLabels = {
     all: 'All Time',

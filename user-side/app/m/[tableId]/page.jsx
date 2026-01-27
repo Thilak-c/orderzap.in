@@ -584,7 +584,7 @@ export default function MenuPage() {
                 {/* Cart count badge */}
                 {cartItemsInCategory > 0 && (
                   <div className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[--primary] text-white text-[9px] font-bold flex items-center justify-center shadow-md">
-                    {cartItemsInCategory}
+                   <OdometerNumber value={cartItemsInCategory}/> 
                   </div>
                 )}
               </button>
@@ -799,7 +799,7 @@ export default function MenuPage() {
             <div className="flex items-center gap-3">
               <div className="flex items-baseline gap-0.5">
                 <span className="text-black text-lg font-bold font-['Montserrat']">₹</span>
-                <OdometerNumber value={cartTotal.toFixed(0)} className="text-black text-lg font-bold font-['Montserrat']" />
+                <OdometerNumber value={cartTotal.toFixed(0)} className="text-black text-lg font-bold font-['Montserrat']" />/-
               </div>
               <ChevronRight size={20} className="text-black" />
             </div>
@@ -1002,7 +1002,7 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
         {/* Quantity Badge */}
         {qty > 0 && !isRestricted && (
           <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[--primary] text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
-            {qty}
+            <OdometerNumber value={qty}/>
           </div>
         )}
       </div>

@@ -2,11 +2,9 @@
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAdminAuth } from "@/lib/useAdminAuth";
 import MenuItemImage from "@/components/MenuItemImage";
 
 export default function AdminDashboard() {
-  const { isAuthenticated, loading } = useAdminAuth();
   const stats = useQuery(api.orders.getStats);
   const orders = useQuery(api.orders.list);
   const staffCalls = useQuery(api.staffCalls.listPending);
@@ -23,9 +21,6 @@ export default function AdminDashboard() {
     await seedTables();
     alert("Database seeded!");
   };
-
-  if (loading) return null;
-  if (!isAuthenticated) return null;
 
   const pendingOrders = stats?.pendingOrders ?? 0;
   const preparingOrders = stats?.preparingOrders ?? 0;

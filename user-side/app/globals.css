@@ -55,6 +55,7 @@ textarea {
 
 html {
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -300,6 +301,15 @@ input::placeholder, textarea::placeholder {
   to { transform: translateY(0); }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
@@ -542,10 +552,18 @@ input::placeholder, textarea::placeholder {
    UTILITIES
    ============================================ */
 
+/* Optimize scrollable containers */
+.scrollable-container {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); }
 
+/* Hide scrollbar */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -597,10 +615,7 @@ input::placeholder, textarea::placeholder {
   .menu-card-grid {
     gap: 0.625rem !important;
   }
-  
-  .menu-card-item {
-    border-radius: 0.625rem;
-  }
+
   
   .menu-card-item .menu-image {
     aspect-ratio: 4/3;

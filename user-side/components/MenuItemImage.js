@@ -1,8 +1,11 @@
 "use client";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useState } from "react";
 
 export default function MenuItemImage({ storageId, alt, className = "" }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
   // Check if it's a storage ID (starts with a letter and contains alphanumeric chars)
   const isStorageId = storageId && !storageId.startsWith("http") && storageId.length > 10;
   
@@ -18,13 +21,54 @@ export default function MenuItemImage({ storageId, alt, className = "" }) {
 
   // If it's already a URL, use it directly
   if (storageId.startsWith("http")) {
-    return <img src={storageId} alt={alt} className={className} />;
+    return (
+      <div className="relative w-full h-full">
+        {!imageLoaded && (
+          <div 
+            className={`${className} absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:1000px_100%]`}
+            style={{
+              animation: 'shimmer 2s infinite linear'
+            }}
+          />
+        )}
+        <img 
+          src={storageId} 
+          alt={alt} 
+          className={`${className} ${imageLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+          onLoad={() => setImageLoaded(true)}
+        />
+      </div>
+    );
   }
 
   // If it's a storage ID, wait for the URL
   if (!imageUrl) {
-    return <div className={`${className} bg-zinc-800 animate-pulse`} />;
+    return (
+      <div 
+        className={`${className} bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:1000px_100%]`}
+        style={{
+          animation: 'shimmer 2s infinite linear'
+        }}
+      />
+    );
   }
 
-  return <img src={imageUrl} alt={alt} className={className} />;
+  return (
+    <div className="relative w-full h-full">
+      {!imageLoaded && (
+        <div 
+          className={`${className} absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:1000px_100%]`}
+          style={{
+            animation: 'shimmer 2s infinite linear'
+          }}
+        />
+      )}
+      <img 
+        src={imageUrl} 
+        alt={alt} 
+        className={`${className} ${imageLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+        onLoad={() => setImageLoaded(true)}
+      />
+    </div>
+  );
 }

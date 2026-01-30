@@ -38,6 +38,225 @@ const customizationOptions = [
   { id: 'extra-cheese', label: 'Extra Cheese (+₹30)', category: 'addon', price: 30 },
 ];
 
+// CartItem Component - separate to avoid hooks in map
+function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart, openItemEdit, handleSaveForLater }) {
+  const imageRef = useRef(null);
+  const [parallaxY, setParallaxY] = useState(0);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      if (imageRef.current) {
+        const rect = imageRef.current.getBoundingClientRect();
+        const scrollProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+        const parallax = scrollProgress * 20 - 10;
+        setParallaxY(parallax);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  return (
+    <div 
+      key={item.menuItemId} 
+      className={`bg-[--card] border border-[--border] rounded-2xl p-3 ${
+        removingItemId === item.menuItemId 
+          ? 'animate-slide-out-left' 
+          : 'animate-slide-up'
+      }`}
+      style={{ animationDelay: removingItemId === item.menuItemId ? '0s' : `${index * 0.05}s`, animationFillMode: 'forwards' }}
+    >
+      <div className="flex gap-3">
+        {/* Image */}
+        <div 
+          ref={imageRef}
+          className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[--bg-elevated]"
+        >
+          <div
+            style={{
+              transform: `translateY(${parallaxY}px)`,
+              transition: 'transform 0.1s ease-out',
+              width: '100%',
+              height: '100%'
+            }}
+          >
+            <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
+          </div>
+        </div>
+        
+        {/* Details */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+          <div>
+            <h3 className="font-medium text-[--text-primary] text-sm line-clamp-1">{item.name}</h3>
+            <div className="text-[--primary] font-semibold text-sm mt-0.5 flex items-baseline gap-0.5">
+              <span>₹</span>
+              <OdometerNumber value={item.price.toString()} />
+            </div>
+            {/* Show item note if exists */}
+            {item.itemNote && (
+              <p className="text-[--text-dim] text-[10px] mt-1 line-clamp-1">📝 {item.itemNote}</p>
+            )}
+            {/* Show customizations if exists */}
+            {item.customizations?.length > 0 && (
+              <p className="text-[--text-dim] text-[10px] mt-0.5">
+                {item.customizations.map(c => customizationOptions.find(o => o.id === c)?.label).filter(Boolean).join(', ')}
+              </p>
+            )}
+          </div>
+          
+          {/* Quantity & Actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 bg-[--bg-elevated] rounded-lg p-0.5">
+              <button 
+                onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)} 
+                className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
+              >
+                <Minus size={14} className="text-[--text-muted]" />
+              </button>
+              <span className="w-6 text-center text-sm font-bold text-[--text-primary] flex items-center justify-center">
+                <OdometerNumber value={item.quantity.toString()} />
+              </span>
+              <button 
+                onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)} 
+                className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
+              >
+                <Plus size={14} className="text-[--primary]" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              {/* Edit/Customize button */}
+              <button 
+                onClick={() => openItemEdit(item)} 
+                className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-[--primary]/10 hover:text-[--primary] active:scale-95 transition-all"
+              >
+                <Edit3 size={14} />
+              </button>
+              {/* Save for later */}
+              <button 
+                onClick={() => handleSaveForLater(item)} 
+                className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-amber-500/10 hover:text-amber-400 active:scale-95 transition-all"
+              >
+                <Bookmark size={14} />
+              </button>
+              {/* Delete */}
+              <button 
+                onClick={() => removeFromCart(item.menuItemId)} 
+                className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20 active:scale-95 transition-all"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Item Total */}
+        <div className="text-right py-0.5">
+          <div className="text-[--text-primary] font-bold text-sm flex items-baseline gap-0.5 justify-end">
+            <span>₹</span>
+            <OdometerNumber value={(item.price * item.quantity).toFixed(0)} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// SavedItem Component
+function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSaved }) {
+  const imageRef = useRef(null);
+  const [parallaxY, setParallaxY] = useState(0);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      if (imageRef.current) {
+        const rect = imageRef.current.getBoundingClientRect();
+        const scrollProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+        const parallax = scrollProgress * 20 - 10;
+        setParallaxY(parallax);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  return (
+    <div 
+      key={item.menuItemId} 
+      className={`bg-[--card] border border-[--border] rounded-xl p-3 flex items-center gap-3 ${
+        addingToCartId === item.menuItemId 
+          ? 'animate-slide-out-left' 
+          : 'animate-scale-in'
+      }`}
+      style={{ animationDelay: addingToCartId === item.menuItemId ? '0s' : `${index * 0.05}s`, animationFillMode: 'forwards' }}
+    >
+      <div 
+        ref={imageRef}
+        className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-[--bg-elevated]"
+      >
+        <div
+          style={{
+            transform: `translateY(${parallaxY}px)`,
+            transition: 'transform 0.1s ease-out',
+            width: '100%',
+            height: '100%'
+          }}
+        >
+          <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm text-[--text-primary] line-clamp-1">{item.name}</h4>
+        <div className="text-xs text-[--primary] flex items-baseline gap-0.5">
+          <span>₹</span>
+          <OdometerNumber value={item.price.toString()} />
+        </div>
+      </div>
+      <button 
+        onClick={() => handleMoveToCart(item)}
+        className="px-3 py-1.5 bg-[--primary]/10 text-[--primary] rounded-lg text-xs font-medium hover:bg-[--primary]/20 active:scale-95 transition-all"
+      >
+        Add to Cart
+      </button>
+      <button 
+        onClick={() => removeFromSaved(item.menuItemId)}
+        className="text-[--text-dim] hover:text-red-400"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
+// OdometerNumber component
+function OdometerNumber({ value, className = "" }) {
+  const digits = value.toString().split('');
+  
+  return (
+    <div className={`inline-flex ${className}`}>
+      {digits.map((digit, idx) => (
+        <div key={idx} className="relative h-5 w-3 overflow-hidden">
+          <div 
+            className="flex flex-col transition-transform duration-300 ease-out"
+            style={{
+              transform: `translateY(-${parseInt(digit) * 20}px)`
+            }}
+          >
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <span key={num} className="h-5 leading-5 text-center block">
+                {num}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Confetti function
 const createConfetti = () => {
   const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
@@ -871,95 +1090,16 @@ export default function CartPage() {
             </div>
 
             {(cart || []).map((item, index) => (
-              <div 
-                key={item.menuItemId} 
-                className={`bg-[--card] border border-[--border] rounded-2xl p-3 ${
-                  removingItemId === item.menuItemId 
-                    ? 'animate-slide-out-left' 
-                    : 'animate-slide-up'
-                }`}
-                style={{ animationDelay: removingItemId === item.menuItemId ? '0s' : `${index * 0.05}s`, animationFillMode: 'forwards' }}
-              >
-                <div className="flex gap-3">
-                  {/* Image */}
-                  <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[--bg-elevated]">
-                    <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
-                  </div>
-                  
-                  {/* Details */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                    <div>
-                      <h3 className="font-medium text-[--text-primary] text-sm line-clamp-1">{item.name}</h3>
-                      <div className="text-[--primary] font-semibold text-sm mt-0.5 flex items-baseline gap-0.5">
-                        <span>₹</span>
-                        <OdometerNumber value={item.price.toString()} />
-                      </div>
-                      {/* Show item note if exists */}
-                      {item.itemNote && (
-                        <p className="text-[--text-dim] text-[10px] mt-1 line-clamp-1">📝 {item.itemNote}</p>
-                      )}
-                      {/* Show customizations if exists */}
-                      {item.customizations?.length > 0 && (
-                        <p className="text-[--text-dim] text-[10px] mt-0.5">
-                          {item.customizations.map(c => customizationOptions.find(o => o.id === c)?.label).filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* Quantity & Actions */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 bg-[--bg-elevated] rounded-lg p-0.5">
-                        <button 
-                          onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)} 
-                          className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
-                        >
-                          <Minus size={14} className="text-[--text-muted]" />
-                        </button>
-                        <span className="w-6 text-center text-sm font-bold text-[--text-primary] flex items-center justify-center">
-                          <OdometerNumber value={item.quantity.toString()} />
-                        </span>
-                        <button 
-                          onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)} 
-                          className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
-                        >
-                          <Plus size={14} className="text-[--primary]" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {/* Edit/Customize button */}
-                        <button 
-                          onClick={() => openItemEdit(item)} 
-                          className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-[--primary]/10 hover:text-[--primary] active:scale-95 transition-all"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        {/* Save for later */}
-                        <button 
-                          onClick={() => handleSaveForLater(item)} 
-                          className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-amber-500/10 hover:text-amber-400 active:scale-95 transition-all"
-                        >
-                          <Bookmark size={14} />
-                        </button>
-                        {/* Delete */}
-                        <button 
-                          onClick={() => removeFromCart(item.menuItemId)} 
-                          className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20 active:scale-95 transition-all"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Item Total */}
-                  <div className="text-right py-0.5">
-                    <div className="text-[--text-primary] font-bold text-sm flex items-baseline gap-0.5 justify-end">
-                      <span>₹</span>
-                      <OdometerNumber value={(item.price * item.quantity).toFixed(0)} />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CartItem
+                key={item.menuItemId}
+                item={item}
+                index={index}
+                removingItemId={removingItemId}
+                updateQuantity={updateQuantity}
+                removeFromCart={removeFromCart}
+                openItemEdit={openItemEdit}
+                handleSaveForLater={handleSaveForLater}
+              />
             ))}
           
             {/* Add More */}
@@ -987,38 +1127,14 @@ export default function CartPage() {
             </p>
             <div className="space-y-2">
               {savedItems.map((item, index) => (
-                <div 
-                  key={item.menuItemId} 
-                  className={`bg-[--card] border border-[--border] rounded-xl p-3 flex items-center gap-3 ${
-                    addingToCartId === item.menuItemId 
-                      ? 'animate-slide-out-left' 
-                      : 'animate-scale-in'
-                  }`}
-                  style={{ animationDelay: addingToCartId === item.menuItemId ? '0s' : `${index * 0.05}s`, animationFillMode: 'forwards' }}
-                >
-                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-[--bg-elevated]">
-                    <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm text-[--text-primary] line-clamp-1">{item.name}</h4>
-                    <div className="text-xs text-[--primary] flex items-baseline gap-0.5">
-                      <span>₹</span>
-                      <OdometerNumber value={item.price.toString()} />
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => handleMoveToCart(item)}
-                    className="px-3 py-1.5 bg-[--primary]/10 text-[--primary] rounded-lg text-xs font-medium hover:bg-[--primary]/20 active:scale-95 transition-all"
-                  >
-                    Add to Cart
-                  </button>
-                  <button 
-                    onClick={() => removeFromSaved(item.menuItemId)}
-                    className="text-[--text-dim] hover:text-red-400"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+                <SavedItem
+                  key={item.menuItemId}
+                  item={item}
+                  index={index}
+                  addingToCartId={addingToCartId}
+                  handleMoveToCart={handleMoveToCart}
+                  removeFromSaved={removeFromSaved}
+                />
               ))}
             </div>
           </div>
@@ -1110,9 +1226,7 @@ export default function CartPage() {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <p className={`text-xs font-medium text-center ${isSelected ? "text-[--primary]" : "text-[--text-muted]"}`}>
-                    {option.label}
-                  </p>
+                  
                 </button>
               );
             })}
@@ -1470,32 +1584,6 @@ export default function CartPage() {
           />
         </div>
       )}
-    </div>
-  );
-}
-
-// Odometer Number Component
-function OdometerNumber({ value, className = "" }) {
-  const digits = value.toString().split('');
-  
-  return (
-    <div className={`inline-flex ${className}`}>
-      {digits.map((digit, idx) => (
-        <div key={idx} className="relative h-5 w-3 overflow-hidden">
-          <div 
-            className="flex flex-col transition-transform duration-300 ease-out"
-            style={{
-              transform: `translateY(-${parseInt(digit) * 20}px)`
-            }}
-          >
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-              <span key={num} className="h-5 leading-5 text-center block">
-                {num}
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

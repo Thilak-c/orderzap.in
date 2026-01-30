@@ -122,7 +122,7 @@ export const create = mutation({
       // console.log("Deducting deposit:", args.depositUsed, "from phone:", args.customerPhone);
       const customer = await ctx.db
         .query("customers")
-        .withIndex("by_phone", (q) => q.eq("phone", args.customerPhone))
+        .withIndex("by_phone", (q) => q.eq("phone", args.customerPhone!))
         .first();
       
       // console.log("Found customer:", customer);

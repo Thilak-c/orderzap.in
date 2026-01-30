@@ -9,7 +9,7 @@ export const list = query({
     if (args.date) {
       reservations = await ctx.db
         .query("reservations")
-        .withIndex("by_date", (q) => q.eq("date", args.date))
+        .withIndex("by_date", (q) => q.eq("date", args.date!))
         .collect();
     } else {
       reservations = await ctx.db.query("reservations").collect();
@@ -155,7 +155,7 @@ export const create = mutation({
       // Check if customer exists
       const existingCustomer = await ctx.db
         .query("customers")
-        .withIndex("by_phone", (q) => q.eq("phone", args.customerPhone))
+        .withIndex("by_phone", (q) => q.eq("phone", args.customerPhone!))
         .first();
 
       if (existingCustomer) {

@@ -314,23 +314,11 @@ export default function OrderStatusPage() {
       {/* Header */}
       <header className="glass sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-5 py-4">
-          <div className="flex items-center justify-between">
-            <Link
-              href="/my-orders"
-              className="w-11 h-11 flex items-center justify-center rounded-xl bg-[--card]  hover:border-[--border-light] transition-all"
-            >
-              <Image
-                src="/assets/icons/order-status/left-arrow.png"
-                alt="Back"
-                width={18}
-                height={18}
-              />
-            </Link>
+          <div className="flex items-center justify-center">
             <div className="text-center">
               <h1 className="font-luxury text-lg font-semibold text-[--text-primary]">Order Status</h1>
               <p className="text-xs text-[--text-muted]">#{order.orderNumber || order._id.slice(-4)}</p>
             </div>
-            <div className="w-11" />
           </div>
         </div>
       </header>
@@ -371,7 +359,7 @@ export default function OrderStatusPage() {
                 loop
                 muted
                 preload="metadata"
-                poster="/cooking-poster.jpg"
+                poster="/assets/images/cooking-poster.jpg"
                 onContextMenu={(e) => e.preventDefault()}
                 playsInline
                 className="w-32 h-32 mx-auto relative z-10"
@@ -385,7 +373,7 @@ export default function OrderStatusPage() {
                 loop
                 muted
                 preload="metadata"
-                poster="/prepare-food-poster.jpg"
+                poster="/assets/images/prepare-food-poster.jpg"
                 onContextMenu={(e) => e.preventDefault()}
                 playsInline
                 className="w-32 h-32 mx-auto relative z-10"
@@ -399,7 +387,7 @@ export default function OrderStatusPage() {
                 loop
                 muted
                 preload="metadata"
-                poster="/pickup-order-poster.jpg"
+                poster="/assets/images/pickup-order-poster.jpg"
                 onContextMenu={(e) => e.preventDefault()}
                 playsInline
                 className="w-32 h-32 mx-auto relative z-10"
@@ -413,7 +401,7 @@ export default function OrderStatusPage() {
                 loop
                 muted
                 preload="metadata"
-                poster="/food-delivered-poster.jpg"
+                poster="/assets/images/food-delivered-poster.jpg"
                 onContextMenu={(e) => e.preventDefault()}
                 playsInline
                 className="w-32 h-32 mx-auto relative z-10"

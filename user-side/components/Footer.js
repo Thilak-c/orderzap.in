@@ -19,8 +19,8 @@ export default function Footer() {
         <Image
           src="/assets/logos/orderzap-logo.png"
           alt="OrderZap"
-          width={100}
-          height={30}
+          width={50}
+          height={14}
           className="object-contain"
         />
       </div>

@@ -8,7 +8,7 @@ export const list = query({
     if (args.date) {
       entries = await ctx.db
         .query("wastage")
-        .withIndex("by_date", (q) => q.eq("date", args.date))
+        .withIndex("by_date", (q) => q.eq("date", args.date!))
         .collect();
     } else {
       entries = await ctx.db.query("wastage").collect();

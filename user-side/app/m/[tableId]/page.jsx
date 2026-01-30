@@ -1,17 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useCallback } from "react";
 import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
 import { useBranding } from "@/lib/useBranding";
 import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { isQRSessionValid } from "@/lib/qrAuth";
-import { 
-  ChevronRight, Plus, Minus, ArrowLeft, Armchair, 
+import {
+  ChevronRight, Plus, Minus, ArrowLeft, Armchair,
   UtensilsCrossed, Search, X, Phone, Lock, GlassWater
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
@@ -56,46 +55,46 @@ export default function MenuPage() {
   const [countAnimating, setCountAnimating] = useState(false);
   const [countDirection, setCountDirection] = useState('up'); // 'up' or 'down'
   const cartContext = useCart();
-  
+
   // Initialize cart for this table
   useEffect(() => {
     if (tableId) {
       cartContext.initializeCart(tableId);
     }
   }, [tableId, cartContext]);
-  
+
   // Get table-specific cart data
   const cart = cartContext.getCart(tableId);
   const cartCount = cartContext.getCartCount(tableId);
   const cartTotal = cartContext.getCartTotal(tableId);
   const { hideCartBar, setHideCartBar } = cartContext;
-  
+
   // Pagination state
   const [displayCount, setDisplayCount] = useState(6);
-  
+
   // Reservation verification states
   const [verifyStep, setVerifyStep] = useState('ask'); // 'ask' | 'phone' | 'verified' | 'denied'
   const [phoneInput, setPhoneInput] = useState('');
   const [verifyError, setVerifyError] = useState('');
-  
+
   // Welcome & water popup states
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeName, setWelcomeName] = useState('');
   const [showWaterPopup, setShowWaterPopup] = useState(false);
 
   const table = useQuery(api.tables.getByNumber, { number: parseInt(tableId) });
-  
+
   // Use cached query for menu items with image preloading
   const { data: menuItems, isLoading: menuLoading } = useCachedQuery(
     api.menuItems.listForZone,
     table !== undefined ? { zoneId: table?.zoneId } : "skip",
     table?.zoneId ? `${CACHE_KEYS.MENU_ITEMS}_${table.zoneId}` : null,
     {
-      cacheDuration: CACHE_DURATIONS.MEDIUM,
+      cacheDuration: CACHE_DURATIONS.LONG, // 1 hour cache for menu items
       preloadImageKey: 'image',
     }
   );
-  
+
   const reservation = useQuery(api.reservations.getCurrentForTable, { tableNumber: parseInt(tableId) });
   const createNotification = useMutation(api.staffNotifications.create);
   const createStaffCall = useMutation(api.staffCalls.create);
@@ -180,6 +179,9 @@ export default function MenuPage() {
     }
   }, [cartCount, prevCartCount]);
 
+  // Parallax effect state
+  const [scrollY, setScrollY] = useState(0);
+
   // Infinite scroll - load more items when scrolling near bottom
   useEffect(() => {
     const handleScroll = () => {
@@ -187,8 +189,8 @@ export default function MenuPage() {
         setDisplayCount(prev => prev + 6);
       }
     };
-    
-    window.addEventListener('scroll', handleScroll);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -289,7 +291,7 @@ export default function MenuPage() {
     const handleVerifyPhone = async () => {
       const cleanPhone = phoneInput.replace(/\D/g, ''); // User enters 10 digits
       const reservationPhone = reservation.customerPhone?.replace(/\D/g, '') || ''; // DB has 91XXXXXXXXXX
-      
+
       // Compare: user enters 10 digits, DB has 12 digits (91 + 10)
       // So check if reservation phone ends with user input
       if (reservationPhone.endsWith(cleanPhone) && cleanPhone.length === 10) {
@@ -297,11 +299,11 @@ export default function MenuPage() {
         setVerifyStep('verified');
         setDismissedReservation(true);
         sessionStorage.setItem(`table-${tableId}-verified`, 'true');
-        
+
         // Show welcome screen
         setWelcomeName(reservation.customerName);
         setShowWelcome(true);
-        
+
         // After 2 seconds, hide welcome and show water popup after 10 seconds
         setTimeout(() => {
           setShowWelcome(false);
@@ -309,16 +311,16 @@ export default function MenuPage() {
             setShowWaterPopup(true);
           }, 10000);
         }, 2000);
-        
+
         // Mark reservation as arrived in database
         await markArrived({ id: reservation._id });
-        
+
         // Notify staff that customer has arrived
         await createNotification({
           type: 'customer_arrived',
           message: `${reservation.customerName} arrived at Table ${tableId}`,
         });
-        
+
         // Store customer info
         localStorage.setItem('customerPhone', reservation.customerPhone);
         localStorage.setItem('customerName', reservation.customerName);
@@ -330,13 +332,13 @@ export default function MenuPage() {
     return (
       <div className="min-h-screen flex flex-col">
         {/* Header */}
-        <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+        <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
           <div className="flex items-center gap-3">
             <img src="/assets/logos/favicon_io/android-chrome-192x192.png" alt="BTS DISC" className="h-9 w-9 rounded-full object-contain" />
             <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">BTS DISC</span>
           </div>
           <span className="text-[--text-dim] text-xs flex items-center gap-2">
-            <Armchair size={14} /> 
+            <Armchair size={14} />
             <span className="tracking-wider">TABLE {tableId}</span>
           </span>
         </div>
@@ -344,13 +346,12 @@ export default function MenuPage() {
         {/* Content */}
         <div className="flex-1 flex flex-col items-center justify-center px-8 pb-24">
           {/* Status Badge */}
-          <div 
-            className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] mb-8 opacity-0 animate-bounce-in ${
-              reservation.isCurrent 
-                ? 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20' 
+          <div
+            className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] mb-8 opacity-0 animate-bounce-in ${reservation.isCurrent
+                ? 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20'
                 : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-            }`} 
-            style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}
+              }`}
+            style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}
           >
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-2 animate-pulse-soft" />
             {reservation.isCurrent ? 'Reserved Table' : 'Upcoming Reservation'}
@@ -359,7 +360,7 @@ export default function MenuPage() {
           {/* Step 1: Ask if they are the person */}
           {verifyStep === 'ask' && (
             <>
-              <div className="text-center mb-8 opacity-0 animate-slide-up" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
+              <div className="text-center mb-8 opacity-0 animate-slide-up" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
                 <p className="text-[--text-dim] text-[10px] uppercase tracking-[0.3em] mb-3">Are you</p>
                 <p className="text-4xl font-luxury font-semibold text-[--text-primary]">{reservation.customerName}?</p>
                 {reservation.partySize && (
@@ -367,16 +368,16 @@ export default function MenuPage() {
                 )}
               </div>
 
-              <div className="divider-glow w-24 mb-8 opacity-0 animate-expand" style={{animationDelay: '0.5s', animationFillMode: 'forwards'}} />
+              <div className="divider-glow w-24 mb-8 opacity-0 animate-expand" style={{ animationDelay: '0.5s', animationFillMode: 'forwards' }} />
 
-              <div className="w-full max-w-xs space-y-3 opacity-0 animate-slide-up" style={{animationDelay: '0.6s', animationFillMode: 'forwards'}}>
-                <button 
+              <div className="w-full max-w-xs space-y-3 opacity-0 animate-slide-up" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
+                <button
                   onClick={() => setVerifyStep('phone')}
                   className="btn-primary w-full py-4 rounded-xl text-sm font-semibold"
                 >
                   Yes, that's me
                 </button>
-                <button 
+                <button
                   onClick={() => setVerifyStep('denied')}
                   className="btn-secondary w-full py-4 rounded-xl text-sm font-semibold"
                 >
@@ -389,7 +390,7 @@ export default function MenuPage() {
           {/* Step 2: Phone verification */}
           {verifyStep === 'phone' && (
             <>
-              <div className="text-center mb-8 opacity-0 animate-slide-up" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <div className="text-center mb-8 opacity-0 animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
                 <div className="w-16 h-16 rounded-full bg-[--primary]/10 border border-[--primary]/20 flex items-center justify-center mx-auto mb-4">
                   <Phone size={24} className="text-[--primary]" />
                 </div>
@@ -397,7 +398,7 @@ export default function MenuPage() {
                 <p className="text-[--text-muted] text-sm">Enter the phone number used for booking</p>
               </div>
 
-              <div className="w-full max-w-xs space-y-4 opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+              <div className="w-full max-w-xs space-y-4 opacity-0 animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
                 <div>
                   <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden">
                     <span className="px-3 py-4 text-[--text-muted] text-lg border-r border-[--border]">+91</span>
@@ -415,14 +416,14 @@ export default function MenuPage() {
                     <p className="text-red-400 text-xs text-center mt-2">{verifyError}</p>
                   )}
                 </div>
-                <button 
+                <button
                   onClick={handleVerifyPhone}
                   disabled={!phoneInput}
                   className="btn-primary w-full py-4 rounded-xl text-sm font-semibold disabled:opacity-50"
                 >
                   Verify & Continue
                 </button>
-                <button 
+                <button
                   onClick={() => setVerifyStep('ask')}
                   className="w-full py-3 text-[--text-muted] text-sm"
                 >
@@ -435,7 +436,7 @@ export default function MenuPage() {
           {/* Step 3: Access denied */}
           {verifyStep === 'denied' && (
             <>
-              <div className="text-center mb-8 opacity-0 animate-slide-up" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <div className="text-center mb-8 opacity-0 animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
                 <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
                   <Lock size={24} className="text-red-400" />
                 </div>
@@ -444,14 +445,14 @@ export default function MenuPage() {
                 <p className="text-[--text-dim] text-xs mt-1">{formatTime(reservation.startTime)} - {formatTime(reservation.endTime)}</p>
               </div>
 
-              <div className="w-full max-w-xs space-y-3 opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+              <div className="w-full max-w-xs space-y-3 opacity-0 animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
                 <Link href="/book" className="btn-primary w-full py-4 rounded-xl text-sm font-semibold block text-center">
                   Book Your Own Table
                 </Link>
                 <Link href="/" className="btn-secondary w-full py-4 rounded-xl text-sm font-semibold block text-center">
                   Go Home
                 </Link>
-                <button 
+                <button
                   onClick={() => setVerifyStep('ask')}
                   className="w-full py-3 text-[--text-muted] text-sm"
                 >
@@ -479,7 +480,7 @@ export default function MenuPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-                  <div className="loader-4">Table {tableId}</div>
+          <div className="loader-4">Table {tableId}</div>
 
           {/* <p className="text-[--text-muted] text-sm">Loading menu...</p> */}
         </div>
@@ -488,12 +489,12 @@ export default function MenuPage() {
   }
 
   // Filter items
-  let filteredItems = activeCategory === "All" 
-    ? menuItems 
+  let filteredItems = activeCategory === "All"
+    ? menuItems
     : menuItems.filter((item) => item.category === activeCategory);
-  
+
   if (searchQuery) {
-    filteredItems = filteredItems.filter(item => 
+    filteredItems = filteredItems.filter(item =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -512,26 +513,26 @@ export default function MenuPage() {
   const hasMore = filteredItems.length > displayCount;
 
   const getItemQuantity = (menuItemId) => cart.find((i) => i.menuItemId === menuItemId)?.quantity || 0;
-  
+
   const triggerAddedGif = () => {
     setShowAddedGif(true);
     // Vibrate if supported
-      navigator.vibrate(50);
-    
+    navigator.vibrate(50);
+
     // Show GIF for 2 seconds to let it play fully
     setTimeout(() => setShowAddedGif(false), 2000);
   };
-  
+
   const handleAddToCart = (item) => {
-    cartContext.addToCart(tableId, { 
+    cartContext.addToCart(tableId, {
       menuItemId: item._id,
-      name: item.name, 
-      price: item.price, 
-      image: item.image 
+      name: item.name,
+      price: item.price,
+      image: item.image
     });
     triggerAddedGif();
   };
-  
+
   const handleUpdateQuantity = (menuItemId, newQty) => {
     const oldQty = getItemQuantity(menuItemId);
     cartContext.updateQuantity(tableId, menuItemId, newQty);
@@ -542,49 +543,132 @@ export default function MenuPage() {
   };
 
   // Group items by category for "All" view
-  const groupedItems = activeCategory === "All" 
+  const groupedItems = activeCategory === "All"
     ? categories.slice(1).map(cat => ({
-        ...cat,
-        items: displayedItems.filter(item => item.category === cat.id)
-      })).filter(cat => cat.items.length > 0)
+      ...cat,
+      items: displayedItems.filter(item => item.category === cat.id)
+    })).filter(cat => cat.items.length > 0)
     : null;
 
   return (
     <div className="min-h-screen pb-20">
+      {/* Header - Full width */}
+      <header className="sticky top-0 z-30 glass">
+        {/* Top row */}
+        <div className="px-4 bg-[#ff2530] py-3 flex items-center justify-between gap-3">
+          <div className="flex-1 px-2 min-w-0">
+            <img src="/assets/logos/orderzap-logo.png" className="h-8" alt="" />
+          </div>
+
+          <button
+            onClick={() => {
+              setShowSearch(!showSearch);
+              if (!showSearch) {
+                // Focus search input after animation
+                setTimeout(() => {
+                  document.getElementById('menu-search-input')?.focus();
+                }, 100);
+              }
+            }}
+            className="w-12 h-12 flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
+          >
+            {showSearch ? (
+              <X size={24} className="text-white" />
+            ) : (
+              <img
+                src="/assets/icons/search-food.png"
+                alt="Search"
+                className="w-12 h-12 object-contain"
+              />
+            )}
+          </button>
+        </div>
+
+        {/* Search bar - Enhanced design */}
+        <div 
+          className={`px-4  bg-[#ff2530] overflow-hidden transition-all duration-300 ${
+            showSearch 
+              ? 'max-h-32 opacity-100 pb-3 pt-2' 
+              : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="relative">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+              <Search size={18} />
+            </div>
+            <input
+              id="menu-search-input"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for dishes, drinks, hookah..."
+              className="w-full bg-white rounded-2xl pl-12 pr-12 py-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-lg"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  document.getElementById('menu-search-input')?.focus();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 active:scale-95 transition-all"
+              >
+                <X size={14} className="text-gray-600" />
+              </button>
+            )}
+          </div>
+          
+          {/* Search suggestions/quick filters */}
+          {searchQuery && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-white/80">
+              <span>Searching in:</span>
+              <span className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-sm">
+                {activeCategory === "All" ? "All Categories" : activeCategory}
+              </span>
+            </div>
+          )}
+        </div>
+      </header>
+
       {/* Left Sidebar - Quick Access */}
-      <aside className="fixed left-0 top-14 bottom-0 w-16 bg-[--bg-elevated] border-r border-[--border] z-20 overflow-y-auto scrollbar-hide">
+      <aside className={`fixed left-0 top-14 bottom-0 w-16 bg-[--bg-elevated] border-r border-[--border] z-20 overflow-y-auto scrollbar-hide transition-transform duration-300 ${
+        showSearch ? '-translate-x-full' : 'translate-x-0'
+      }`}>
         <div className="flex flex-col gap-1.5 p-1.5">
           {categories.map((cat) => {
             const isActive = activeCategory === cat.id;
             const categoryName = cat.id.toLowerCase();
+            const iconState = isActive ? 'active' : 'inactive';
+            const iconPath = `/assets/icons/categories/v2/${categoryName}-${iconState}.png`;
+
             // Count cart items in this category
             const cartItemsInCategory = cat.id === "All"
               ? cartCount
               : cart.filter(cartItem => {
-                  const menuItem = menuItems?.find(m => m._id === cartItem.menuItemId);
-                  return menuItem?.category === cat.id;
-                }).reduce((sum, item) => sum + item.quantity, 0);
-            
+                const menuItem = menuItems?.find(m => m._id === cartItem.menuItemId);
+                return menuItem?.category === cat.id;
+              }).reduce((sum, item) => sum + item.quantity, 0);
+
             return (
               <button
                 key={cat.id}
                 onClick={() => {
                   navigator.vibrate(50);
-    
+
                   setActiveCategory(cat.id);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="relative flex flex-col items-center justify-center g 'active' :1.5 rounded-lg transition-all active:scale-95 bg-transparent"
+                className="relative flex flex-col items-center justify-center rounded-lg transition-all active:scale-95 bg-transparent"
               >
-                <img 
-                  src={`/assets/icons/categories/${categoryName}-${isActive ? 'active' : 'inactive'}.png`}
+                <img
+                  key={iconPath}
+                  src={iconPath}
                   alt={cat.id}
-                  className="w-14 my-2 h-14 object-contain"
+                  className="w-14 my-4 h-14 object-contain"
                 />
                 {/* Cart count badge */}
                 {cartItemsInCategory > 0 && (
-                  <div className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[--primary] text-white text-[9px] font-bold flex items-center justify-center shadow-md">
-                   <OdometerNumber value={cartItemsInCategory}/> 
+                  <div className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[] text-[--primary] text-[9px] font-bold flex items-center justify-center">
+                    <OdometerNumber value={cartItemsInCategory} />
                   </div>
                 )}
               </button>
@@ -593,114 +677,59 @@ export default function MenuPage() {
         </div>
       </aside>
 
-      {/* Header - Full width */}
-      <header className="sticky  top-0 z-30 glass">
-          {/* Top row */}
-          <div className="px-2 bg-[#ff2530] py-3 flex items-center justify-between">
-     
-            
-            <div className=" flex-1 px-2 min-w-0">
-             <img src="/assets/logos/orderzap-logo.png" className="h-8" alt="" />
-            </div>
-            
-            <button 
-              onClick={() => setShowSearch(!showSearch)} 
-              className={`w-10 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 flex-shrink-0 ${
-                showSearch 
-                  ? 'bg-[--primary] text-white' 
-                  : 'bg-transparent'
-              }`}
-            >
-              {showSearch ? (
-                <X size={14} className="text-white" />
-              ) : (
-                <img 
-                  src="/assets/icons/search-food.png" 
-                  alt="Search" 
-                  className="w-10 h-10 object-contain"
-                />
-              )}
-            </button>
-          </div>
-
-          {/* Search bar */}
-          {showSearch && (
-            <div className="px-2 pb-2 animate-slide-down" style={{animationFillMode: 'forwards'}}>
-              <div className="relative">
-                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[--text-dim]" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search menu..."
-                  autoFocus
-                  className="w-full !bg-[--card] rounded-lg pl-8 pr-8 py-2 text-[11px] placeholder:text-[--text-dim]"
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery("")} 
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[--text-dim]"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Categories - Hidden since we have sidebar */}
-          <div className="px-2 pb-2 overflow-x-auto scrollbar-hide hidden">
-            <div className="flex gap-1.5">
-              {categories.map((cat) => (
-                <button 
-                  key={cat.id} 
-                  onClick={() => setActiveCategory(cat.id)} 
-                  className={`px-2.5 py-1.5 rounded-md text-[10px] font-medium whitespace-nowrap transition-all active:scale-95 ${
-                    activeCategory === cat.id 
-                      ? "pill-active" 
-                      : "bg-[--card] border border-[--border] text-[--text-muted]"
-                  }`}
-                >
-                  {cat.id}
-                </button>
-              ))}
-            </div>
-          </div>
-      </header>
-
       {/* Menu Content - with left padding for sidebar */}
-      <div className="pl-16 px-2 py-3">
+      <div className={`transition-all duration-300 py-3 ${showSearch ? 'pl-2 pr-2' : 'pl-16'}`}>
         {searchQuery && (
-          <p className="text-[--text-dim] text-[9px] mb-3 px-1">
-            {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''} for "{searchQuery}"
-          </p>
+          <div className="mb-4 px-2">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[--text-primary] text-sm font-medium">
+                {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''}
+              </p>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-[--primary] text-xs font-medium hover:underline"
+              >
+                Clear search
+              </button>
+            </div>
+            <p className="text-[--text-muted] text-xs">
+              Searching for "<span className="text-[--text-primary] font-medium">{searchQuery}</span>"
+            </p>
+          </div>
         )}
 
         {/* Grouped view for "All" */}
         {groupedItems ? (
           <div className="space-y-8">
             {groupedItems.map((group, groupIndex) => (
-              <div 
-                key={group.id} 
-                className="opacity-0 animate-slide-up" 
-                style={{animationDelay: `${groupIndex * 0.1}s`, animationFillMode: 'forwards'}}
+              <div
+                key={group.id}
+                className="opacity-0 animate-slide-up"
+                style={{ animationDelay: `${groupIndex * 0.1}s`, animationFillMode: 'forwards' }}
               >
+                <div className="w-full h-px bg-[--border] my-3 opacity-40"></div>
+
+
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-[--text-primary] font-luxury text-sm flex items-center gap-1.5">
-                    <span className="text-[--primary] text-xs">{group.icon}</span>
+                    <span className=" ml-2 text-[--primary] text-xs">{group.icon}</span>
                     {group.id}
+
                   </h2>
-                  <span className="text-[--text-dim] text-[9px]">{group.items.length}</span>
+                  <span className="text-[--text-dim] mr-2 text-[9px]">{group.items.length}</span>
                 </div>
+                <div className="w-full h-px bg-[--border] my-3 opacity-40"></div>
+
+
                 <div className="grid grid-cols-1 gap-2 menu-card-grid">
                   {group.items.map((item, itemIndex) => (
                     <div
                       key={item._id}
                       className="opacity-0 animate-slide-in-right"
-                      style={{animationDelay: `${itemIndex * 0.05}s`, animationFillMode: 'forwards'}}
+                      style={{ animationDelay: `${itemIndex * 0.05}s`, animationFillMode: 'forwards' }}
                     >
-                      <MenuItem 
-                        item={item} 
+                      <MenuItem
+                        item={item}
                         qty={getItemQuantity(item._id)}
                         onAdd={() => handleAddToCart(item)}
                         onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
@@ -719,10 +748,10 @@ export default function MenuPage() {
               <div
                 key={item._id}
                 className="opacity-0 animate-slide-in-right"
-                style={{animationDelay: `${itemIndex * 0.05}s`, animationFillMode: 'forwards'}}
+                style={{ animationDelay: `${itemIndex * 0.05}s`, animationFillMode: 'forwards' }}
               >
-                <MenuItem 
-                  item={item} 
+                <MenuItem
+                  item={item}
                   qty={getItemQuantity(item._id)}
                   onAdd={() => handleAddToCart(item)}
                   onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
@@ -743,14 +772,16 @@ export default function MenuPage() {
         {/* Empty state */}
         {filteredItems.length === 0 && (
           <div className="text-center py-12 animate-fade-in">
-            <div className="w-14 h-14 rounded-xl bg-[--card] border border-[--border] flex items-center justify-center mx-auto mb-3">
-              <UtensilsCrossed size={24} className="text-[--text-dim]" />
-            </div>
-            <p className="text-[--text-muted] text-xs mb-2">No items found</p>
+            <img 
+              src="/assets/icons/no-results.png" 
+              alt="No results" 
+              className="w-32 h-32 mx-auto mb-4 object-contain"
+            />
+            <p className="text-[--text-muted] text-sm mb-2">No items found</p>
             {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery("")} 
-                className="text-[--primary] text-xs"
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-[--primary] text-sm font-medium hover:underline"
               >
                 Clear search
               </button>
@@ -761,73 +792,73 @@ export default function MenuPage() {
 
       {/* Cart Bar - Redesigned with gradient and better styling */}
       {cartCount > 0 && !hideCartBar && (
-      <div className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
-        <div className="bg-white px-4 py-4">
-          <button
-            onClick={() => router.push(`/cart/${tableId}`)}
-            className="flex items-center justify-between w-full active:scale-[0.98] transition-transform"
-          >
-            {/* Left */}
-            <div className="relative flex items-center gap-3">
-              {/* Video overlay that appears when item is added */}
-              {showAddedGif && (
-                <div className="absolute left-0 z-10 animate-scale-bounce">
-                  <video 
-                    src="/assets/videos/added-animation.mp4" 
-                    autoPlay 
-                    muted 
-                    playsInline
-                    className="w-12 h-12 object-cover rounded-lg"
-                  />
-                </div>
-              )}
+        <div className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
+          <div className="bg-white px-4 py-4">
+            <button
+              onClick={() => router.push(`/cart/${tableId}`)}
+              className="flex items-center justify-between w-full active:scale-[0.98] transition-transform"
+            >
+              {/* Left */}
+              <div className="relative flex items-center gap-3">
+                {/* Video overlay that appears when item is added */}
+                {showAddedGif && (
+                  <div className="absolute left-0 z-10 animate-scale-bounce">
+                    <video
+                      src="/assets/videos/added-animation.mp4"
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-12 h-12 object-cover rounded-lg"
+                    />
+                  </div>
+                )}
 
-              <div className={`leading-tight transition-transform duration-300 ${showAddedGif ? 'translate-x-14' : 'translate-x-0'}`}>
-                <div className="flex items-baseline gap-1">
-                  <OdometerNumber value={cartCount} className="text-black text-base font-bold" />
-                  <span className="text-black text-base font-bold ml-1">
-                    {cartCount === 1 ? 'Item' : 'Items'}
-                  </span>
+                <div className={`leading-tight transition-transform duration-300 ${showAddedGif ? 'translate-x-14' : 'translate-x-0'}`}>
+                  <div className="flex items-baseline gap-1">
+                    <OdometerNumber value={cartCount} className="text-black text-base font-bold" />
+                    <span className="text-black text-base font-bold ml-1">
+                      {cartCount === 1 ? 'Item' : 'Items'}
+                    </span>
+                  </div>
+                  <p className="text-black/90 text-xs">
+                    View Cart
+                  </p>
                 </div>
-                <p className="text-black/90 text-xs">
-                  View Cart
-                </p>
               </div>
-            </div>
 
-            {/* Right */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-black text-lg font-bold font-['Montserrat']">₹</span>
-                <OdometerNumber value={cartTotal.toFixed(0)} className="text-black text-lg font-bold font-['Montserrat']" />/-
+              {/* Right */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-black text-lg font-bold font-['Montserrat']">₹</span>
+                  <OdometerNumber value={cartTotal.toFixed(0)} className="text-black text-lg font-bold font-['Montserrat']" />/-
+                </div>
+                <ChevronRight size={20} className="text-black" />
               </div>
-              <ChevronRight size={20} className="text-black" />
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Unavailable Item Popup */}
-      <AnimatedPopup 
-        show={!!unavailablePopup} 
+      <AnimatedPopup
+        show={!!unavailablePopup}
         onClose={() => setUnavailablePopup(null)}
         className="absolute inset-0 flex items-center justify-center p-4"
       >
         <div className="card rounded-2xl p-6 max-w-[300px] w-full text-center relative overflow-hidden">
           {/* Background glow */}
           <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 to-transparent pointer-events-none" />
-          
+
           {/* Location GIF */}
-       
-          
+
+
           {/* Content */}
           <div className="relative">
             <h3 className="text-[--text-primary] font-luxury text-lg mb-1">
               Oops! Zone Restricted
             </h3>
             <p className="text-[--primary] font-semibold text-base mb-4">{unavailablePopup?.name}</p>
-            
+
             {/* Current zone badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-  border border-red-500/10 mb-3">
               <div className="w-1.5 h-1.5 -full bg-red-400 animate-pulse" />
@@ -835,14 +866,14 @@ export default function MenuPage() {
                 Not available at {table?.zone?.name || 'your table'}
               </span>
             </div>
-            
+
             {/* Allowed zones */}
             {unavailablePopup?.allowedZoneNames && unavailablePopup.allowedZoneNames.length > 0 ? (
               <div className="mt-3 mb-5">
                 <p className="text-[--text-dim] text-[10px] uppercase tracking-wider mb-2">Available in</p>
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {unavailablePopup.allowedZoneNames.map((zone, i) => (
-                    <span 
+                    <span
                       key={i}
                       className="px-2.5 py-1 rounded- border border-emerald-500/10 text-emerald-300 text-[11px] font-medium"
                     >
@@ -856,8 +887,8 @@ export default function MenuPage() {
                 This item is zone-restricted
               </p>
             )}
-            
-            <button 
+
+            <button
               onClick={() => setUnavailablePopup(null)}
               className="w-full py-3 rounded-xl text-sm font-semibold bg-[--card] border border-[--border] text-[--text-primary] hover:bg-[--bg-elevated] active:scale-[0.98] transition-all"
             >
@@ -883,13 +914,13 @@ export default function MenuPage() {
           <h3 className="text-[--text-primary] font-luxury text-lg mb-2">Want some water?</h3>
           <p className="text-[--text-muted] text-sm mb-5">We'll bring it right over</p>
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={() => setShowWaterPopup(false)}
               className="flex-1 btn-secondary py-3 rounded-xl text-sm font-medium"
             >
               No thanks
             </button>
-            <button 
+            <button
               onClick={async () => {
                 await createStaffCall({
                   tableId: String(tableId),
@@ -913,12 +944,12 @@ export default function MenuPage() {
 // Odometer Number Component
 function OdometerNumber({ value, className = "" }) {
   const digits = value.toString().split('');
-  
+
   return (
     <div className={`inline-flex ${className}`}>
       {digits.map((digit, idx) => (
         <div key={idx} className="relative h-5 w-3 overflow-hidden">
-          <div 
+          <div
             className="flex flex-col transition-transform duration-300 ease-out"
             style={{
               transform: `translateY(-${parseInt(digit) * 20}px)`
@@ -936,10 +967,35 @@ function OdometerNumber({ value, className = "" }) {
   );
 }
 
-// Menu Item Component
-
-function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
+// Menu Item Component - Memoized to prevent unnecessary re-renders
+const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
   const isRestricted = !item.isAvailableInZone;
+  const imageRef = useRef(null);
+  const buttonRef = useRef(null);
+  const [parallaxY, setParallaxY] = useState(0);
+  const [buttonParallaxY, setButtonParallaxY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (imageRef.current) {
+        const rect = imageRef.current.getBoundingClientRect();
+        const scrollProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+        const parallax = scrollProgress * 20 - 10; // Range from -10 to 10
+        setParallaxY(parallax);
+      }
+
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const scrollProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+        const parallax = scrollProgress * 15 - 7.5; // Range from -7.5 to 7.5 (slightly less than image)
+        setButtonParallaxY(parallax);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial calculation
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const triggerRestrictedFeedback = useCallback(() => {
     if (navigator.vibrate) {
@@ -974,22 +1030,33 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
 
   return (
     <div
-      className={`menu-card-item rounded-xl overflow-hidden border border-[--border] bg-[--card] flex h-32 ${
-        isRestricted ? "opacity-70" : ""
-      }`}
+      className={`menu-card-item  overflow-hidden bg-[--card] 
+flex h-32 shadow-sm hover:shadow-lg transition-shadow ${isRestricted ? "opacity-70" : ""
+        }`}
+
     >
       {/* IMAGE - Left side, fixed width */}
       <div
+        ref={imageRef}
         onClick={handleAdd}
         className="relative w-32 h-32 flex-shrink-0 cursor-pointer overflow-hidden group"
         role="button"
         aria-disabled={isRestricted}
       >
-        <MenuItemImage
-          storageId={item.image}
-          alt={item.name}
-          className="w-full h-full object-cover transition-transform group-active:scale-95"
-        />
+        <div
+          style={{
+            transform: `translateY(${parallaxY}px)`,
+            transition: 'transform 0.1s ease-out',
+            width: '100%',
+            height: '100%'
+          }}
+        >
+          <MenuItemImage
+            storageId={item.image}
+            alt={item.name}
+            className="w-full h-full object-cover transition-transform group-active:scale-95"
+          />
+        </div>
 
         {/* Restricted Overlay */}
         {isRestricted && (
@@ -1002,7 +1069,7 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
         {/* Quantity Badge */}
         {qty > 0 && !isRestricted && (
           <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[--primary] text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
-            <OdometerNumber value={qty}/>
+            <OdometerNumber value={qty} />
           </div>
         )}
       </div>
@@ -1052,8 +1119,13 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
             </div>
           ) : (
             <button
+              ref={buttonRef}
               onClick={handleAdd}
               className="px-4 py-2 rounded-lg bg-[--primary] text-white text-xs font-semibold active:scale-95 transition-transform shadow-sm"
+              style={{
+                transform: `translateY(${buttonParallaxY}px)`,
+                transition: 'transform 0.1s ease-out'
+              }}
             >
               Add +
             </button>
@@ -1062,4 +1134,11 @@ function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.item._id === nextProps.item._id &&
+    prevProps.qty === nextProps.qty &&
+    prevProps.item.isAvailableInZone === nextProps.item.isAvailableInZone
+  );
+});

@@ -3,7 +3,7 @@ import { ChatProvider } from "@/lib/chat";
 import ChatButton from "./ChatButton";
 import ChatSheet from "./ChatSheet";
 
-export default function ChatAssistant({ tableContext, menuItems, activeOrder, cart, cartActions, sessionId }) {
+export default function ChatAssistant({ tableContext, menuItems, activeOrder, cart, cartActions, sessionId, restaurantDbId }) {
   if (!tableContext) return null;
 
   return (
@@ -14,6 +14,7 @@ export default function ChatAssistant({ tableContext, menuItems, activeOrder, ca
       cart={cart}
       cartActions={cartActions}
       sessionId={sessionId}
+      restaurantDbId={restaurantDbId}
     >
       <ChatButton />
       <ChatSheet />

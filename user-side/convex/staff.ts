@@ -2,16 +2,30 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
+    if (args.restaurantId) {
+      return await ctx.db
+        .query("staff")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    }
     return await ctx.db.query("staff").collect();
   },
 });
 
 export const listActive = query({
-  args: {},
-  handler: async (ctx) => {
-    const staff = await ctx.db.query("staff").collect();
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
+    let staff;
+    if (args.restaurantId) {
+      staff = await ctx.db
+        .query("staff")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      staff = await ctx.db.query("staff").collect();
+    }
     return staff.filter(s => s.active);
   },
 });
@@ -48,6 +62,7 @@ export const getOnlineByTable = query({
 
 export const create = mutation({
   args: {
+    restaurantId: v.optional(v.id("restaurants")),
     name: v.string(),
     role: v.string(),
     phone: v.optional(v.string()),

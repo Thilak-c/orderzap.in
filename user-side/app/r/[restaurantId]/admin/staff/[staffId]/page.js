@@ -1,0 +1,203 @@
+'use client';
+
+import { useParams } from 'next/navigation';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import Link from 'next/link';
+
+const statusConfig = {
+  pending: { label: 'NEW', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
+  preparing: { label: 'PREPARING', cls: 'bg-blue-100 text-blue-800 border-blue-200' },
+  ready: { label: 'READY', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  completed: { label: 'DONE', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+};
+
+export default function StaffPortalPage() {
+  const { staffId, restaurantId } = useParams();
+  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
+  const restaurantDbId = restaurant?._id;
+  const staff = useQuery(api.staff.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const orders = useQuery(api.orders.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const staffCalls = useQuery(api.staffCalls.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const updateOrderStatus = useMutation(api.orders.updateStatus);
+  const updateCallStatus = useMutation(api.staffCalls.updateStatus);
+
+  const currentStaff = staff?.find(s => s._id === staffId);
+  
+  if (!staff || !orders || !staffCalls) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-500 text-sm">LOADING...</div>
+      </div>
+    );
+  }
+
+  if (!currentStaff) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="text-center">
+          <p className="text-slate-500 text-sm mb-4">Staff not found</p>
+          <Link href={`/r/${restaurantId}/admin/staff`} className="text-slate-700 text-sm font-medium underline hover:text-slate-900">
+            Back to Staff List
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const myTables = currentStaff.assignedTables;
+  const myOrders = orders.filter(o => myTables.includes(parseInt(o.tableId)));
+  const myCalls = staffCalls.filter(c => myTables.includes(c.tableNumber));
+
+  const activeOrders = myOrders.filter(o => o.status !== 'completed');
+  const pendingCalls = myCalls.filter(c => c.status !== 'resolved');
+
+  const handleOrderStatus = async (orderId, newStatus) => {
+    await updateOrderStatus({ id: orderId, status: newStatus });
+  };
+
+  const handleCallStatus = async (callId, newStatus) => {
+    await updateCallStatus({ id: callId, status: newStatus });
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-100 flex items-center justify-center text-lg font-bold text-slate-700 rounded-xl">
+              {currentStaff.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-slate-900 font-bold text-sm">{currentStaff.name}</p>
+              <p className="text-slate-500 text-[10px] uppercase tracking-wide">{currentStaff.role} • Tables: {myTables.join(', ') || '—'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-center px-3 py-1.5 bg-slate-100 rounded-lg">
+              <span className="text-amber-600 font-bold">{activeOrders.length}</span>
+              <span className="text-slate-500 text-xs ml-1">orders</span>
+            </div>
+            <div className="text-center px-3 py-1.5 bg-slate-100 rounded-lg">
+              <span className="text-red-600 font-bold">{pendingCalls.length}</span>
+              <span className="text-slate-500 text-xs ml-1">calls</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="p-4 space-y-3">
+        {/* Staff Calls - Show first if any pending */}
+        {pendingCalls.map(call => (
+          <div key={call._id} className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-red-500 text-lg">🔔</span>
+                <span className="text-lg font-bold text-slate-900">T{call.tableNumber}</span>
+                <span className="px-2 py-0.5 text-[10px] bg-red-100 text-red-700 border border-red-200 rounded">
+                  CALL
+                </span>
+              </div>
+              <span className="text-slate-500 text-xs">
+                {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            {call.reason && (
+              <p className="text-slate-600 text-sm mb-3">"{call.reason}"</p>
+            )}
+            <div className="flex gap-2">
+              {call.status === 'pending' && (
+                <button
+                  onClick={() => handleCallStatus(call._id, 'acknowledged')}
+                  className="flex-1 py-2 bg-amber-500 text-white text-xs font-bold uppercase rounded-lg"
+                >
+                  Acknowledge
+                </button>
+              )}
+              <button
+                onClick={() => handleCallStatus(call._id, 'resolved')}
+                className="flex-1 py-2 bg-emerald-500 text-white text-xs font-bold uppercase rounded-lg"
+              >
+                Resolve
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {/* Orders */}
+        {activeOrders.map(order => {
+          const status = statusConfig[order.status];
+          return (
+            <div key={order._id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-slate-900">T{order.tableId}</span>
+                    <span className={`px-2 py-0.5 text-[10px] border rounded ${status.cls}`}>
+                      {status.label}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 text-xs">
+                    #{order.orderNumber || order._id.slice(-4)} • {new Date(order._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <p className="text-lg font-bold text-slate-900">₹{order.total}</p>
+              </div>
+
+              <div className="space-y-1 mb-3 pb-3 border-b border-slate-100">
+                {order.items.map((item, i) => (
+                  <div key={i} className="flex justify-between text-sm text-slate-600">
+                    <span>{item.quantity}x {item.name}</span>
+                    <span>₹{item.price * item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+
+              {order.notes && (
+                <div className="mb-3 p-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg">
+                  <span className="font-bold">NOTE:</span> {order.notes}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                {order.status === 'pending' && (
+                  <button
+                    onClick={() => handleOrderStatus(order._id, 'preparing')}
+                    className="flex-1 py-2 bg-blue-500 text-white text-xs font-bold uppercase rounded-lg"
+                  >
+                    Start Preparing
+                  </button>
+                )}
+                {order.status === 'preparing' && (
+                  <button
+                    onClick={() => handleOrderStatus(order._id, 'ready')}
+                    className="flex-1 py-2 bg-emerald-500 text-white text-xs font-bold uppercase rounded-lg"
+                  >
+                    Mark Ready
+                  </button>
+                )}
+                {order.status === 'ready' && (
+                  <button
+                    onClick={() => handleOrderStatus(order._id, 'completed')}
+                    className="flex-1 py-2 bg-slate-600 text-white text-xs font-bold uppercase rounded-lg"
+                  >
+                    Complete
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Empty State */}
+        {activeOrders.length === 0 && pendingCalls.length === 0 && (
+          <div className="text-center py-16 text-slate-500">
+            <p className="text-4xl mb-3">✓</p>
+            <p className="text-sm">All clear! No pending orders or calls.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

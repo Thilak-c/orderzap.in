@@ -3,10 +3,21 @@ import { query, mutation } from "./_generated/server";
 
 // List all reservations (optionally filter by date)
 export const list = query({
-  args: { date: v.optional(v.string()) },
+  args: { 
+    restaurantId: v.optional(v.id("restaurants")),
+    date: v.optional(v.string()) 
+  },
   handler: async (ctx, args) => {
     let reservations;
-    if (args.date) {
+    if (args.restaurantId) {
+      const allReservations = await ctx.db
+        .query("reservations")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+      reservations = args.date 
+        ? allReservations.filter(r => r.date === args.date)
+        : allReservations;
+    } else if (args.date) {
       reservations = await ctx.db
         .query("reservations")
         .withIndex("by_date", (q) => q.eq("date", args.date!))
@@ -116,6 +127,7 @@ export const getCurrentForTable = query({
 // Create a reservation
 export const create = mutation({
   args: {
+    restaurantId: v.optional(v.id("restaurants")),
     tableId: v.id("tables"),
     customerName: v.string(),
     customerPhone: v.optional(v.string()),
@@ -184,6 +196,7 @@ export const create = mutation({
     }
 
     return await ctx.db.insert("reservations", {
+      restaurantId: args.restaurantId,
       tableId: args.tableId,
       tableNumber: table.number,
       customerName: args.customerName,
@@ -221,13 +234,25 @@ export const cancel = mutation({
 
 // Get today's reservations count
 export const getTodayStats = query({
-  handler: async (ctx) => {
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
     const today = new Date().toISOString().split('T')[0];
-    const reservations = await ctx.db
-      .query("reservations")
-      .withIndex("by_date", (q) => q.eq("date", today))
-      .filter((q) => q.eq(q.field("status"), "confirmed"))
-      .collect();
+    let reservations;
+    if (args.restaurantId) {
+      const allReservations = await ctx.db
+        .query("reservations")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+      reservations = allReservations.filter(r => 
+        r.date === today && r.status === "confirmed"
+      );
+    } else {
+      reservations = await ctx.db
+        .query("reservations")
+        .withIndex("by_date", (q) => q.eq("date", today))
+        .filter((q) => q.eq(q.field("status"), "confirmed"))
+        .collect();
+    }
     
     return {
       total: reservations.length,

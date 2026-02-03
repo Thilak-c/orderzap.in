@@ -6,7 +6,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function POST(request) {
   try {
-    const { tableId, items, paymentMethod, notes, sessionId } = await request.json();
+    const { tableId, items, paymentMethod, notes, sessionId, restaurantId: restaurantDbId } = await request.json();
 
     if (!tableId || !items || items.length === 0 || !sessionId) {
       return NextResponse.json(
@@ -18,6 +18,7 @@ export async function POST(request) {
     const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     const orderData = {
+      ...(restaurantDbId && { restaurantId: restaurantDbId }),
       tableId: String(tableId),
       items: items.map((item) => ({
         menuItemId: item.menuItemId,

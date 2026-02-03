@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { HelpCircle, Bell, ClipboardList, X, Check, GlassWater } from "lucide-react";
@@ -10,6 +10,8 @@ import { useCart } from "@/lib/cart";
 
 export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
   const router = useRouter();
+  const params = useParams();
+  const restaurantId = params?.restaurantId;
   const { cartCount, setHideCartBar } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
@@ -17,6 +19,10 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
   const [showWaterOnWay, setShowWaterOnWay] = useState(false);
   const [reason, setReason] = useState("");
   const createCall = useMutation(api.staffCalls.create);
+  
+  // Get restaurant database ID
+  const restaurant = useQuery(api.restaurants.getByShortId, restaurantId ? { id: restaurantId } : "skip");
+  const restaurantDbId = restaurant?._id;
   
   // Listen for water acknowledgment
   const waterAcknowledged = useQuery(
@@ -46,12 +52,13 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
     }
   }, [waterAcknowledged, setHideCartBar]);
 
-  const reasons = ["Need assistance", "Ready to order", "Request bill"];
+  const reasons = ["Need assistance", "Request bill"];
 
   const handleCall = async (selectedReason) => {
-    if (!tableNumber) return;
+    if (!tableNumber || !restaurantDbId) return;
     
     await createCall({
+      restaurantId: restaurantDbId,
       tableId: tableId || String(tableNumber),
       tableNumber: parseInt(tableNumber),
       zoneName: zoneName || undefined,

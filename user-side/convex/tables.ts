@@ -2,10 +2,22 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const tables = await ctx.db.query("tables").collect();
-    const zones = await ctx.db.query("zones").collect();
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
+    let tables, zones;
+    if (args.restaurantId) {
+      tables = await ctx.db
+        .query("tables")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+      zones = await ctx.db
+        .query("zones")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      tables = await ctx.db.query("tables").collect();
+      zones = await ctx.db.query("zones").collect();
+    }
     
     // Attach zone info to each table
     return tables.map((table) => ({
@@ -30,6 +42,7 @@ export const getByNumber = query({
 
 export const create = mutation({
   args: {
+    restaurantId: v.optional(v.id("restaurants")),
     name: v.string(),
     number: v.number(),
     capacity: v.optional(v.number()),

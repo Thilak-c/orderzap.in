@@ -2,12 +2,27 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  restaurants: defineTable({
+    id: v.string(), // Short ID (under 4 chars): "bts", "mgc", etc.
+    name: v.string(),
+    logo: v.optional(v.string()),
+    brandName: v.optional(v.string()),
+    description: v.optional(v.string()),
+    address: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_short_id", ["id"]),
+
   zones: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     name: v.string(), // "Smoking Zone", "Main Dining", "VIP", etc.
     description: v.string(),
-  }),
+  }).index("by_restaurant", ["restaurantId"]),
 
   menuItems: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     name: v.string(),
     price: v.number(),
     category: v.string(),
@@ -16,42 +31,66 @@ export default defineSchema({
     available: v.boolean(),
     // Zones where this item is available. Empty array = "All Zones" (available everywhere)
     allowedZones: v.optional(v.array(v.id("zones"))),
-  }),
+  }).index("by_restaurant", ["restaurantId"]),
 
   orders: defineTable({
-    tableId: v.string(),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())), // Can be Convex ID or PostgreSQL UUID
+    tableId: v.optional(v.string()),
     orderNumber: v.string(),
-    items: v.array(
+    items: v.optional(v.array(
       v.object({
-        menuItemId: v.id("menuItems"),
+        menuItemId: v.union(v.id("menuItems"), v.string()), // Can be Convex ID or UUID
         name: v.string(),
         price: v.number(),
         quantity: v.number(),
-        image: v.string(),
+        image: v.optional(v.string()),
       })
-    ),
-    total: v.number(),
+    )),
+    total: v.optional(v.number()),
+    totalAmount: v.optional(v.number()), // Backend uses totalAmount instead of total
     status: v.string(),
     paymentMethod: v.string(),
     paymentStatus: v.string(),
-    notes: v.string(),
-    customerSessionId: v.string(),
+    notes: v.optional(v.string()),
+    customerSessionId: v.optional(v.string()), // Made optional for backend sync
     customerPhone: v.optional(v.string()),
+    customerName: v.optional(v.string()), // Added for backend sync
     depositUsed: v.optional(v.number()),
+    // Backend sync fields
+    postgresId: v.optional(v.string()), // PostgreSQL order ID
+    subtotal: v.optional(v.number()),
+    taxAmount: v.optional(v.number()),
+    tipAmount: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    specialInstructions: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    lastSyncedAt: v.optional(v.number()), // When last synced from backend
+    // Retry safety fields
+    syncPending: v.optional(v.boolean()), // True if sync failed and needs retry
+    syncError: v.optional(v.string()), // Error message from last sync attempt
+    lastSyncAttempt: v.optional(v.number()), // Timestamp of last sync attempt
   })
+    .index("by_restaurant", ["restaurantId"])
     .index("by_status", ["status"])
     .index("by_customerSession", ["customerSessionId"])
     .index("by_table", ["tableId"])
-    .index("by_phone", ["customerPhone"]),
+    .index("by_phone", ["customerPhone"])
+    .index("by_postgres_id", ["postgresId"])
+    .index("by_sync_pending", ["syncPending"]),
 
   tables: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     name: v.string(),
     number: v.number(),
     capacity: v.optional(v.number()), // Max number of guests this table can seat
     zoneId: v.optional(v.id("zones")), // Which zone this table belongs to
-  }).index("by_zone", ["zoneId"]),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_zone", ["zoneId"]),
 
   staff: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     name: v.string(),
     role: v.string(), // "Waiter", "Manager", "Host", etc.
     phone: v.optional(v.string()),
@@ -59,7 +98,7 @@ export default defineSchema({
     active: v.boolean(),
     isOnline: v.optional(v.boolean()), // true when logged in, false when logged out
     lastSeen: v.optional(v.number()), // timestamp of last activity
-  }),
+  }).index("by_restaurant", ["restaurantId"]),
 
   // Notifications for managers
   staffNotifications: defineTable({
@@ -72,6 +111,7 @@ export default defineSchema({
   }).index("by_read", ["read"]),
 
   reservations: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     tableId: v.id("tables"),
     tableNumber: v.number(),
     customerName: v.string(),
@@ -86,12 +126,14 @@ export default defineSchema({
     arrived: v.optional(v.boolean()), // true when customer has verified and arrived
     notes: v.optional(v.string()),
   })
+    .index("by_restaurant", ["restaurantId"])
     .index("by_table", ["tableId"])
     .index("by_date", ["date"])
     .index("by_status", ["status"])
     .index("by_customer", ["customerId"]),
 
   staffCalls: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     tableId: v.string(),
     tableNumber: v.number(),
     zoneName: v.optional(v.string()),
@@ -102,47 +144,60 @@ export default defineSchema({
     originalStaffId: v.optional(v.id("staff")), // Original assigned staff
     reassignedTo: v.optional(v.id("staff")), // If redirected to another staff
     reassignReason: v.optional(v.string()), // Why it was reassigned
-  }).index("by_status", ["status"]),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_status", ["status"]),
 
   zoneRequests: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     tableId: v.string(),
     tableNumber: v.number(),
     currentZone: v.optional(v.string()),
     requestedZone: v.string(),
     status: v.string(), // 'pending' | 'approved' | 'denied'
     createdAt: v.number(),
-  }).index("by_status", ["status"]),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_status", ["status"]),
 
   // Inventory & Stock Control tables
   inventory: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     name: v.string(),
     unit: v.string(),
     quantity: v.number(),
     minStock: v.number(),
     costPerUnit: v.number(),
     category: v.string(),
-  }).index("by_category", ["category"]),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_category", ["category"]),
 
   wastage: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     itemId: v.id("inventory"),
     itemName: v.string(),
     quantity: v.number(),
     reason: v.string(),
     date: v.string(),
     costLoss: v.number(),
-  }).index("by_date", ["date"]),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_date", ["date"]),
 
   deductions: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     itemId: v.id("inventory"),
     itemName: v.string(),
     quantity: v.number(),
     orderId: v.string(),
-  }),
+  }).index("by_restaurant", ["restaurantId"]),
 
   alertSettings: defineTable({
+    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
     whatsappNumber: v.string(),
     alertsEnabled: v.boolean(),
-  }),
+  }).index("by_restaurant", ["restaurantId"]),
 
   // Customer accounts (auto-created on booking)
   customers: defineTable({

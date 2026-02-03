@@ -30,6 +30,10 @@
   --error: #ef4444;
   --warning: #f59e0b;
 }
+.orderzap-text {
+  -webkit-text-stroke: 2px black;
+}
+
 
 /* ============================================
    BASE STYLES
@@ -38,15 +42,19 @@
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
 }
 
-/* Allow selection for input fields */
+/* Allow selection for input fields and text content */
 input,
-textarea {
+textarea,
+p,
+span,
+div,
+h1, h2, h3, h4, h5, h6,
+a,
+li,
+td,
+th {
   -webkit-user-select: text;
   -moz-user-select: text;
   -ms-user-select: text;
@@ -658,9 +666,9 @@ input::placeholder, textarea::placeholder {
   background: linear-gradient(#000 0 0) bottom left/0% 3px no-repeat;
   animation: l14 1.5s infinite;
 }
-.loader-2:before {
-  content: "OrderZap";
-}
+/* .loader-2:before {
+  content: "";
+} */
 @keyframes l14 {
     80%  {text-shadow:    0  0 0 #000,10ch 0 0 #000;background-size:100% 3px}
     100% {text-shadow: -10ch 0 0 #000,0    0 0 #000}

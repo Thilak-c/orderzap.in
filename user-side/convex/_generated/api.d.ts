@@ -9,6 +9,7 @@
  */
 
 import type * as alerts from "../alerts.js";
+import type * as crons from "../crons.js";
 import type * as customers from "../customers.js";
 import type * as deductions from "../deductions.js";
 import type * as files from "../files.js";
@@ -17,10 +18,13 @@ import type * as menuItems from "../menuItems.js";
 import type * as orders from "../orders.js";
 import type * as reports from "../reports.js";
 import type * as reservations from "../reservations.js";
+import type * as restaurants from "../restaurants.js";
+import type * as seed from "../seed.js";
 import type * as settings from "../settings.js";
 import type * as staff from "../staff.js";
 import type * as staffCalls from "../staffCalls.js";
 import type * as staffNotifications from "../staffNotifications.js";
+import type * as syncToPostgres from "../syncToPostgres.js";
 import type * as tables from "../tables.js";
 import type * as wastage from "../wastage.js";
 import type * as zoneRequests from "../zoneRequests.js";
@@ -34,6 +38,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   alerts: typeof alerts;
+  crons: typeof crons;
   customers: typeof customers;
   deductions: typeof deductions;
   files: typeof files;
@@ -42,10 +47,13 @@ declare const fullApi: ApiFromModules<{
   orders: typeof orders;
   reports: typeof reports;
   reservations: typeof reservations;
+  restaurants: typeof restaurants;
+  seed: typeof seed;
   settings: typeof settings;
   staff: typeof staff;
   staffCalls: typeof staffCalls;
   staffNotifications: typeof staffNotifications;
+  syncToPostgres: typeof syncToPostgres;
   tables: typeof tables;
   wastage: typeof wastage;
   zoneRequests: typeof zoneRequests;

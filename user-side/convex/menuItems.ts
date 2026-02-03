@@ -2,29 +2,62 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
+    if (args.restaurantId) {
+      return await ctx.db
+        .query("menuItems")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    }
     return await ctx.db.query("menuItems").collect();
   },
 });
 
 export const listAvailable = query({
-  args: {},
-  handler: async (ctx) => {
-    const items = await ctx.db.query("menuItems").collect();
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
+    let items;
+    if (args.restaurantId) {
+      items = await ctx.db
+        .query("menuItems")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      items = await ctx.db.query("menuItems").collect();
+    }
     return items.filter((item) => item.available);
   },
 });
 
 // Get menu items with zone availability info
 export const listForZone = query({
-  args: { zoneId: v.optional(v.id("zones")) },
+  args: { 
+    restaurantId: v.optional(v.id("restaurants")),
+    zoneId: v.optional(v.id("zones")) 
+  },
   handler: async (ctx, args) => {
-    const items = await ctx.db.query("menuItems").collect();
+    let items;
+    if (args.restaurantId) {
+      items = await ctx.db
+        .query("menuItems")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      items = await ctx.db.query("menuItems").collect();
+    }
     const availableItems = items.filter((item) => item.available);
     
     // Get all zones to map IDs to names
-    const zones = await ctx.db.query("zones").collect();
+    let zones;
+    if (args.restaurantId) {
+      zones = await ctx.db
+        .query("zones")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      zones = await ctx.db.query("zones").collect();
+    }
     const zoneMap = new Map(zones.map(z => [z._id, z.name]));
 
     return availableItems.map((item) => {
@@ -63,6 +96,7 @@ export const listForZone = query({
 
 export const create = mutation({
   args: {
+    restaurantId: v.optional(v.id("restaurants")),
     name: v.string(),
     price: v.number(),
     category: v.string(),

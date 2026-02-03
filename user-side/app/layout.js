@@ -19,21 +19,14 @@ const manrope = Manrope({
 function LayoutContent({ children }) {
   const { tableInfo } = useTable();
   const pathname = usePathname();
-  const isAdminPage = pathname?.startsWith('/admin');
-  
+  const isAdminPage = pathname?.startsWith('/admin') || pathname?.startsWith('/demo/admin');
+
   return (
     <>
       <main className="relative z-10 min-h-screen">
         {children}
       </main>
       {!isAdminPage && <Footer />}
-      {tableInfo && !isAdminPage && (
-        <CallStaffButton 
-          tableId={tableInfo.tableId} 
-          tableNumber={tableInfo.tableNumber}
-          zoneName={tableInfo.zoneName}
-        />
-      )}
     </>
   );
 }
@@ -46,7 +39,7 @@ export default function RootLayout({ children }) {
         <meta name="description" content="Scan, Select, Order - dining experience" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <meta name="theme-color" content="#000000" />
-        
+
         {/* Favicons */}
         <link rel="icon" type="image/x-icon" href="/assets/logos/favicon_io/favicon.ico" />
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/logos/favicon_io/favicon-16x16.png" />
@@ -59,7 +52,7 @@ export default function RootLayout({ children }) {
       <body className={`${manrope.className} antialiased`}>
         {/* Ambient background glow */}
         <div className="ambient-glow fixed inset-0" aria-hidden="true" />
-        
+
         <ConvexClientProvider>
           <SessionProvider>
             <CartProvider>

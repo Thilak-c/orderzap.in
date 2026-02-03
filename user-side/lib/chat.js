@@ -45,7 +45,7 @@ function parseActions(content) {
   return { actions, cleanContent };
 }
 
-export function ChatProvider({ children, tableContext, menuItems, activeOrder, cart, cartActions, sessionId }) {
+export function ChatProvider({ children, tableContext, menuItems, activeOrder, cart, cartActions, sessionId, restaurantDbId }) {
   const [messages, setMessages] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,12 +56,14 @@ export function ChatProvider({ children, tableContext, menuItems, activeOrder, c
   const cartActionsRef = useRef(cartActions);
   const sessionIdRef = useRef(sessionId);
   const tableContextRef = useRef(tableContext);
+  const restaurantDbIdRef = useRef(restaurantDbId);
   
   // Keep refs updated
   cartRef.current = cart;
   cartActionsRef.current = cartActions;
   sessionIdRef.current = sessionId;
   tableContextRef.current = tableContext;
+  restaurantDbIdRef.current = restaurantDbId;
 
   const addMessage = useCallback((message) => {
     const id = Date.now().toString();
@@ -96,6 +98,7 @@ export function ChatProvider({ children, tableContext, menuItems, activeOrder, c
           paymentMethod: paymentMethod === "pay-now" ? "pay-now" : "pay-later",
           notes: notes || "",
           sessionId: currentSessionId,
+          ...(restaurantDbIdRef.current && { restaurantId: restaurantDbIdRef.current }),
         }),
       });
 

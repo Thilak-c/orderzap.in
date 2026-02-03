@@ -1,9 +1,17 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
+    if (args.restaurantId) {
+      return await ctx.db
+        .query("orders")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .order("desc")
+        .collect();
+    }
     return await ctx.db.query("orders").order("desc").collect();
   },
 });
@@ -86,6 +94,7 @@ export const getById = query({
 
 export const create = mutation({
   args: {
+    restaurantId: v.optional(v.id("restaurants")),
     tableId: v.string(),
     items: v.array(
       v.object({
@@ -119,17 +128,13 @@ export const create = mutation({
 
     // If deposit was used, deduct from customer's balance immediately
     if (args.depositUsed && args.depositUsed > 0 && args.customerPhone) {
-      // console.log("Deducting deposit:", args.depositUsed, "from phone:", args.customerPhone);
       const customer = await ctx.db
         .query("customers")
         .withIndex("by_phone", (q) => q.eq("phone", args.customerPhone!))
         .first();
       
-      // console.log("Found customer:", customer);
-      
       if (customer) {
         const newBalance = Math.max(0, customer.depositBalance - args.depositUsed);
-        // console.log("Old balance:", customer.depositBalance, "New balance:", newBalance);
         await ctx.db.patch(customer._id, { 
           depositBalance: newBalance,
           lastVisit: Date.now(),
@@ -137,16 +142,24 @@ export const create = mutation({
           totalSpent: customer.totalSpent + args.total,
         });
       }
-    } else {
-      // console.log("No deposit to deduct. depositUsed:", args.depositUsed, "customerPhone:", args.customerPhone);
     }
 
-    return await ctx.db.insert("orders", {
+    // Create order in Convex
+    const orderId = await ctx.db.insert("orders", {
       ...args,
       orderNumber,
       status: "pending",
       paymentStatus: args.paymentMethod === "pay-now" ? "paid" : "pending",
+      syncPending: false, // Initialize sync status
     });
+
+    // Schedule PostgreSQL sync (async, non-blocking)
+    // This will happen in the background
+    ctx.scheduler.runAfter(0, internal.syncToPostgres.syncOrderToPostgres, {
+      orderId,
+    });
+
+    return orderId;
   },
 });
 
@@ -172,9 +185,18 @@ export const updatePaymentStatus = mutation({
 
 // Get stats for admin dashboard
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const orders = await ctx.db.query("orders").collect();
+  args: { restaurantId: v.optional(v.id("restaurants")) },
+  handler: async (ctx, args) => {
+    let orders;
+    if (args.restaurantId) {
+      orders = await ctx.db
+        .query("orders")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      orders = await ctx.db.query("orders").collect();
+    }
+    
     const today = new Date().toDateString();
     
     const pendingOrders = orders.filter((o) => o.status === "pending").length;

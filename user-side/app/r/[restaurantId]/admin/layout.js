@@ -32,11 +32,11 @@ export default function AdminLayout({ children }) {
 
   // Get branding from restaurant or settings
   const brandName = restaurant?.brandName || restaurant?.name || settings?.brandName || "Restaurant";
-  const brandLogo = restaurant?.logo || logoUrl || settings?.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png";
+  const brandLogo = restaurant?.logo || logoUrl || settings?.brandLogo;
   
   // Handle logo loading state
   const [logoError, setLogoError] = useState(false);
-  const displayLogo = logoError ? "/assets/logos/favicon_io/android-chrome-192x192.png" : brandLogo;
+  const displayLogo = logoError ? null : brandLogo;
 
   // Get pending/new orders
   const pendingOrders = orders?.filter(o => o.status === 'pending') || [];

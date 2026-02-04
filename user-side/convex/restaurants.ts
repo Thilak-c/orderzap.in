@@ -43,6 +43,15 @@ export const create = mutation({
     address: v.optional(v.string()),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
+    themeColors: v.optional(v.union(
+      v.object({
+        dominant: v.string(),
+        muted: v.string(),
+        darkVibrant: v.string(),
+        lightVibrant: v.string(),
+      }),
+      v.null()
+    )),
   },
   handler: async (ctx, args) => {
     // Check if ID already exists
@@ -75,9 +84,42 @@ export const update = mutation({
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
     active: v.optional(v.boolean()),
+    themeColors: v.optional(v.object({
+      dominant: v.string(),
+      muted: v.string(),
+      darkVibrant: v.string(),
+      lightVibrant: v.string(),
+    })),
   },
   handler: async (ctx, args) => {
     const { restaurantId, ...updates } = args;
     await ctx.db.patch(restaurantId, updates);
+  },
+});
+
+// Save theme colors for a restaurant
+export const saveTheme = mutation({
+  args: {
+    restaurantId: v.id("restaurants"),
+    themeColors: v.object({
+      dominant: v.string(),
+      muted: v.string(),
+      darkVibrant: v.string(),
+      lightVibrant: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.restaurantId, {
+      themeColors: args.themeColors,
+    });
+  },
+});
+
+// Get theme colors for a restaurant
+export const getTheme = query({
+  args: { restaurantId: v.id("restaurants") },
+  handler: async (ctx, args) => {
+    const restaurant = await ctx.db.get(args.restaurantId);
+    return restaurant?.themeColors || null;
   },
 });

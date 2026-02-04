@@ -2,9 +2,12 @@
 import { RestaurantProvider, useRestaurant } from "@/lib/restaurant";
 import { useParams, usePathname } from "next/navigation";
 import FloatingQuickMenu from "@/components/FloatingQuickMenu";
+import { useEffect, useState } from "react";
+import { mapColorsToTheme, applyTheme } from "@/lib/theme-utils";
+import { useThemePersistence } from "@/lib/useThemePersistence";
 
 function RestaurantClosedCheck({ children }) {
-  const { restaurant, isLoading } = useRestaurant();
+  const { restaurant } = useRestaurant();
   const pathname = usePathname();
   
   // Don't show closed screen for admin pages
@@ -45,12 +48,32 @@ function RestaurantClosedCheck({ children }) {
   return children;
 }
 
+function ThemeLoader() {
+  const { restaurant } = useRestaurant();
+  const [currentTheme, setCurrentTheme] = useState(null);
+  
+  // Load saved theme on mount and when restaurant changes
+  useEffect(() => {
+    if (restaurant?.themeColors) {
+      const theme = mapColorsToTheme(restaurant.themeColors);
+      applyTheme(theme);
+      setCurrentTheme(theme);
+    }
+  }, [restaurant?.themeColors]);
+  
+  // Use theme persistence hook to maintain theme across navigation
+  useThemePersistence(currentTheme);
+  
+  return null;
+}
+
 export default function RestaurantLayout({ children }) {
   const params = useParams();
   const restaurantId = params?.restaurantId;
 
   return (
     <RestaurantProvider restaurantId={restaurantId}>
+      <ThemeLoader />
       <RestaurantClosedCheck>
         {children}
       </RestaurantClosedCheck>

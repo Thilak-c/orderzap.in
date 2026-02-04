@@ -2,62 +2,54 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Store, Palette, Save, RefreshCw } from "lucide-react";
+import ImageThemeUploader from "@/components/ImageThemeUploader";
+import { useRestaurant } from "@/lib/restaurant";
 
 export default function AdminSettingsPage() {
-  const settings = useQuery(api.settings.getAll);
-  const setSetting = useMutation(api.settings.set);
-  const initDefaults = useMutation(api.settings.initDefaults);
+  const { restaurant } = useRestaurant();
+  const updateRestaurant = useMutation(api.restaurants.update);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const getFileUrl = useQuery(api.files.getUrl, 
-    settings?.brandLogoStorageId ? { storageId: settings.brandLogoStorageId } : "skip"
+  const getRestaurantLogoUrl = useQuery(
+    api.files.getUrl,
+    restaurant?.logo ? { storageId: restaurant.logo } : "skip"
   );
 
-  const [brandName, setBrandName] = useState("");
-  const [brandLogo, setBrandLogo] = useState("");
+  const [restaurantName, setRestaurantName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const fileInputRef = useRef(null);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const logoInputRef = useRef(null);
 
   useEffect(() => {
-    if (settings) {
-      setBrandName(settings.brandName || "BTS DISC");
-      // Use storage URL if available, otherwise use the path
-      if (getFileUrl) {
-        setBrandLogo(getFileUrl);
-      } else {
-        setBrandLogo(settings.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png");
-      }
+    if (restaurant) {
+      setRestaurantName(restaurant.name || "");
     }
-  }, [settings, getFileUrl]);
+  }, [restaurant]);
 
-  const handleFileUpload = async (e) => {
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: "", text: "" }), 4000);
+  };
+
+  const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
-      setMessage("Please upload an image file");
-      setTimeout(() => setMessage(""), 3000);
+      showMessage("error", "Please upload an image file");
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setMessage("Image must be less than 5MB");
-      setTimeout(() => setMessage(""), 3000);
+      showMessage("error", "Image must be less than 5MB");
       return;
     }
 
     setUploading(true);
-    setMessage("");
 
     try {
-      // Get upload URL
       const uploadUrl = await generateUploadUrl();
-
-      // Upload file
       const result = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
@@ -66,18 +58,16 @@ export default function AdminSettingsPage() {
 
       const { storageId } = await result.json();
 
-      // Save storage ID to settings
-      await setSetting({ key: "brandLogoStorageId", value: storageId });
-      
-      // Clear branding cache so changes appear immediately
-      localStorage.removeItem("branding_cache");
-      
-      setMessage("Logo uploaded successfully!");
-      setTimeout(() => setMessage(""), 3000);
+      if (restaurant?._id) {
+        await updateRestaurant({
+          restaurantId: restaurant._id,
+          logo: storageId,
+        });
+        showMessage("success", "Logo uploaded successfully!");
+      }
     } catch (error) {
       console.error("Upload error:", error);
-      setMessage("Error uploading logo");
-      setTimeout(() => setMessage(""), 3000);
+      showMessage("error", "Failed to upload logo");
     }
 
     setUploading(false);
@@ -85,185 +75,258 @@ export default function AdminSettingsPage() {
 
   const handleRemoveLogo = async () => {
     try {
-      await setSetting({ key: "brandLogoStorageId", value: "" });
-      await setSetting({ key: "brandLogo", value: "/assets/logos/favicon_io/android-chrome-192x192.png" });
-      setBrandLogo("/assets/logos/favicon_io/android-chrome-192x192.png");
-      
-      // Clear branding cache so changes appear immediately
-      localStorage.removeItem("branding_cache");
-      
-      setMessage("Logo removed");
-      setTimeout(() => setMessage(""), 3000);
+      if (restaurant?._id) {
+        await updateRestaurant({
+          restaurantId: restaurant._id,
+          logo: "",
+        });
+        showMessage("success", "Logo removed");
+      }
     } catch (error) {
-      setMessage("Error removing logo");
+      showMessage("error", "Failed to remove logo");
     }
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    setMessage("");
-    try {
-      await setSetting({ key: "brandName", value: brandName });
-      // Only update brandLogo path if it's not using storage
-      if (!settings?.brandLogoStorageId) {
-        await setSetting({ key: "brandLogo", value: brandLogo });
-      }
-      
-      // Clear branding cache so changes appear immediately
-      localStorage.removeItem("branding_cache");
-      
-      setMessage("Settings saved successfully!");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (error) {
-      setMessage("Error saving settings");
+    if (!restaurantName.trim()) {
+      showMessage("error", "Restaurant name is required");
+      return;
     }
+
+    setSaving(true);
+
+    try {
+      if (restaurant?._id) {
+        await updateRestaurant({
+          restaurantId: restaurant._id,
+          name: restaurantName,
+        });
+        showMessage("success", "Settings saved successfully!");
+      }
+    } catch (error) {
+      showMessage("error", "Failed to save settings");
+    }
+
     setSaving(false);
   };
 
-  const handleInitDefaults = async () => {
-    await initDefaults();
-    setMessage("Default settings initialized!");
-    setTimeout(() => setMessage(""), 3000);
-  };
-
   return (
-    <div className="p-6">
-      <div className="mb-6 border-b border-slate-200 pb-4">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Settings</h1>
-        <p className="text-slate-600 text-xs">Brand Configuration</p>
-      </div>
-
-      <div className="max-w-2xl">
-        {/* Preview */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
-          <p className="text-[10px] text-slate-600 font-semibold mb-4">Preview</p>
-          <div className="flex items-center gap-4 bg-slate-50 p-4 border border-slate-200 rounded-lg">
-            <img 
-              src={brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png"} 
-              alt={brandName} 
-              className="h-12 w-12 rounded-full object-contain"
-              onError={(e) => {
-                e.target.src = "/assets/logos/favicon_io/android-chrome-192x192.png";
-              }}
-            />
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">{brandName || "BTS DISC"}</h2>
-              <p className="text-[10px] text-slate-600">Admin Panel</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Settings</h1>
+          <p className="text-slate-600">Manage your restaurant information and branding</p>
         </div>
 
-        {/* Settings Form */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
-          <div>
-            <label className="block text-[10px] text-slate-600 font-semibold mb-2">
-              Brand Name
-            </label>
-            <input
-              type="text"
-              value={brandName}
-              onChange={(e) => setBrandName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
-              placeholder="Enter brand name"
-            />
-            <p className="text-[9px] text-slate-500 mt-1">This will appear throughout the app</p>
+        {/* Message Banner */}
+        {message.text && (
+          <div
+            className={`mb-6 p-4 rounded-xl border animate-fade-in ${
+              message.type === "success"
+                ? "bg-green-50 border-green-200 text-green-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`}
+          >
+            {message.text}
           </div>
+        )}
 
-          <div>
-            <label className="block text-[10px] text-slate-600 font-semibold mb-2">
-              Brand Logo
-            </label>
-            
-            {/* Current Logo Display */}
-            <div className="mb-3 flex items-center gap-3">
-              <img 
-                src={brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png"} 
-                alt="Current logo" 
-                className="h-16 w-16 rounded-full object-contain bg-slate-50 border border-slate-200 p-2"
-                onError={(e) => {
-                  e.target.src = "/assets/logos/favicon_io/android-chrome-192x192.png";
-                }}
-              />
-              {settings?.brandLogoStorageId && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Restaurant Information */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Store className="text-blue-600" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">Restaurant Information</h2>
+                  <p className="text-sm text-slate-600">Basic details about your restaurant</p>
+                </div>
+              </div>
+
+              {/* Restaurant Name */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Restaurant Name
+                </label>
+                <input
+                  type="text"
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                  placeholder="Enter restaurant name"
+                />
+              </div>
+
+              {/* Restaurant Logo */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  Restaurant Logo
+                </label>
+
+                <div className="flex items-start gap-4">
+                  {/* Logo Preview */}
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-2xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden">
+                      {getRestaurantLogoUrl ? (
+                        <img
+                          src={getRestaurantLogoUrl}
+                          alt="Restaurant logo"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Upload size={32} className="text-slate-400" />
+                      )}
+                    </div>
+                    {getRestaurantLogoUrl && (
+                      <button
+                        onClick={handleRemoveLogo}
+                        className="absolute -top-2 -right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors"
+                        title="Remove logo"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Upload Button */}
+                  <div className="flex-1">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploading}
+                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Upload size={18} />
+                      {uploading ? "Uploading..." : "Upload Logo"}
+                    </button>
+                    <p className="text-xs text-slate-500 mt-2">
+                      PNG, JPG or WebP (max 5MB). Square images work best.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="mt-6 pt-6 border-t border-slate-200">
                 <button
-                  onClick={handleRemoveLogo}
-                  className="p-2 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 rounded-lg text-xs"
-                  title="Remove logo"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <X size={14} />
+                  <Save size={18} />
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
-              )}
+              </div>
             </div>
 
-            {/* Upload Button */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Upload size={16} />
-              {uploading ? "Uploading..." : "Upload New Logo"}
-            </button>
-            <p className="text-[9px] text-slate-500 mt-1">
-              Upload an image file (max 5MB). Recommended: square image, 512x512px or larger
-            </p>
+            {/* Theme Customization */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Palette className="text-purple-600" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">Theme Customization</h2>
+                  <p className="text-sm text-slate-600">Generate colors from your logo</p>
+                </div>
+              </div>
 
-            {/* Or use URL */}
-            <div className="mt-4">
-              <p className="text-[9px] text-slate-600 font-semibold mb-2">Or use URL</p>
-              <input
-                type="text"
-                value={settings?.brandLogoStorageId ? "" : brandLogo}
-                onChange={(e) => setBrandLogo(e.target.value)}
-                disabled={!!settings?.brandLogoStorageId}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="/assets/logos/favicon_io/android-chrome-192x192.png"
-              />
-              <p className="text-[9px] text-slate-500 mt-1">
-                {settings?.brandLogoStorageId 
-                  ? "Remove uploaded logo to use URL instead" 
-                  : "Path to logo image (e.g., /assets/logos/favicon_io/android-chrome-192x192.png)"}
+              <p className="text-sm text-slate-600 mb-4">
+                Upload an image to automatically extract colors and create a custom theme for your restaurant.
               </p>
+
+              <ImageThemeUploader restaurantId={restaurant?._id} />
             </div>
           </div>
 
-          {message && (
-            <div className={`p-3 text-xs rounded-lg ${message.includes("Error") || message.includes("must") ? "bg-red-50 border border-red-200 text-red-700" : "bg-emerald-50 border border-emerald-200 text-emerald-700"}`}>
-              {message}
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Preview Card */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <h3 className="text-sm font-semibold text-slate-900 mb-4">Preview</h3>
+              <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {getRestaurantLogoUrl ? (
+                      <img
+                        src={getRestaurantLogoUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Store size={20} className="text-slate-400" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-slate-900 truncate">
+                      {restaurantName || "Your Restaurant"}
+                    </h4>
+                    <p className="text-xs text-slate-500">Admin Panel</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 bg-emerald-500 text-white py-2 text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-            <button
-              onClick={handleInitDefaults}
-              className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors"
-            >
-              Reset to Defaults
-            </button>
+            {/* Info Card */}
+            <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">💡 Quick Tips</h3>
+              <ul className="space-y-2 text-xs text-blue-800">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 mt-0.5">•</span>
+                  <span>Use a high-quality logo for best results</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 mt-0.5">•</span>
+                  <span>Square images (512x512px) work perfectly</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 mt-0.5">•</span>
+                  <span>Theme colors update across your entire app</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 mt-0.5">•</span>
+                  <span>Changes are saved automatically</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <h3 className="text-sm font-semibold text-slate-900 mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => window.location.href = `/r/${restaurant?.id}/admin/theme`}
+                  className="w-full px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium transition-colors text-left flex items-center gap-2"
+                >
+                  <Palette size={16} />
+                  Advanced Theme Editor
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium transition-colors text-left flex items-center gap-2"
+                >
+                  <RefreshCw size={16} />
+                  Refresh Page
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Info */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-[10px] text-blue-900 font-semibold mb-2">Note</p>
-          <p className="text-xs text-blue-800">
-            Changes will be reflected across the entire application including customer-facing pages, 
-            admin panel, and staff interfaces. Uploaded images are stored securely in the database.
-          </p>
         </div>
       </div>
     </div>

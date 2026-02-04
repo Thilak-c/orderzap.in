@@ -18,6 +18,7 @@ import {
   Bookmark, Clock, Heart, Edit3
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
+import BrandLogo from "@/components/BrandLogo";
 
 // Tip options
 const tipOptions = [
@@ -828,9 +829,9 @@ export default function CartPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_yourkeyhere",
         amount: Math.round(finalTotal * 100), // Amount in paise
         currency: "INR",
-        name: "OrderZap",
+        name: brandName || "Restaurant",
         description: `Order - Table ${tableId}`,
-        image: "https://orderzap-in.vercel.app/assets/logos/favicon_io/android-chrome-192x192.png",
+        image: brandLogo,
         handler: async function (response) {
           // Payment successful - create order
           // console.log("Razorpay payment success, creating order...", response);
@@ -974,9 +975,15 @@ export default function CartPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 glass">
         {/* Top row */}
-        <div className="px-2 bg-[#ff2530] py-3 flex items-center justify-between">
+        <div className="px-2 py-3 flex items-center justify-between" style={{ backgroundColor: 'var(--primary, #ff2530)' }}>
           <div className="flex-1 px-2 min-w-0">
-            <img src="/assets/logos/orderzap-logo.png" className="h-8" alt="OrderZap" />
+            <BrandLogo 
+              brandName={brandName} 
+              brandLogo={brandLogo} 
+              className="h-10 w-10" 
+              textClassName="text-white font-bold text-xl tracking-wide"
+              showText={true}
+            />
           </div>
           
           <Link href={`/r/${restaurantId}/m/${tableId}`} className="w-10 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 flex-shrink-0">

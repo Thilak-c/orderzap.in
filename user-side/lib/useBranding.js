@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 const CACHE_KEY = "branding_cache";
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
@@ -13,8 +14,25 @@ const preloadImage = (src) => {
 };
 
 export function useBranding() {
+  const params = useParams();
+  const restaurantId = params?.restaurantId;
+  
+  // Query restaurant directly using the ID from params
+  const restaurant = useQuery(
+    api.restaurants.getByShortId,
+    restaurantId ? { id: restaurantId } : "skip"
+  );
+  
   const settings = useQuery(api.settings.getAll);
-  const logoUrl = useQuery(
+  
+  // Get restaurant logo URL
+  const restaurantLogoUrl = useQuery(
+    api.files.getUrl,
+    restaurant?.logo ? { storageId: restaurant.logo } : "skip"
+  );
+  
+  // Get settings logo URL
+  const settingsLogoUrl = useQuery(
     api.files.getUrl,
     settings?.brandLogoStorageId ? { storageId: settings.brandLogoStorageId } : "skip"
   );
@@ -45,10 +63,10 @@ export function useBranding() {
   
   // Update cache when data changes
   useEffect(() => {
-    if (settings && (logoUrl !== undefined || !settings.brandLogoStorageId)) {
+    if ((restaurant || settings) && (restaurantLogoUrl !== undefined || settingsLogoUrl !== undefined)) {
       const brandData = {
-        brandName: settings.brandName || "BTS DISC",
-        brandLogo: logoUrl || settings.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png",
+        brandName: restaurant?.name || settings?.brandName || "Restaurant",
+        brandLogo: restaurantLogoUrl || settingsLogoUrl || settings?.brandLogo,
       };
       
       try {
@@ -65,11 +83,11 @@ export function useBranding() {
         console.error("Failed to cache branding:", e);
       }
     }
-  }, [settings, logoUrl]);
+  }, [restaurant, settings, restaurantLogoUrl, settingsLogoUrl]);
   
-  const isLoading = settings === undefined && cachedBranding === null;
-  const brandLogo = logoUrl || settings?.brandLogo || cachedBranding?.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png";
-  const brandName = settings?.brandName || cachedBranding?.brandName || "BTS DISC";
+  const isLoading = (restaurant === undefined && settings === undefined) && cachedBranding === null;
+  const brandLogo = restaurantLogoUrl || settingsLogoUrl || settings?.brandLogo || cachedBranding?.brandLogo;
+  const brandName = restaurant?.name || settings?.brandName || cachedBranding?.brandName || "Restaurant";
   
   return {
     brandName,

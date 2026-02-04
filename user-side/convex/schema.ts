@@ -13,6 +13,13 @@ export default defineSchema({
     email: v.optional(v.string()),
     active: v.boolean(),
     createdAt: v.number(),
+    // Theme customization
+    themeColors: v.optional(v.object({
+      dominant: v.string(),
+      muted: v.string(),
+      darkVibrant: v.string(),
+      lightVibrant: v.string(),
+    })),
   }).index("by_short_id", ["id"]),
 
   zones: defineTable({

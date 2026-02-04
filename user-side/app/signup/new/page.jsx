@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
-import { Loader2, Store, Phone, Check } from "lucide-react";
+import { Loader2, Store, Phone, Check, Palette } from "lucide-react";
+import { mapColorsToTheme, applyTheme } from "@/lib/theme-utils";
 
 export default function RestaurantForm() {
   const router = useRouter();
@@ -14,6 +15,8 @@ export default function RestaurantForm() {
   const [logo, setLogo] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
   const [logoStorageId, setLogoStorageId] = useState(null);
+  const [themeColors, setThemeColors] = useState(null);
+  const [extractingColors, setExtractingColors] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -58,6 +61,32 @@ export default function RestaurantForm() {
       });
       const { storageId } = await result.json();
       setLogoStorageId(storageId);
+
+      // Extract colors from logo for theme generation
+      setExtractingColors(true);
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const colorResponse = await fetch('/api/extract-colors', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (colorResponse.ok) {
+          const colorData = await colorResponse.json();
+          setThemeColors(colorData.colors);
+          
+          // Apply theme immediately for preview
+          const theme = mapColorsToTheme(colorData.colors);
+          applyTheme(theme);
+        }
+      } catch (colorError) {
+        console.error("Color extraction failed:", colorError);
+        // Don't show error to user, theme is optional
+      } finally {
+        setExtractingColors(false);
+      }
     } catch (error) {
       console.error("Logo upload failed:", error);
       setError("Failed to upload logo. You can continue without it.");
@@ -90,13 +119,14 @@ export default function RestaurantForm() {
       // Generate unique ID
       let restaurantId = generateRestaurantId();
       
-      // Create restaurant with uploaded logo storage ID
+      // Create restaurant with uploaded logo storage ID and theme colors
       await createRestaurant({
         id: restaurantId,
         name: formData.name,
         phone: formData.phone,
         logo: logoStorageId || "", // Use storage ID if uploaded
         brandName: formData.name, // Use restaurant name as brand name
+        themeColors: themeColors || null, // Save extracted theme colors
       });
 
       setGeneratedId(restaurantId);
@@ -161,7 +191,7 @@ export default function RestaurantForm() {
         {/* Logo Upload */}
         <div className="mt-6 flex flex-col items-center">
           <label className="cursor-pointer group">
-            <div className="w-28 h-28 rounded-full border-2 border-dashed border-red-400 flex items-center justify-center overflow-hidden bg-red-50 group-hover:bg-red-100 transition">
+            <div className="w-28 h-28 rounded-full border-2 border-dashed border-red-400 flex items-center justify-center overflow-hidden bg-red-50 group-hover:bg-red-100 transition relative">
               {logo ? (
                 <img
                   src={logo}
@@ -174,6 +204,16 @@ export default function RestaurantForm() {
                   <span className="text-xs text-red-500 text-center px-2">
                     Upload Logo
                   </span>
+                </div>
+              )}
+              
+              {/* Extracting colors overlay */}
+              {extractingColors && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                  <div className="text-center">
+                    <Loader2 size={24} className="text-red-500 animate-spin mx-auto mb-1" />
+                    <span className="text-xs text-red-600">Extracting colors...</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -189,6 +229,41 @@ export default function RestaurantForm() {
           <p className="text-xs text-gray-400 mt-2">
             PNG / JPG (Max 2MB)
           </p>
+
+          {/* Theme colors preview */}
+          {themeColors && !extractingColors && (
+            <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 w-full max-w-xs animate-fade-in">
+              <div className="flex items-center gap-2 mb-2">
+                <Palette size={14} className="text-purple-600" />
+                <p className="text-xs font-semibold text-purple-900">Theme Generated!</p>
+              </div>
+              <div className="flex gap-2 justify-center">
+                <div 
+                  className="w-8 h-8 rounded-lg shadow-sm border border-white"
+                  style={{ backgroundColor: themeColors.dominant }}
+                  title="Background"
+                ></div>
+                <div 
+                  className="w-8 h-8 rounded-lg shadow-sm border border-white"
+                  style={{ backgroundColor: themeColors.darkVibrant }}
+                  title="Primary"
+                ></div>
+                <div 
+                  className="w-8 h-8 rounded-lg shadow-sm border border-white"
+                  style={{ backgroundColor: themeColors.lightVibrant }}
+                  title="Secondary"
+                ></div>
+                <div 
+                  className="w-8 h-8 rounded-lg shadow-sm border border-white"
+                  style={{ backgroundColor: themeColors.muted }}
+                  title="Accent"
+                ></div>
+              </div>
+              <p className="text-xs text-purple-700 text-center mt-2">
+                Your custom theme will be applied
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Form */}

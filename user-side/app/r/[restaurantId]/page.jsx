@@ -118,11 +118,11 @@ export default function RestaurantHome() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg] gap-4">
-        <img 
+        {/* <img 
           className="w-16 h-16 rounded-full object-contain" 
-          src={logoUrl || "/assets/logos/favicon_io/android-chrome-192x192.png"} 
+          src={logoUrl} 
           alt={restaurant?.name || "Restaurant"} 
-        />
+        /> */}
         <div className="loader-2">{restaurant?.name || "Loading"}</div>
       </div>
     );
@@ -139,8 +139,8 @@ export default function RestaurantHome() {
     );
   }
 
-  // Check if restaurant is closed
-  if (!restaurant.active) {
+  // Check if restaurant exists and is closed
+  if (restaurant && !restaurant.active) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg] px-6">
        <img className="h-[200px]" src="/assets/icons/currently-closed.png" alt="" />
@@ -166,7 +166,7 @@ export default function RestaurantHome() {
           {/* Logo Circle */}
           <div className="flex justify-center mb-4 opacity-0 animate-slide-up" style={{animationDelay: '0.15s', animationFillMode: 'forwards'}}>
             <div className="w-20 h-20 rounded-full bg-[--primary] flex items-center justify-center shadow-lg">
-              <img src={logoUrl || "/assets/logos/favicon_io/android-chrome-192x192.png"} alt={restaurant.name} className="w-16 h-16 rounded-full object-cover" />
+              <img src={logoUrl} alt={restaurant.name} className="w-16 h-16 rounded-full object-cover" />
             </div>
           </div>
 
@@ -189,7 +189,7 @@ export default function RestaurantHome() {
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6">
                   <div className="text-center">
                     <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center mx-auto mb-4">
-                      <ScanLine size={32} className="text-red-500" />
+                      <ScanLine size={32} className="text-white" />
                     </div>
                     <p className="text-white text-sm font-medium mb-2">Camera Access Required</p>
                     <p className="text-white/70 text-xs mb-6">Please allow camera access to scan QR codes</p>

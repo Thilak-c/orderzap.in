@@ -14,6 +14,7 @@ import {
   UtensilsCrossed, Search, X, Phone, Lock, GlassWater
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
+import BrandLogo from "@/components/BrandLogo";
 import { AnimatedBottomSheet, AnimatedToast, AnimatedPopup, AnimatedOverlay } from "@/components/AnimatedPopup";
 
 // Format 24h time to 12h format
@@ -229,8 +230,8 @@ export default function MenuPage() {
       <div className="min-h-screen flex flex-col">
         <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
           <div className="flex items-center gap-3">
-            <img src="/assets/logos/favicon_io/android-chrome-192x192.png" alt="BTS DISC" className="h-9 w-9 rounded-full object-contain" />
-            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">BTS DISC</span>
+            <BrandLogo brandName={brandName} brandLogo={brandLogo} className="h-9 w-9 rounded-full" textClassName="text-slate-700 font-bold text-sm" />
+            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">{brandName}</span>
           </div>
           <span className="text-[--text-dim] text-xs flex items-center gap-2">
             <Armchair size={14} /> 
@@ -338,8 +339,8 @@ export default function MenuPage() {
         {/* Header */}
         <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
           <div className="flex items-center gap-3">
-            <img src="/assets/logos/favicon_io/android-chrome-192x192.png" alt="BTS DISC" className="h-9 w-9 rounded-full object-contain" />
-            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">BTS DISC</span>
+            <BrandLogo brandName={brandName} brandLogo={brandLogo} className="h-9 w-9 rounded-full" textClassName="text-slate-700 font-bold text-sm" />
+            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">{brandName}</span>
           </div>
           <span className="text-[--text-dim] text-xs flex items-center gap-2">
             <Armchair size={14} />
@@ -480,11 +481,20 @@ export default function MenuPage() {
     );
   }
 
-  // Check if restaurant is closed
-  if (!restaurant.active) {
+  // Check if restaurant exists and is closed
+  if (restaurant && !restaurant.active) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg] px-6">
        <img className="h-[200px]" src="/assets/icons/currently-closed.png" alt="" />
+      </div>
+    );
+  }
+
+  // Show loading if restaurant hasn't loaded yet
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[--bg]">
+        <div className="loader" />
       </div>
     );
   }
@@ -568,9 +578,15 @@ export default function MenuPage() {
       {/* Header - Full width */}
       <header className="sticky top-0 z-30 glass">
         {/* Top row */}
-        <div className="px-4 bg-[#ff2530] py-3 flex items-center justify-between gap-3">
+        <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--primary, #ff2530)' }}>
           <div className="flex-1 px-2 min-w-0">
-            <img src="/assets/logos/orderzap-logo.png" className="h-8" alt="" />
+            <BrandLogo 
+              brandName={brandName} 
+              brandLogo={brandLogo} 
+              className="h-10 w-10" 
+              textClassName="text-white font-bold text-xl tracking-wide"
+              showText={true}
+            />
           </div>
 
           <button
@@ -588,22 +604,19 @@ export default function MenuPage() {
             {showSearch ? (
               <X size={24} className="text-white" />
             ) : (
-              <img
-                src="/assets/icons/search-food.png"
-                alt="Search"
-                className="w-12 h-12 object-contain"
-              />
+              <Search size={24} className="text-white" />
             )}
           </button>
         </div>
 
         {/* Search bar - Enhanced design */}
         <div 
-          className={`px-4  bg-[#ff2530] overflow-hidden transition-all duration-300 ${
+          className={`px-4 overflow-hidden transition-all duration-300 ${
             showSearch 
               ? 'max-h-32 opacity-100 pb-3 pt-2' 
               : 'max-h-0 opacity-0'
           }`}
+          style={{ backgroundColor: 'var(--primary, #ff2530)' }}
         >
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -643,7 +656,7 @@ export default function MenuPage() {
       </header>
 
       {/* Left Sidebar - Quick Access */}
-      <aside className={`fixed left-0 top-14 bottom-0 w-16 bg-[--bg-elevated] border-r border-[--border] z-20 overflow-y-auto scrollbar-hide transition-transform duration-300 ${
+      <aside className={`fixed left-0 top-14 bottom-0 w-16 bg-white/0 border-r border-[--border] z-20 overflow-y-auto scrollbar-hide transition-transform duration-300 ${
         showSearch ? '-translate-x-full' : 'translate-x-0'
       }`}>
         <div className="flex flex-col gap-1.5 p-1.5">

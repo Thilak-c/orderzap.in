@@ -29,6 +29,23 @@
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
+  
+  /* ============================================
+     IMAGE-BASED THEMING SYSTEM
+     Dynamic theme colors extracted from images
+     ============================================ */
+  
+  /* Theme color variables - can be dynamically updated */
+  --theme-bg: #ffffff;
+  --theme-primary: #3b82f6;
+  --theme-secondary: #8b5cf6;
+  --theme-accent: #ec4899;
+  --theme-text: #1a1a1a;
+  
+  /* Smooth transitions for theme changes */
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease;
 }
 .orderzap-text {
   -webkit-text-stroke: 2px black;
@@ -42,6 +59,10 @@
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  /* Smooth transitions for theme color changes */
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease;
 }
 
 /* Allow selection for input fields and text content */

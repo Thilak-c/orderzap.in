@@ -157,7 +157,7 @@ This implementation plan transforms the current minimal OrderZap homepage into a
     - **Property 5: Design System Color Usage**
     - **Validates: Requirements 5.4, 9.1**
 
-- [~] 11. Checkpoint - Ensure all sections render correctly
+- [ ] 11. Checkpoint - Ensure all sections render correctly
   - Verify all sections display in correct order
   - Verify scroll animations work for all sections
   - Verify responsive behavior across all sections
@@ -269,7 +269,7 @@ This implementation plan transforms the current minimal OrderZap homepage into a
     - Test footer links exist
     - _Requirements: 8.4_
 
-- [~] 17. Final checkpoint - Complete integration testing
+- [ ] 17. Final checkpoint - Complete integration testing
   - Run all unit tests and property tests
   - Test complete user flow from landing to signup
   - Test all CTAs navigate correctly

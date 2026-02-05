@@ -155,9 +155,10 @@ export const create = mutation({
 
     // Schedule PostgreSQL sync (async, non-blocking)
     // This will happen in the background
-    ctx.scheduler.runAfter(0, internal.syncToPostgres.syncOrderToPostgres, {
-      orderId,
-    });
+    // Commented out until syncToPostgres is implemented
+    // ctx.scheduler.runAfter(0, internal.syncToPostgres.syncOrderToPostgres, {
+    //   orderId,
+    // });
 
     return orderId;
   },
@@ -203,7 +204,7 @@ export const getStats = query({
     const preparingOrders = orders.filter((o) => o.status === "preparing").length;
     const todayRevenue = orders
       .filter((o) => new Date(o._creationTime).toDateString() === today)
-      .reduce((sum, o) => sum + o.total, 0);
+      .reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
 
     return { pendingOrders, preparingOrders, todayRevenue };
   },

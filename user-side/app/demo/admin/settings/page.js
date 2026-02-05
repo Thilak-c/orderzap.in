@@ -22,12 +22,12 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     if (settings) {
-      setBrandName(settings.brandName || "BTS DISC");
+      setBrandName(settings.brandName || "OrderZap");
       // Use storage URL if available, otherwise use the path
       if (getFileUrl) {
         setBrandLogo(getFileUrl);
       } else {
-        setBrandLogo(settings.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png");
+        setBrandLogo(settings.brandLogo || "/assets/logos/orderzap-logo.png");
       }
     }
   }, [settings, getFileUrl]);
@@ -86,8 +86,8 @@ export default function AdminSettingsPage() {
   const handleRemoveLogo = async () => {
     try {
       await setSetting({ key: "brandLogoStorageId", value: "" });
-      await setSetting({ key: "brandLogo", value: "/assets/logos/favicon_io/android-chrome-192x192.png" });
-      setBrandLogo("/assets/logos/favicon_io/android-chrome-192x192.png");
+      await setSetting({ key: "brandLogo", value: "/assets/logos/orderzap-logo.png" });
+      setBrandLogo("/assets/logos/orderzap-logo.png");
       
       // Clear branding cache so changes appear immediately
       localStorage.removeItem("branding_cache");
@@ -139,15 +139,15 @@ export default function AdminSettingsPage() {
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-4">Preview</p>
           <div className="flex items-center gap-4 bg-zinc-950 p-4 border border-zinc-800">
             <img 
-              src={brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png"} 
+              src={brandLogo || "/assets/logos/orderzap-logo.png"} 
               alt={brandName} 
               className="h-12 w-12 rounded-full object-contain"
               onError={(e) => {
-                e.target.src = "/assets/logos/favicon_io/android-chrome-192x192.png";
+                e.target.src = "/assets/logos/orderzap-logo.png";
               }}
             />
             <div>
-              <h2 className="text-lg font-bold text-white">{brandName || "BTS DISC"}</h2>
+              <h2 className="text-lg font-bold text-white">{brandName || "OrderZap"}</h2>
               <p className="text-[10px] text-zinc-600 uppercase tracking-widest">Admin Panel</p>
             </div>
           </div>
@@ -177,11 +177,11 @@ export default function AdminSettingsPage() {
             {/* Current Logo Display */}
             <div className="mb-3 flex items-center gap-3">
               <img 
-                src={brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png"} 
+                src={brandLogo || "/assets/logos/orderzap-logo.png"} 
                 alt="Current logo" 
                 className="h-16 w-16 rounded-full object-contain bg-zinc-950 border border-zinc-800 p-2"
                 onError={(e) => {
-                  e.target.src = "/assets/logos/favicon_io/android-chrome-192x192.png";
+                  e.target.src = "/assets/logos/orderzap-logo.png";
                 }}
               />
               {settings?.brandLogoStorageId && (
@@ -224,12 +224,12 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setBrandLogo(e.target.value)}
                 disabled={!!settings?.brandLogoStorageId}
                 className="w-full bg-zinc-950 border border-zinc-800 px-4 py-2 text-sm text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="/assets/logos/favicon_io/android-chrome-192x192.png"
+                placeholder="/assets/logos/orderzap-logo.png"
               />
               <p className="text-[9px] text-zinc-600 mt-1">
                 {settings?.brandLogoStorageId 
                   ? "Remove uploaded logo to use URL instead" 
-                  : "Path to logo image (e.g., /assets/logos/favicon_io/android-chrome-192x192.png)"}
+                  : "Path to logo image (e.g., /assets/logos/orderzap-logo.png)"}
               </p>
             </div>
           </div>

@@ -36,8 +36,8 @@ export default function AdminLayout({ children }) {
   );
 
   // Get branding from settings with fallbacks
-  const brandName = settings?.brandName || "BTS DISC";
-  const brandLogo = logoUrl || settings?.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png";
+  const brandName = settings?.brandName || "OrderZap";
+  const brandLogo = logoUrl || settings?.brandLogo || "/assets/logos/orderzap-logo.png";
 
   // Get pending/new orders
   const pendingOrders = orders?.filter(o => o.status === 'pending') || [];

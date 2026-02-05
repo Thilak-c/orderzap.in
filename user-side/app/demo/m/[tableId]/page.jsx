@@ -103,11 +103,11 @@ export default function MenuPage() {
   // Set table context for call staff button
   useEffect(() => {
     // Check QR session with key validation
-    if (!sessionKey || !isQRSessionValid(tableId, sessionKey)) {
-      // No valid QR session - redirect to home
-      router.replace('/');
-      return;
-    }
+    // if (!sessionKey || !isQRSessionValid(tableId, sessionKey)) {
+    //   // No valid QR session - redirect to home
+    //   router.replace('/');
+    //   return;
+    // }
 
     setCheckingSession(false);
 
@@ -145,7 +145,7 @@ export default function MenuPage() {
   // Prefetch cart page when cart has items
   useEffect(() => {
     if (cartCount > 0) {
-      router.prefetch(`/cart/${tableId}`);
+      router.prefetch(`demo/cart/${tableId}`);
     }
   }, [cartCount, tableId, router]);
 
@@ -225,8 +225,8 @@ export default function MenuPage() {
       <div className="min-h-screen flex flex-col">
         <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
           <div className="flex items-center gap-3">
-            <img src="/assets/logos/favicon_io/android-chrome-192x192.png" alt="BTS DISC" className="h-9 w-9 rounded-full object-contain" />
-            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">BTS DISC</span>
+            <img src="/assets/logos/orderzap-logo.png" alt="OrderZap" className="h-9 w-9 rounded-full object-contain" />
+            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">OrderZap</span>
           </div>
           <span className="text-[--text-dim] text-xs flex items-center gap-2">
             <Armchair size={14} /> 
@@ -334,8 +334,8 @@ export default function MenuPage() {
         {/* Header */}
         <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
           <div className="flex items-center gap-3">
-            <img src="/assets/logos/favicon_io/android-chrome-192x192.png" alt="BTS DISC" className="h-9 w-9 rounded-full object-contain" />
-            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">BTS DISC</span>
+            <img src="/assets/logos/orderzap-logo.png" alt="OrderZap" className="h-9 w-9 rounded-full object-contain" />
+            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">OrderZap</span>
           </div>
           <span className="text-[--text-dim] text-xs flex items-center gap-2">
             <Armchair size={14} />
@@ -795,7 +795,7 @@ export default function MenuPage() {
         <div className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
           <div className="bg-white px-4 py-4">
             <button
-              onClick={() => router.push(`/cart/${tableId}`)}
+              onClick={() => router.push(`/demo/cart/${tableId}`)}
               className="flex items-center justify-between w-full active:scale-[0.98] transition-transform"
             >
               {/* Left */}
@@ -903,7 +903,7 @@ export default function MenuPage() {
         <div className="text-center">
           <p className="text-[--text-dim] text-xs uppercase tracking-[0.3em] mb-4">Welcome</p>
           <h1 className="text-4xl font-luxury font-semibold text-[--text-primary] mb-2">{welcomeName}</h1>
-          <p className="text-[--text-muted] text-sm">Enjoy your time at BTS DISC</p>
+          <p className="text-[--text-muted] text-sm">Enjoy your time at OrderZap</p>
         </div>
       </AnimatedOverlay>
 

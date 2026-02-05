@@ -11,9 +11,9 @@ import { useTable } from "@/lib/table";
 import { useBranding } from "@/lib/useBranding";
 import { checkLocationPermission, RESTAURANT_LOCATION } from "@/lib/location";
 import { isQRSessionValid } from "@/lib/qrAuth";
-import { 
-  Trash2, Plus, Minus, CreditCard, Banknote, 
-  UserRound, ArrowLeft, 
+import {
+  Trash2, Plus, Minus, CreditCard, Banknote,
+  UserRound, ArrowLeft,
   ChevronRight, Ticket, MessageSquare, X, Check, MapPin, Navigation,
   Bookmark, Clock, Heart, Edit3
 } from "lucide-react";
@@ -42,7 +42,7 @@ const customizationOptions = [
 function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart, openItemEdit, handleSaveForLater }) {
   const imageRef = useRef(null);
   const [parallaxY, setParallaxY] = useState(0);
-  
+
   useEffect(() => {
     const handleScroll = () => {
       if (imageRef.current) {
@@ -52,25 +52,24 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
         setParallaxY(parallax);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
   return (
-    <div 
-      key={item.menuItemId} 
-      className={`bg-[--card] border border-[--border] rounded-2xl p-3 ${
-        removingItemId === item.menuItemId 
-          ? 'animate-slide-out-left' 
+    <div
+      key={item.menuItemId}
+      className={`bg-[--card] border border-[--border] rounded-2xl p-3 ${removingItemId === item.menuItemId
+          ? 'animate-slide-out-left'
           : 'animate-slide-up'
-      }`}
+        }`}
       style={{ animationDelay: removingItemId === item.menuItemId ? '0s' : `${index * 0.05}s`, animationFillMode: 'forwards' }}
     >
       <div className="flex gap-3">
         {/* Image */}
-        <div 
+        <div
           ref={imageRef}
           className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[--bg-elevated]"
         >
@@ -85,7 +84,7 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
             <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
           </div>
         </div>
-        
+
         {/* Details */}
         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
           <div>
@@ -105,12 +104,12 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
               </p>
             )}
           </div>
-          
+
           {/* Quantity & Actions */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1 bg-[--bg-elevated] rounded-lg p-0.5">
-              <button 
-                onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)} 
+              <button
+                onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
                 className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
               >
                 <Minus size={14} className="text-[--text-muted]" />
@@ -118,8 +117,8 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
               <span className="w-6 text-center text-sm font-bold text-[--text-primary] flex items-center justify-center">
                 <OdometerNumber value={item.quantity.toString()} />
               </span>
-              <button 
-                onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)} 
+              <button
+                onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
                 className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
               >
                 <Plus size={14} className="text-[--primary]" />
@@ -127,22 +126,22 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
             </div>
             <div className="flex items-center gap-1">
               {/* Edit/Customize button */}
-              <button 
-                onClick={() => openItemEdit(item)} 
+              <button
+                onClick={() => openItemEdit(item)}
                 className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-[--primary]/10 hover:text-[--primary] active:scale-95 transition-all"
               >
                 <Edit3 size={14} />
               </button>
               {/* Save for later */}
-              <button 
-                onClick={() => handleSaveForLater(item)} 
+              <button
+                onClick={() => handleSaveForLater(item)}
                 className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-amber-500/10 hover:text-amber-400 active:scale-95 transition-all"
               >
                 <Bookmark size={14} />
               </button>
               {/* Delete */}
-              <button 
-                onClick={() => removeFromCart(item.menuItemId)} 
+              <button
+                onClick={() => removeFromCart(item.menuItemId)}
                 className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20 active:scale-95 transition-all"
               >
                 <Trash2 size={14} />
@@ -167,7 +166,7 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
 function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSaved }) {
   const imageRef = useRef(null);
   const [parallaxY, setParallaxY] = useState(0);
-  
+
   useEffect(() => {
     const handleScroll = () => {
       if (imageRef.current) {
@@ -177,23 +176,22 @@ function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSa
         setParallaxY(parallax);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
   return (
-    <div 
-      key={item.menuItemId} 
-      className={`bg-[--card] border border-[--border] rounded-xl p-3 flex items-center gap-3 ${
-        addingToCartId === item.menuItemId 
-          ? 'animate-slide-out-left' 
+    <div
+      key={item.menuItemId}
+      className={`bg-[--card] border border-[--border] rounded-xl p-3 flex items-center gap-3 ${addingToCartId === item.menuItemId
+          ? 'animate-slide-out-left'
           : 'animate-scale-in'
-      }`}
+        }`}
       style={{ animationDelay: addingToCartId === item.menuItemId ? '0s' : `${index * 0.05}s`, animationFillMode: 'forwards' }}
     >
-      <div 
+      <div
         ref={imageRef}
         className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-[--bg-elevated]"
       >
@@ -215,13 +213,13 @@ function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSa
           <OdometerNumber value={item.price.toString()} />
         </div>
       </div>
-      <button 
+      <button
         onClick={() => handleMoveToCart(item)}
         className="px-3 py-1.5 bg-[--primary]/10 text-[--primary] rounded-lg text-xs font-medium hover:bg-[--primary]/20 active:scale-95 transition-all"
       >
         Add to Cart
       </button>
-      <button 
+      <button
         onClick={() => removeFromSaved(item.menuItemId)}
         className="text-[--text-dim] hover:text-red-400"
       >
@@ -234,12 +232,12 @@ function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSa
 // OdometerNumber component
 function OdometerNumber({ value, className = "" }) {
   const digits = value.toString().split('');
-  
+
   return (
     <div className={`inline-flex ${className}`}>
       {digits.map((digit, idx) => (
         <div key={idx} className="relative h-5 w-3 overflow-hidden">
-          <div 
+          <div
             className="flex flex-col transition-transform duration-300 ease-out"
             style={{
               transform: `translateY(-${parseInt(digit) * 20}px)`
@@ -261,7 +259,7 @@ function OdometerNumber({ value, className = "" }) {
 const createConfetti = () => {
   const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
   const confettiCount = 70;
-  
+
   for (let i = 0; i < confettiCount; i++) {
     const confetti = document.createElement('div');
     confetti.className = 'confetti';
@@ -270,14 +268,14 @@ const createConfetti = () => {
     confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
     confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
     document.body.appendChild(confetti);
-    
+
     const angle = (Math.PI * 2 * i) / confettiCount;
     const velocity = 5 + Math.random() * 5;
     let x = window.innerWidth / 2;
     let y = window.innerHeight / 2;
     let velX = Math.cos(angle) * velocity;
     let velY = Math.sin(angle) * velocity - 3;
-    
+
     const animate = () => {
       x += velX;
       y += velY;
@@ -285,7 +283,7 @@ const createConfetti = () => {
       confetti.style.left = x + 'px';
       confetti.style.top = y + 'px';
       confetti.style.opacity = Math.max(0, 1 - (y - window.innerHeight / 2) / 300);
-      
+
       if (y < window.innerHeight + 100) {
         requestAnimationFrame(animate);
       } else {
@@ -309,14 +307,14 @@ export default function CartPage() {
   const { setTable } = useTable();
   const { brandName, brandLogo, isLoading: brandingLoading } = useBranding();
   const cartContext = useCart();
-  
+
   // Initialize cart for this table
   useEffect(() => {
     if (tableId) {
       cartContext.initializeCart(tableId);
     }
   }, [tableId, cartContext]);
-  
+
   // Get table-specific cart data
   const cart = cartContext.getCart(tableId);
   const cartCount = cartContext.getCartCount(tableId);
@@ -330,23 +328,23 @@ export default function CartPage() {
   const savedItems = cartContext.getSavedItems(tableId);
   const moveToCart = (item) => cartContext.moveToCart(tableId, item);
   const removeFromSaved = (menuItemId) => cartContext.removeFromSaved(tableId, menuItemId);
-  
+
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [isOrdering, setIsOrdering] = useState(false);
   const [showOrderSuccess, setShowOrderSuccess] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showBillDetails, setShowBillDetails] = useState(false);
-  
+
   // Location verification states
   const [locationStatus, setLocationStatus] = useState('idle'); // idle, checking, verified, denied, too_far
   const [locationError, setLocationError] = useState('');
   const [userDistance, setUserDistance] = useState(null);
-  
+
   // Phone number for order
   const [orderPhone, setOrderPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
-  
+
   // Coupon code (phone number) state
   const [showCouponInput, setShowCouponInput] = useState(false);
   const [couponPhone, setCouponPhone] = useState("");
@@ -358,26 +356,26 @@ export default function CartPage() {
   const [customTipAmount, setCustomTipAmount] = useState('');
   const [tipError, setTipError] = useState(false); // For tip validation
   const tipSectionRef = useRef(null); // For scrolling to tip section
-  
+
   // Item editing state
   const [editingItemId, setEditingItemId] = useState(null);
   const [editingItemNote, setEditingItemNote] = useState('');
   const [editingCustomizations, setEditingCustomizations] = useState([]);
-  
+
   // Toast notification for save for later
   const [savedToast, setSavedToast] = useState(null); // { name: 'Item Name' }
   const [removingItemId, setRemovingItemId] = useState(null); // For exit animation
   const [isTransitioning, setIsTransitioning] = useState(false); // For smooth layout transition
   const [addingToCartId, setAddingToCartId] = useState(null); // For move to cart animation
   const [isAddingToCart, setIsAddingToCart] = useState(false); // For cart appearing animation
-  
+
   // Order error state
   const [orderError, setOrderError] = useState(null); // { message: 'Error text' }
-  
+
   // Order animation states
   const [orderAnimationStage, setOrderAnimationStage] = useState('idle'); // idle, loading, paper, flying, success
   const [paperPosition, setPaperPosition] = useState({ bottom: 100, opacity: 1 });
-  
+
   // Image loading state
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [loadedImagesCount, setLoadedImagesCount] = useState(0);
@@ -390,12 +388,12 @@ export default function CartPage() {
   const phoneToCheck = couponApplied ? `+91${couponPhone}` : (orderPhone.length === 10 ? `+91${orderPhone}` : storedPhone);
   const customer = useQuery(api.customers.getByPhone, phoneToCheck ? { phone: phoneToCheck } : "skip");
   const depositBalance = customer?.depositBalance || 0;
-  
+
   // Calculate tip amount
-  const tipAmount = selectedTip === 'custom' 
-    ? (parseInt(customTipAmount) || 0) 
+  const tipAmount = selectedTip === 'custom'
+    ? (parseInt(customTipAmount) || 0)
     : (tipOptions.find(t => t.id === selectedTip)?.amount || 0);
-  
+
   // Calculate customization extras
   const customizationTotal = (cart || []).reduce((sum, item) => {
     const itemCustomizations = item.customizations || [];
@@ -419,18 +417,18 @@ export default function CartPage() {
   // Check QR session validity
   useEffect(() => {
     const session = typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('qr_scan_session') || 'null') : null;
-    
+
     if (!session || session.tableId !== String(tableId)) {
       // No valid session - redirect to home
       router.replace('/');
     }
   }, [tableId, router]);
-  
+
   // Preload payment method images
   useEffect(() => {
     const imagesToLoad = paymentOptions.flatMap(option => [option.image, option.imageActive]);
     let loaded = 0;
-    
+
     imagesToLoad.forEach(src => {
       const img = new Image();
       img.onload = () => {
@@ -450,7 +448,7 @@ export default function CartPage() {
       img.src = src;
     });
   }, []);
-  
+
   // Calculate totals including tip and customizations
   const subtotal = cartTotal + customizationTotal;
   const depositToUse = depositBalance > 0 ? Math.min(depositBalance, subtotal) : 0;
@@ -477,8 +475,8 @@ export default function CartPage() {
 
   // Toggle customization
   const toggleCustomization = (custId) => {
-    setEditingCustomizations(prev => 
-      prev.includes(custId) 
+    setEditingCustomizations(prev =>
+      prev.includes(custId)
         ? prev.filter(c => c !== custId)
         : [...prev, custId]
     );
@@ -487,31 +485,31 @@ export default function CartPage() {
   // Handle save for later with animation
   const handleSaveForLater = (item) => {
     const isLastItem = cart.length === 1;
-    
+
     // Start exit animation
     setRemovingItemId(item.menuItemId);
-    
+
     // If last item, start transition state for smooth layout
     if (isLastItem) {
       setIsTransitioning(true);
     }
-    
+
     // After slide-out animation completes, actually save
     setTimeout(() => {
       saveForLater(item.menuItemId);
       setRemovingItemId(null);
-      
+
       // Show toast
       // setSavedToast({ name: item.name });
-      
+
       // Vibrate
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      
+
       // Hide toast after 2.5 seconds
       setTimeout(() => setSavedToast(null), 2500);
-      
+
       // End transition after empty state fully animates in
       if (isLastItem) {
         setTimeout(() => setIsTransitioning(false), 500);
@@ -522,25 +520,25 @@ export default function CartPage() {
   // Handle move to cart with animation
   const handleMoveToCart = (item) => {
     const isCartEmpty = cart.length === 0;
-    
+
     // Start exit animation on saved item
     setAddingToCartId(item.menuItemId);
-    
+
     // If cart is empty, trigger the adding animation
     if (isCartEmpty) {
       setIsAddingToCart(true);
     }
-    
+
     // After animation, actually move
     setTimeout(() => {
       moveToCart(item.menuItemId);
       setAddingToCartId(null);
-      
+
       // Vibrate
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      
+
       // End adding animation
       if (isCartEmpty) {
         setTimeout(() => setIsAddingToCart(false), 500);
@@ -562,18 +560,18 @@ export default function CartPage() {
       setPhoneError("Enter 10 digit phone number");
       return;
     }
-    
+
     // Validate tip selection
     if (selectedTip === null) {
       setTipError(true);
       tipSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    
+
     if (cart.length === 0 || !paymentMethod || !sessionId) {
       return;
     }
-    
+
     // Verify location first (if not already verified)
     if (locationStatus !== 'verified') {
       const isAtRestaurant = await verifyLocation();
@@ -630,24 +628,24 @@ export default function CartPage() {
     // Stage 1: Loading
     setOrderAnimationStage('loading');
     vibrateStage('loading');
-    
+
     // Create order in background during animation
     let orderCreated = false;
     let orderError = null;
     let orderId = null;
-    
-    const orderPromise = createOrder({ 
-      tableId: tableId.toString(), 
-      items: cart.map((item) => ({ 
-        menuItemId: item.menuItemId, 
-        name: item.name, 
-        price: item.price, 
-        quantity: item.quantity, 
-        image: item.image 
-      })), 
-      total: finalTotal, 
-      paymentMethod, 
-      notes: orderNotes, 
+
+    const orderPromise = createOrder({
+      tableId: tableId.toString(),
+      items: cart.map((item) => ({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image
+      })),
+      total: finalTotal,
+      paymentMethod,
+      notes: orderNotes,
       customerSessionId: sessionId,
       customerPhone: phoneForDeposit,
       depositUsed: depositToUse || 0
@@ -659,31 +657,31 @@ export default function CartPage() {
       orderError = err;
       console.error("Order creation failed:", err);
     });
-    
+
     setTimeout(() => {
       // Stage 2: Transform to paper
       setOrderAnimationStage('paper');
-      
+
       setTimeout(() => {
         // Stage 3: Paper flies up with acceleration
         setOrderAnimationStage('flying');
         vibrateStage('flying');
-        
+
         let currentBottom = 100;
         let velocity = 5; // Start slow
         const acceleration = 0.8; // Speed up over time
-        
+
         const flyInterval = setInterval(() => {
           velocity += acceleration; // Increase speed
           currentBottom += velocity;
-          setPaperPosition({ 
-            bottom: currentBottom, 
-            opacity: currentBottom > 500 ? Math.max(0, 1 - (currentBottom - 500) / 200) : 1 
+          setPaperPosition({
+            bottom: currentBottom,
+            opacity: currentBottom > 500 ? Math.max(0, 1 - (currentBottom - 500) / 200) : 1
           });
-          
+
           if (currentBottom > 700) {
             clearInterval(flyInterval);
-            
+
             // Wait for order to complete
             orderPromise.finally(() => {
               if (orderError) {
@@ -691,12 +689,12 @@ export default function CartPage() {
                 setOrderAnimationStage('idle');
                 setPaperPosition({ bottom: 100, opacity: 1 });
                 setIsOrdering(false);
-                setOrderError({ 
-                  message: orderError.message || "Failed to place order. Please try again." 
+                setOrderError({
+                  message: orderError.message || "Failed to place order. Please try again."
                 });
                 return;
               }
-              
+
               // Stage 4: Success - redirect to order status
               vibrateStage('success');
               setTimeout(() => {
@@ -744,11 +742,11 @@ export default function CartPage() {
   const verifyLocation = async () => {
     setLocationStatus('checking');
     setLocationError('');
-    
+
     try {
       const result = await checkLocationPermission();
       setUserDistance(result.distance);
-      
+
       if (result.allowed) {
         setLocationStatus('verified');
         return true;
@@ -778,13 +776,13 @@ export default function CartPage() {
 
   const handleOrder = async () => {
     // console.log("handleOrder called", { cartLength: cart.length, paymentMethod, sessionId });
-    
+
     // Validate phone number
     if (orderPhone.length !== 10) {
       setPhoneError("Enter 10 digit phone number");
       return;
     }
-    
+
     // Validate tip selection
     if (selectedTip === null) {
       setTipError(true);
@@ -792,12 +790,12 @@ export default function CartPage() {
       tipSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    
+
     if (cart.length === 0 || !paymentMethod || !sessionId) {
       // console.log("Early return - missing data");
       return;
     }
-    
+
     // Verify location first (if not already verified)
     if (locationStatus !== 'verified') {
       const isAtRestaurant = await verifyLocation();
@@ -805,44 +803,44 @@ export default function CartPage() {
         return; // Stop if location verification failed
       }
     }
-    
+
     const customerPhone = `+91${orderPhone}`;
     // Store phone in localStorage
     localStorage.setItem('customerPhone', customerPhone);
-    
+
     // Use the phone that has the deposit (could be from coupon or order phone)
     const phoneForDeposit = depositToUse > 0 ? phoneToCheck : customerPhone;
-    
+
     // console.log("Order details - depositToUse:", depositToUse, "phoneForDeposit:", phoneForDeposit, "phoneToCheck:", phoneToCheck);
-    
+
     // If pay now, open Razorpay
     if (paymentMethod === 'pay-now') {
       // console.log("Payment method is pay-now, opening Razorpay");
       setIsOrdering(true);
-      
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_yourkeyhere",
         amount: Math.round(finalTotal * 100), // Amount in paise
         currency: "INR",
         name: "OrderZap",
         description: `Order - Table ${tableId}`,
-        image: "https://orderzap-in.vercel.app/assets/logos/favicon_io/android-chrome-192x192.png",
+        image: "https://orderzap-in.vercel.app/assets/logos/orderzap-logo.png",
         handler: async function (response) {
           // Payment successful - create order
           // console.log("Razorpay payment success, creating order...", response);
           try {
-            const orderId = await createOrder({ 
-              tableId: tableId.toString(), 
-              items: cart.map((item) => ({ 
-                menuItemId: item.menuItemId, 
-                name: item.name, 
-                price: item.price, 
-                quantity: item.quantity, 
-                image: item.image 
-              })), 
-              total: finalTotal, 
-              paymentMethod: 'pay-now', 
-              notes: notes || `Payment: ${response.razorpay_payment_id}`, 
+            const orderId = await createOrder({
+              tableId: tableId.toString(),
+              items: cart.map((item) => ({
+                menuItemId: item.menuItemId,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                image: item.image
+              })),
+              total: finalTotal,
+              paymentMethod: 'pay-now',
+              notes: notes || `Payment: ${response.razorpay_payment_id}`,
               customerSessionId: sessionId,
               customerPhone: phoneForDeposit,
               depositUsed: depositToUse || 0
@@ -880,23 +878,23 @@ export default function CartPage() {
       razorpay.open();
       return;
     }
-    
+
     // For other payment methods, create order directly
     setIsOrdering(true);
     try {
       // console.log("Creating order for", paymentMethod);
-      const orderId = await createOrder({ 
-        tableId: tableId.toString(), 
-        items: cart.map((item) => ({ 
-          menuItemId: item.menuItemId, 
-          name: item.name, 
-          price: item.price, 
-          quantity: item.quantity, 
-          image: item.image 
-        })), 
-        total: finalTotal, 
-        paymentMethod, 
-        notes: notes || "", 
+      const orderId = await createOrder({
+        tableId: tableId.toString(),
+        items: cart.map((item) => ({
+          menuItemId: item.menuItemId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image
+        })),
+        total: finalTotal,
+        paymentMethod,
+        notes: notes || "",
         customerSessionId: sessionId,
         customerPhone: phoneForDeposit,
         depositUsed: depositToUse || 0
@@ -926,7 +924,7 @@ export default function CartPage() {
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center animate-scale-in">
             <Check size={40} className="text-emerald-400" />
           </div>
-          
+
           <h1 className="font-luxury text-2xl font-semibold text-[--text-primary] mb-2 animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'forwards', opacity: 0 }}>
             Order Confirmed
           </h1>
@@ -936,9 +934,9 @@ export default function CartPage() {
           <p className="text-[--text-dim] text-xs mb-8 animate-slide-up" style={{ animationDelay: '0.3s', animationFillMode: 'forwards', opacity: 0 }}>
             Table {tableId}
           </p>
-          
-          <Link 
-            href="/demo/my-orders" 
+
+          <Link
+            href="/demo/my-orders"
             className="btn-primary px-8 py-4 rounded-xl text-sm font-semibold inline-flex items-center gap-2 animate-slide-up"
             style={{ animationDelay: '0.4s', animationFillMode: 'forwards', opacity: 0 }}
           >
@@ -964,7 +962,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-[--bg] pb-36">
       {/* Razorpay Script */}
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-      
+
       {/* Header */}
       <header className="sticky top-0 z-30 glass">
         {/* Top row */}
@@ -972,7 +970,7 @@ export default function CartPage() {
           <div className="flex-1 px-2 min-w-0">
             <img src="/assets/logos/orderzap-logo.png" className="h-8" alt="OrderZap" />
           </div>
-          
+
           <Link href={`/m/${tableId}`} className="w-10 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 flex-shrink-0">
             <ArrowLeft size={18} className="text-white" />
           </Link>
@@ -1009,7 +1007,7 @@ export default function CartPage() {
         {(cart?.length || 0) > 0 && !hasStoredCredit && !(couponApplied && depositBalance > 0) && (
           <div className="mb-4 animate-slide-down" style={{ animationFillMode: 'forwards' }}>
             {!showCouponInput ? (
-              <button 
+              <button
                 onClick={() => setShowCouponInput(true)}
                 className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[--border] rounded-xl text-[--text-muted] text-sm hover:border-[--primary] hover:text-[--primary] transition-colors"
               >
@@ -1032,14 +1030,14 @@ export default function CartPage() {
                       autoFocus
                     />
                   </div>
-                  <button 
+                  <button
                     onClick={handleApplyCoupon}
                     disabled={couponPhone.length !== 10}
                     className="px-4 py-2.5 bg-[--primary] text-[--bg] rounded-lg text-sm font-semibold disabled:opacity-50"
                   >
                     Apply
                   </button>
-                  <button 
+                  <button
                     onClick={() => { setShowCouponInput(false); setCouponPhone(''); setCouponError(''); }}
                     className="px-3 py-2.5 text-[--text-muted]"
                   >
@@ -1058,60 +1056,65 @@ export default function CartPage() {
         {/* Cart Items or Empty State */}
         <div>
           {(cart?.length || 0) === 0 && !isAddingToCart ? (
-            <div 
-              className={`bg-[--card] border border-[--border] rounded-2xl text-center mb-4 overflow-hidden ${isTransitioning ? 'animate-expand-height p-0' : 'animate-scale-in p-8'}`} 
-              style={{ animationFillMode: 'forwards' }}
-            >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[--bg-elevated] flex items-center justify-center animate-bounce-in" style={{ animationDelay: isTransitioning ? '0.25s' : '0.1s', animationFillMode: 'forwards', opacity: 0 }}>
-                <Plus size={24} className="text-[--text-dim]" />
-              </div>
-              <p className="text-[--text-muted] text-sm mb-4">Your cart is empty</p>
-              <Link 
-                href={`/m/${tableId}`} 
-                className="inline-flex items-center gap-2 text-[--primary] text-sm font-medium hover:underline"
+            <Link
+              href={`/demo/m/${tableId}`}>
+
+
+              <div
+                className={`bg-[--card] border border-[--border] rounded-2xl text-center mb-4 overflow-hidden ${isTransitioning ? 'animate-expand-height p-0' : 'animate-scale-in p-8'}`}
+                style={{ animationFillMode: 'forwards' }}
               >
-                Add items from menu
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[--bg-elevated] flex items-center justify-center animate-bounce-in" style={{ animationDelay: isTransitioning ? '0.25s' : '0.1s', animationFillMode: 'forwards', opacity: 0 }}>
+                  <Plus size={24} className="text-[--text-dim]" />
+                </div>
+                <p className="text-[--text-muted] text-sm mb-4">Your cart is empty</p>
+                <Link
+                  href={`/m/${tableId}`}
+                  className="inline-flex items-center gap-2 text-[--primary] text-sm font-medium hover:underline"
+                >
+                  Add items from menu
+                </Link>
+              </div>
+            </Link>
+          ) : (cart?.length || 0) > 0 ? (
+            <div className={`space-y-3 mb-4 ${isAddingToCart ? 'animate-slide-up' : ''}`} style={{ animationFillMode: 'forwards' }}>
+              {/* Estimated Time */}
+              <div className={`flex items-center gap-2 px-1 mb-2 ${isAddingToCart ? 'animate-fade-in' : ''}`} style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
+                <Clock size={14} className="text-[--primary]" />
+                <span className="text-xs text-[--text-muted] flex items-baseline gap-1">
+                  <span>Estimated time:</span>
+                  <span className="text-[--text-primary] font-medium flex items-baseline gap-0.5">
+                    <OdometerNumber value={estimatedTime.toString()} />
+                    <span>-</span>
+                    <OdometerNumber value={(estimatedTime + 10).toString()} />
+                    <span className="ml-0.5">mins</span>
+                  </span>
+                </span>
+              </div>
+
+              {(cart || []).map((item, index) => (
+                <CartItem
+                  key={item.menuItemId}
+                  item={item}
+                  index={index}
+                  removingItemId={removingItemId}
+                  updateQuantity={updateQuantity}
+                  removeFromCart={removeFromCart}
+                  openItemEdit={openItemEdit}
+                  handleSaveForLater={handleSaveForLater}
+                />
+              ))}
+
+              {/* Add More */}
+              <Link
+                href={`/m/${tableId}`}
+                className="flex items-center justify-center gap-2 py-3 text-[--primary] text-sm font-medium hover:underline"
+              >
+                <Plus size={16} />
+                Add more items
               </Link>
             </div>
-          ) : (cart?.length || 0) > 0 ? (
-          <div className={`space-y-3 mb-4 ${isAddingToCart ? 'animate-slide-up' : ''}`} style={{ animationFillMode: 'forwards' }}>
-            {/* Estimated Time */}
-            <div className={`flex items-center gap-2 px-1 mb-2 ${isAddingToCart ? 'animate-fade-in' : ''}`} style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
-              <Clock size={14} className="text-[--primary]" />
-              <span className="text-xs text-[--text-muted] flex items-baseline gap-1">
-                <span>Estimated time:</span>
-                <span className="text-[--text-primary] font-medium flex items-baseline gap-0.5">
-                  <OdometerNumber value={estimatedTime.toString()} />
-                  <span>-</span>
-                  <OdometerNumber value={(estimatedTime + 10).toString()} />
-                  <span className="ml-0.5">mins</span>
-                </span>
-              </span>
-            </div>
-
-            {(cart || []).map((item, index) => (
-              <CartItem
-                key={item.menuItemId}
-                item={item}
-                index={index}
-                removingItemId={removingItemId}
-                updateQuantity={updateQuantity}
-                removeFromCart={removeFromCart}
-                openItemEdit={openItemEdit}
-                handleSaveForLater={handleSaveForLater}
-              />
-            ))}
-          
-            {/* Add More */}
-            <Link 
-              href={`/m/${tableId}`}
-              className="flex items-center justify-center gap-2 py-3 text-[--primary] text-sm font-medium hover:underline"
-            >
-              <Plus size={16} />
-              Add more items
-            </Link>
-          </div>
-        ) : null}
+          ) : null}
         </div>
 
         {/* Saved for Later */}
@@ -1156,7 +1159,7 @@ export default function CartPage() {
 
         {/* Special Instructions */}
         <div className="mt-4">
-          <button 
+          <button
             onClick={() => setShowNotes(!showNotes)}
             className="w-full flex items-center justify-between p-4 bg-[--card] border border-[--border] rounded-xl transition-all duration-300 hover:border-[--primary]/30"
           >
@@ -1170,11 +1173,11 @@ export default function CartPage() {
           </button>
           <div className={`grid transition-all duration-300 ease-out ${showNotes ? 'grid-rows-[1fr] mt-2 opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
             <div className="overflow-hidden">
-              <textarea 
-                value={notes} 
-                onChange={(e) => setNotes(e.target.value)} 
-                placeholder="Allergies, spice level, special requests..." 
-                className="w-full rounded-xl p-4 text-sm resize-none bg-[--card] border border-[--border] focus:border-[--primary] outline-none transition-all duration-300" 
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Allergies, spice level, special requests..."
+                className="w-full rounded-xl p-4 text-sm resize-none bg-[--card] border border-[--border] focus:border-[--primary] outline-none transition-all duration-300"
                 rows={3}
               />
             </div>
@@ -1184,19 +1187,19 @@ export default function CartPage() {
         {/* Phone Number */}
         <div className="mt-6">
           <p className="text-[10px] tracking-[0.2em] text-[--text-dim] mb-3 uppercase font-medium">Your Phone Number</p>
-              <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden">
-                <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
-                <input
-                  type="tel"
-                  value={orderPhone}
-                  onChange={(e) => { setOrderPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
-                  placeholder="10 digit number"
-                  maxLength={10}
-                  className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
-                />
-              </div>
-              {phoneError && <p className="text-red-400 text-xs mt-2">{phoneError}</p>}
-            </div>
+          <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden">
+            <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
+            <input
+              type="tel"
+              value={orderPhone}
+              onChange={(e) => { setOrderPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
+              placeholder="10 digit number"
+              maxLength={10}
+              className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
+            />
+          </div>
+          {phoneError && <p className="text-red-400 text-xs mt-2">{phoneError}</p>}
+        </div>
 
         {/* Payment Method */}
         <div className="mt-6">
@@ -1205,28 +1208,27 @@ export default function CartPage() {
             {paymentOptions.map((option) => {
               const isSelected = paymentMethod === option.id;
               return (
-                <button 
-                  key={option.id} 
+                <button
+                  key={option.id}
                   onClick={() => {
                     if (navigator.vibrate) {
                       navigator.vibrate(50);
                     }
                     setPaymentMethod(option.id);
-                  }} 
-                  className={`flex flex-col items-center p-4 rounded-xl border transition-all active:scale-95 ${
-                    isSelected 
-                      ? "border-[--primary] bg-[--primary]/10" 
+                  }}
+                  className={`flex flex-col items-center p-4 rounded-xl border transition-all active:scale-95 ${isSelected
+                      ? "border-[--primary] bg-[--primary]/10"
                       : "border-[--border] bg-[--card]"
-                  }`}
+                    }`}
                 >
                   <div className="w-16 h-16 mb-2">
-                    <img 
-                      src={isSelected ? option.imageActive : option.image} 
+                    <img
+                      src={isSelected ? option.imageActive : option.image}
                       alt={option.label}
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  
+
                 </button>
               );
             })}
@@ -1249,15 +1251,14 @@ export default function CartPage() {
                     setTipError(false);
                     if (tip.id !== 'custom') setCustomTipAmount('');
                   }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 active:scale-95 ${
-                    tip.id === 'custom'
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 active:scale-95 ${tip.id === 'custom'
                       ? selectedTip === 'custom'
                         ? 'text-[--primary]'
                         : 'text-[--text-muted] hover:text-[--primary]'
                       : selectedTip === tip.id
                         ? 'bg-[--primary] text-[--bg] scale-105 shadow-lg shadow-[--primary]/25'
                         : 'bg-[--card] border border-[--border] text-[--text-muted] hover:border-[--primary]/50'
-                  }`}
+                    }`}
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   {tip.label}
@@ -1289,15 +1290,15 @@ export default function CartPage() {
       {editingItemId && (
         <div className="fixed inset-0 z-50 flex items-end justify-center animate-fade-in" onClick={() => setEditingItemId(null)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div 
+          <div
             className="relative w-full max-w-lg bg-[--card] rounded-t-3xl p-6 border-t border-[--border] animate-slide-up"
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-[--border] rounded-full mx-auto mb-5" />
-            
+
             <h3 className="text-[--text-primary] font-semibold text-lg mb-4">Customize Item</h3>
-            
+
             {/* Item Note */}
             <div className="mb-4">
               <p className="text-xs text-[--text-dim] mb-2">Special instructions for this item</p>
@@ -1318,11 +1319,10 @@ export default function CartPage() {
                   <button
                     key={cust.id}
                     onClick={() => toggleCustomization(cust.id)}
-                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 active:scale-95 ${
-                      editingCustomizations.includes(cust.id)
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 active:scale-95 ${editingCustomizations.includes(cust.id)
                         ? 'bg-[--primary] text-[--bg] scale-105'
                         : 'bg-[--bg] border border-[--border] text-[--text-muted] hover:border-[--primary]/50'
-                    }`}
+                      }`}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     {cust.label}
@@ -1346,7 +1346,7 @@ export default function CartPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-[--bg] border-t border-[--border]">
         <div className="max-w-lg mx-auto px-4 py-3">
           {/* Compact Bill Summary - Clickable */}
-          <button 
+          <button
             onClick={() => setShowBillDetails(!showBillDetails)}
             className="w-full flex items-center justify-between mb-3 text-sm"
           >
@@ -1374,10 +1374,10 @@ export default function CartPage() {
               <span>₹</span>
               <OdometerNumber value={finalTotal.toFixed(0)} />
             </span>
-            </button>
+          </button>
 
           {/* Expanded Bill Details */}
-          <div 
+          <div
             className={`grid transition-all duration-300 ease-out ${showBillDetails ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
           >
             <div className="overflow-hidden">
@@ -1442,16 +1442,15 @@ export default function CartPage() {
           </div>
 
           {/* Place Order Button */}
-          <button 
-            onClick={startOrderAnimation} 
-            disabled={orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || (cart?.length || 0) === 0} 
-            className={`w-full py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-              orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || (cart?.length || 0) === 0
-                ? "bg-[--border] text-[--text-dim] cursor-not-allowed" 
+          <button
+            onClick={startOrderAnimation}
+            disabled={orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || (cart?.length || 0) === 0}
+            className={`w-full py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${orderAnimationStage !== 'idle' || !paymentMethod || locationStatus === 'checking' || (cart?.length || 0) === 0
+                ? "bg-[--border] text-[--text-dim] cursor-not-allowed"
                 : locationStatus === 'denied' || locationStatus === 'too_far'
                   ? "bg-red-500/20 text-red-400 border border-red-500/30"
                   : "btn-primary"
-            }`}
+              }`}
           >
             {orderAnimationStage === 'loading' ? (
               <>
@@ -1516,7 +1515,7 @@ export default function CartPage() {
       {orderError && (
         <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" onClick={() => setOrderError(null)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div 
+          <div
             className="relative w-full max-w-sm mx-4 bg-[--card] rounded-2xl p-6 border border-red-500/30 animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1566,20 +1565,20 @@ export default function CartPage() {
 
       {/* Flying paper ball - transformed from button */}
       {(orderAnimationStage === 'loading' || orderAnimationStage === 'paper' || orderAnimationStage === 'flying') && (
-        <div 
+        <div
           className="fixed left-1/2 -translate-x-1/2 pointer-events-none transition-all"
-          style={{ 
+          style={{
             bottom: `${paperPosition.bottom}px`,
             opacity: paperPosition.opacity,
             zIndex: 9999,
           }}
         >
-          <video 
+          <video
             key="flying-paper"
             src="/assets/videos/paper-flying.mp4"
-            autoPlay 
-            muted 
-            playsInline 
+            autoPlay
+            muted
+            playsInline
             className="w-20 h-20 object-contain"
           />
         </div>

@@ -19,7 +19,7 @@ export default function AuthPage() {
     
     // Redirect to menu with key after brief delay
     setTimeout(() => {
-      router.replace(`/m/${tableId}?key=${sessionKey}`);
+      router.replace(`/demo/m/${tableId}`);
     }, 500);
   }, [tableId, router]);
 

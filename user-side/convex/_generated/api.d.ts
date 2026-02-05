@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as alerts from "../alerts.js";
 import type * as customers from "../customers.js";
 import type * as deductions from "../deductions.js";
@@ -15,6 +16,7 @@ import type * as files from "../files.js";
 import type * as inventory from "../inventory.js";
 import type * as menuItems from "../menuItems.js";
 import type * as orders from "../orders.js";
+import type * as payments from "../payments.js";
 import type * as reports from "../reports.js";
 import type * as reservations from "../reservations.js";
 import type * as restaurants from "../restaurants.js";
@@ -23,6 +25,7 @@ import type * as settings from "../settings.js";
 import type * as staff from "../staff.js";
 import type * as staffCalls from "../staffCalls.js";
 import type * as staffNotifications from "../staffNotifications.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as tables from "../tables.js";
 import type * as wastage from "../wastage.js";
 import type * as zoneRequests from "../zoneRequests.js";
@@ -35,6 +38,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   alerts: typeof alerts;
   customers: typeof customers;
   deductions: typeof deductions;
@@ -42,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   inventory: typeof inventory;
   menuItems: typeof menuItems;
   orders: typeof orders;
+  payments: typeof payments;
   reports: typeof reports;
   reservations: typeof reservations;
   restaurants: typeof restaurants;
@@ -50,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   staff: typeof staff;
   staffCalls: typeof staffCalls;
   staffNotifications: typeof staffNotifications;
+  subscriptions: typeof subscriptions;
   tables: typeof tables;
   wastage: typeof wastage;
   zoneRequests: typeof zoneRequests;

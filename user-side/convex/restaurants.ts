@@ -64,10 +64,13 @@ export const create = mutation({
       throw new Error("Restaurant ID already exists");
     }
 
+    const { themeColors, ...restArgs } = args;
+    
     return await ctx.db.insert("restaurants", {
-      ...args,
+      ...restArgs,
       active: true,
       createdAt: Date.now(),
+      themeColors: themeColors === null ? undefined : themeColors,
     });
   },
 });

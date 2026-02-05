@@ -20,7 +20,15 @@ export default defineSchema({
       darkVibrant: v.string(),
       lightVibrant: v.string(),
     })),
-  }).index("by_short_id", ["id"]),
+    // Subscription fields
+    status: v.optional(v.string()), // 'trial' | 'active' | 'expired' | 'blocked'
+    trialStartDate: v.optional(v.number()),
+    trialEndDate: v.optional(v.number()),
+    subscriptionEndDate: v.optional(v.number()),
+    blockedReason: v.optional(v.string()),
+  }).index("by_short_id", ["id"])
+    .index("by_email", ["email"])
+    .index("by_status", ["status"]),
 
   zones: defineTable({
     restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
@@ -222,4 +230,105 @@ export default defineSchema({
     key: v.string(), // 'brandName', 'brandLogo'
     value: v.string(),
   }).index("by_key", ["key"]),
+
+  // Subscription Management
+  subscriptions: defineTable({
+    restaurantId: v.id("restaurants"),
+    planType: v.string(), // 'monthly' | 'custom' | 'trial_extension'
+    days: v.number(),
+    pricePerDay: v.number(),
+    totalPrice: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
+    paymentStatus: v.string(), // 'pending' | 'completed' | 'failed' | 'refunded'
+    paymentId: v.optional(v.id("payments")),
+    status: v.string(), // 'active' | 'expired' | 'cancelled'
+    autoRenew: v.optional(v.boolean()),
+    createdAt: v.number(),
+    createdBy: v.string(), // 'system' | 'admin' | 'user'
+    notes: v.optional(v.string()),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_status", ["status"])
+    .index("by_end_date", ["endDate"]),
+
+  // Payment Records
+  payments: defineTable({
+    restaurantId: v.id("restaurants"),
+    subscriptionId: v.optional(v.id("subscriptions")),
+    amount: v.number(),
+    currency: v.string(),
+    paymentMethod: v.optional(v.string()), // 'razorpay' | 'stripe' | 'manual'
+    gatewayName: v.optional(v.string()),
+    gatewayOrderId: v.optional(v.string()),
+    gatewayPaymentId: v.optional(v.string()),
+    gatewaySignature: v.optional(v.string()),
+    gatewayResponse: v.optional(v.any()),
+    status: v.string(), // 'pending' | 'processing' | 'completed' | 'failed' | 'refunded'
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+    failedReason: v.optional(v.string()),
+    refundAmount: v.optional(v.number()),
+    refundReason: v.optional(v.string()),
+    refundedAt: v.optional(v.number()),
+    processedBy: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_subscription", ["subscriptionId"])
+    .index("by_status", ["status"])
+    .index("by_gateway_order_id", ["gatewayOrderId"]),
+
+  // Admin Users
+  adminUsers: defineTable({
+    email: v.string(),
+    passwordHash: v.string(),
+    name: v.string(),
+    role: v.string(), // 'super_admin' | 'admin' | 'support'
+    permissions: v.object({
+      view: v.boolean(),
+      edit: v.boolean(),
+      delete: v.boolean(),
+      refund: v.boolean(),
+      manageAdmins: v.optional(v.boolean()),
+    }),
+    active: v.boolean(),
+    lastLoginAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_email", ["email"]),
+
+  // Activity Logs
+  activityLogs: defineTable({
+    actorType: v.string(), // 'admin' | 'system' | 'restaurant'
+    actorId: v.optional(v.string()),
+    actorEmail: v.optional(v.string()),
+    action: v.string(),
+    entityType: v.string(), // 'restaurant' | 'subscription' | 'payment'
+    entityId: v.string(),
+    description: v.string(),
+    metadata: v.optional(v.any()),
+    ipAddress: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_entity", ["entityType", "entityId"])
+    .index("by_actor", ["actorType", "actorId"])
+    .index("by_created_at", ["createdAt"]),
+
+  // Notifications
+  notifications: defineTable({
+    restaurantId: v.id("restaurants"),
+    type: v.string(), // 'trial_expiring' | 'trial_expired' | 'payment_due' | 'subscription_expired' | 'payment_success'
+    title: v.string(),
+    message: v.string(),
+    status: v.string(), // 'pending' | 'sent' | 'failed'
+    read: v.boolean(),
+    channels: v.array(v.string()), // ['in_app', 'email', 'sms', 'whatsapp']
+    sentAt: v.optional(v.number()),
+    readAt: v.optional(v.number()),
+    createdAt: v.number(),
+    metadata: v.optional(v.any()),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_status", ["status"])
+    .index("by_read", ["read"]),
 });

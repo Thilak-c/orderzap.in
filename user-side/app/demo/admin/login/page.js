@@ -20,8 +20,8 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const brandName = settings?.brandName || "BTS DISC";
-  const brandLogo = logoUrl || settings?.brandLogo || "/assets/logos/favicon_io/android-chrome-192x192.png";
+  const brandName = settings?.brandName || "OrderZap";
+  const brandLogo = logoUrl || settings?.brandLogo || "/assets/logos/orderzap-logo.png";
   const brandingLoading = settings === undefined;
 
   const handleLogin = (e) => {

@@ -53,6 +53,89 @@
 
 
 /* ============================================
+   ACCESSIBILITY - FOCUS INDICATORS
+   Visible focus indicators for keyboard navigation
+   ============================================ */
+
+/* Focus styles for all interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enhanced focus for buttons */
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
+}
+
+/* Focus for cards and interactive containers */
+.card:focus-visible,
+.feature-card:focus-visible,
+.benefit-card:focus-visible,
+.step-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Focus for links */
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
+/* Remove default focus outline (we're replacing it with custom styles) */
+*:focus {
+  outline: none;
+}
+
+/* Only show custom focus styles for keyboard navigation */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure focus is visible even with animations */
+@media (prefers-reduced-motion: no-preference) {
+  *:focus-visible {
+    transition: outline 0.15s ease, box-shadow 0.15s ease;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY - SKIP LINKS
+   Allow keyboard users to skip to main content
+   ============================================ */
+
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary);
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 100;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-to-content:focus {
+  top: 0;
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+/* ============================================
    BASE STYLES
    ============================================ */
 
@@ -149,11 +232,27 @@ body {
   cursor: pointer;
   border: none;
   outline: none;
+  position: relative;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
 }
 
 .btn-primary {
   background: var(--primary);
   color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-primary:focus-visible {
+  outline: 3px solid var(--text-primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.3);
 }
 
 .btn-primary:active {
@@ -166,6 +265,17 @@ body {
   border: 1px solid var(--border);
 }
 
+.btn-secondary:hover {
+  background: var(--bg);
+  border-color: var(--primary);
+}
+
+.btn-secondary:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.2);
+}
+
 .btn-secondary:active {
   transform: scale(0.98);
 }
@@ -176,6 +286,13 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
 /* Inputs */
@@ -187,11 +304,17 @@ input, textarea, select {
   font-size: 14px;
   color: var(--text-primary);
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 input:focus, textarea:focus, select:focus {
   border-color: var(--primary);
+}
+
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  outline: none;
 }
 
 input::placeholder, textarea::placeholder {
@@ -260,6 +383,7 @@ input::placeholder, textarea::placeholder {
 
 /* ============================================
    ANIMATIONS - All Your Original Animations
+   Optimized for 60fps performance using transform and opacity only
    ============================================ */
 
 @keyframes slide-up {
@@ -413,27 +537,122 @@ input::placeholder, textarea::placeholder {
   }
 }
 
-/* Animation classes */
-.animate-slide-up { animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-down { animation: slide-down 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
-.animate-scale-in { animation: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-bounce-in { animation: bounce-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-in-right { animation: slide-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-out-left { animation: slide-out-left 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.animate-expand-height { animation: expand-height 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.animate-slide-in-left { animation: slide-in-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-out-top { animation: slide-out-top 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.animate-slide-in-bottom { animation: slide-in-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-out-bottom { animation: slide-out-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.animate-slide-in-top { animation: slide-in-top 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-float { animation: float 4s ease-in-out infinite; }
-.animate-pulse-soft { animation: pulse-soft 2.5s ease-in-out infinite; }
-.animate-spring-in { animation: spring-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-.animate-number-spring { animation: number-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-.animate-scale-bounce { animation: scale-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-.animate-fade-slide-up { animation: fade-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-float-particle { animation: float-particle 3s ease-in-out infinite; }
+/* Animation classes - Optimized for performance */
+.animate-slide-up { 
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-slide-down { 
+  animation: slide-down 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-fade-in { 
+  animation: fade-in 0.4s ease-out forwards;
+  will-change: opacity;
+}
+.animate-scale-in { 
+  animation: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-bounce-in { 
+  animation: bounce-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-slide-in-right { 
+  animation: slide-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-slide-out-left { 
+  animation: slide-out-left 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-expand-height { 
+  animation: expand-height 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.animate-slide-in-left { 
+  animation: slide-in-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-slide-out-top { 
+  animation: slide-out-top 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform;
+}
+.animate-slide-in-bottom { 
+  animation: slide-in-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+.animate-slide-out-bottom { 
+  animation: slide-out-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform;
+}
+.animate-slide-in-top { 
+  animation: slide-in-top 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+.animate-float { 
+  animation: float 4s ease-in-out infinite;
+  will-change: transform;
+}
+.animate-pulse-soft { 
+  animation: pulse-soft 2.5s ease-in-out infinite;
+  will-change: opacity;
+}
+.animate-spring-in { 
+  animation: spring-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-number-spring { 
+  animation: number-spring 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-scale-bounce { 
+  animation: scale-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-fade-slide-up { 
+  animation: fade-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+.animate-float-particle { 
+  animation: float-particle 3s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Remove will-change after animation completes to free up resources */
+.animate-slide-up,
+.animate-slide-down,
+.animate-fade-in,
+.animate-scale-in,
+.animate-bounce-in,
+.animate-slide-in-right,
+.animate-slide-out-left,
+.animate-slide-in-left,
+.animate-slide-out-top,
+.animate-slide-in-bottom,
+.animate-slide-out-bottom,
+.animate-slide-in-top,
+.animate-spring-in,
+.animate-number-spring,
+.animate-scale-bounce,
+.animate-fade-slide-up {
+  animation-fill-mode: forwards;
+}
+
+/* Clean up will-change after animation ends */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-slide-up:not(:hover),
+  .animate-slide-down:not(:hover),
+  .animate-scale-in:not(:hover),
+  .animate-bounce-in:not(:hover),
+  .animate-slide-in-right:not(:hover),
+  .animate-slide-in-left:not(:hover),
+  .animate-spring-in:not(:hover),
+  .animate-number-spring:not(:hover),
+  .animate-scale-bounce:not(:hover),
+  .animate-fade-slide-up:not(:hover) {
+    animation-play-state: running;
+  }
+}
 
 /* Delay utilities */
 .delay-100 { animation-delay: 0.1s; }
@@ -1033,6 +1252,27 @@ input::placeholder, textarea::placeholder {
   }
 }
 
+/* Optimized animation classes for continuous scrolling */
+.animate-wave-flow {
+  animation: wave-flow 20s linear infinite;
+  will-change: transform;
+}
+
+.animate-wave-flow-slow {
+  animation: wave-flow-slow 25s linear infinite;
+  will-change: transform;
+}
+
+.animate-orders-flow {
+  animation: orders-flow 15s linear infinite;
+  will-change: transform;
+}
+
+.animate-orders-flow-slow {
+  animation: orders-flow-slow 20s linear infinite;
+  will-change: transform;
+}
+
 @keyframes fly-paper-1 {
   0% { 
     transform: translateX(0);
@@ -1248,38 +1488,26 @@ input::placeholder, textarea::placeholder {
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+  will-change: opacity, box-shadow;
 }
 
 .animate-bounce-slow {
   animation: bounce-slow 2s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-spin-slow {
   animation: spin-slow 4s linear infinite;
+  will-change: transform;
 }
 
 .animate-spin-reverse {
   animation: spin-reverse 3s linear infinite;
+  will-change: transform;
 }
 
 .animate-flow-line {
   animation: flow-line 3s ease-in-out infinite;
-}
-
-.animate-wave-flow {
-  animation: wave-flow 20s linear infinite;
-}
-
-.animate-wave-flow-slow {
-  animation: wave-flow-slow 25s linear infinite;
-}
-
-.animate-orders-flow {
-  animation: orders-flow 15s linear infinite;
-}
-
-.animate-orders-flow-slow {
-  animation: orders-flow-slow 20s linear infinite;
 }
 
 .animate-fly-paper-1 {
@@ -1511,6 +1739,136 @@ input::placeholder, textarea::placeholder {
   /* Reduce the height of the flying papers container */
   .flying-papers-container {
     height: 6rem !important;
+  }
+}
+
+/* ============================================
+   HOMEPAGE RESPONSIVE DESIGN
+   Mobile-first responsive utilities for homepage components
+   ============================================ */
+
+/* Ensure all interactive elements are touch-friendly on mobile */
+@media (max-width: 768px) {
+  /* Touch-friendly button sizing - minimum 44x44px */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px 20px;
+  }
+  
+  /* Larger tap targets for links */
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  /* Responsive text sizing for readability */
+  h1 {
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+  
+  h3 {
+    font-size: 1.125rem;
+    line-height: 1.4;
+  }
+  
+  p {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  
+  /* Reduce padding on mobile for better space utilization */
+  section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Stack elements vertically on mobile */
+  .flex-row {
+    flex-direction: column;
+  }
+  
+  /* Full width cards on mobile */
+  .card {
+    width: 100%;
+  }
+  
+  /* Optimize image sizing */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Tablet-specific adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Adjust grid layouts for tablet */
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* Optimize spacing for tablet */
+  section {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  /* Adjust font sizes for tablet */
+  h1 {
+    font-size: 2.25rem;
+  }
+  
+  h2 {
+    font-size: 1.875rem;
+  }
+}
+
+/* Ensure smooth scrolling on all devices */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Reduce animations for users who prefer reduced motion */
+/* This respects user accessibility preferences and improves performance */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Remove will-change for reduced motion to save resources */
+  * {
+    will-change: auto !important;
+  }
+  
+  /* Disable infinite animations completely */
+  .animate-float,
+  .animate-pulse-soft,
+  .animate-wave-flow,
+  .animate-wave-flow-slow,
+  .animate-orders-flow,
+  .animate-orders-flow-slow,
+  .animate-bounce-slow,
+  .animate-spin-slow,
+  .animate-spin-reverse,
+  .animate-float-particle {
+    animation: none !important;
   }
 }
 

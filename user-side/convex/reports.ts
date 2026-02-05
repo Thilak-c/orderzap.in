@@ -42,10 +42,10 @@ export const salesOverview = query({
     const weekOrders = orders.filter(o => o._creationTime >= thisWeekStart);
     const monthOrders = orders.filter(o => o._creationTime >= thisMonthStart);
 
-    const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0);
-    const yesterdayRevenue = yesterdayOrders.reduce((sum, o) => sum + o.total, 0);
-    const weekRevenue = weekOrders.reduce((sum, o) => sum + o.total, 0);
-    const monthRevenue = monthOrders.reduce((sum, o) => sum + o.total, 0);
+    const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
+    const yesterdayRevenue = yesterdayOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
+    const weekRevenue = weekOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
+    const monthRevenue = monthOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
 
     const revenueChange = yesterdayRevenue > 0 
       ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue * 100).toFixed(1)
@@ -58,10 +58,10 @@ export const salesOverview = query({
       thisMonth: { orders: monthOrders.length, revenue: monthRevenue },
       revenueChange,
       avgOrderValue: filteredOrders.length > 0 
-        ? filteredOrders.reduce((sum, o) => sum + o.total, 0) / filteredOrders.length 
+        ? filteredOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0) / filteredOrders.length 
         : 0,
       totalOrders: filteredOrders.length,
-      totalRevenue: filteredOrders.reduce((sum, o) => sum + o.total, 0),
+      totalRevenue: filteredOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0),
     };
   },
 });
@@ -85,7 +85,7 @@ export const dailyRevenueTrend = query({
     orders.forEach(order => {
       const date = getDateString(order._creationTime);
       if (trend[date]) {
-        trend[date].revenue += order.total;
+        trend[date].revenue += (order.total || order.totalAmount || 0);
         trend[date].orders += 1;
       }
     });
@@ -104,14 +104,16 @@ export const bestSellingItems = query({
     const itemSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
 
     orders.forEach(order => {
-      order.items.forEach(item => {
-        const key = item.menuItemId;
-        if (!itemSales[key]) {
-          itemSales[key] = { name: item.name, quantity: 0, revenue: 0 };
-        }
-        itemSales[key].quantity += item.quantity;
-        itemSales[key].revenue += item.price * item.quantity;
-      });
+      if (order.items) {
+        order.items.forEach(item => {
+          const key = String(item.menuItemId);
+          if (!itemSales[key]) {
+            itemSales[key] = { name: item.name, quantity: 0, revenue: 0 };
+          }
+          itemSales[key].quantity += item.quantity;
+          itemSales[key].revenue += item.price * item.quantity;
+        });
+      }
     });
 
     return Object.values(itemSales)
@@ -130,14 +132,16 @@ export const categoryPerformance = query({
     const categoryStats: Record<string, { category: string; quantity: number; revenue: number }> = {};
 
     orders.forEach(order => {
-      order.items.forEach(item => {
-        const category = menuMap.get(item.menuItemId) || "Other";
-        if (!categoryStats[category]) {
-          categoryStats[category] = { category, quantity: 0, revenue: 0 };
-        }
-        categoryStats[category].quantity += item.quantity;
-        categoryStats[category].revenue += item.price * item.quantity;
-      });
+      if (order.items) {
+        order.items.forEach(item => {
+          const category = menuMap.get(item.menuItemId as any) || "Other";
+          if (!categoryStats[category]) {
+            categoryStats[category] = { category, quantity: 0, revenue: 0 };
+          }
+          categoryStats[category].quantity += item.quantity;
+          categoryStats[category].revenue += item.price * item.quantity;
+        });
+      }
     });
 
     return Object.values(categoryStats).sort((a, b) => b.revenue - a.revenue);
@@ -159,7 +163,7 @@ export const peakHoursAnalysis = query({
     orders.forEach(order => {
       const hour = getHour(order._creationTime);
       hourlyStats[hour].orders += 1;
-      hourlyStats[hour].revenue += order.total;
+      hourlyStats[hour].revenue += (order.total || order.totalAmount || 0);
     });
 
     return Object.values(hourlyStats);
@@ -181,7 +185,7 @@ export const dayOfWeekAnalysis = query({
     orders.forEach(order => {
       const day = getDayOfWeek(order._creationTime);
       dayStats[day].orders += 1;
-      dayStats[day].revenue += order.total;
+      dayStats[day].revenue += (order.total || order.totalAmount || 0);
     });
 
     return days.map(day => dayStats[day]);
@@ -198,7 +202,7 @@ export const tablePerformance = query({
     const tableStats: Record<string, { tableId: string; tableName: string; orders: number; revenue: number }> = {};
 
     orders.forEach(order => {
-      const tableId = order.tableId;
+      const tableId = order.tableId || 'unknown';
       if (!tableStats[tableId]) {
         tableStats[tableId] = { 
           tableId, 
@@ -208,7 +212,7 @@ export const tablePerformance = query({
         };
       }
       tableStats[tableId].orders += 1;
-      tableStats[tableId].revenue += order.total;
+      tableStats[tableId].revenue += (order.total || order.totalAmount || 0);
     });
 
     return Object.values(tableStats).sort((a, b) => b.revenue - a.revenue);
@@ -228,7 +232,7 @@ export const paymentMethodStats = query({
         stats[method] = { method, count: 0, revenue: 0 };
       }
       stats[method].count += 1;
-      stats[method].revenue += order.total;
+      stats[method].revenue += (order.total || order.totalAmount || 0);
     });
 
     return Object.values(stats);
@@ -385,9 +389,9 @@ export const dashboardStats = query({
 
     return {
       sales: {
-        todayRevenue: todayOrders.reduce((sum, o) => sum + o.total, 0),
+        todayRevenue: todayOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0),
         todayOrders: todayOrders.length,
-        totalRevenue: orders.reduce((sum, o) => sum + o.total, 0),
+        totalRevenue: orders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0),
         totalOrders: orders.length,
       },
       inventory: {

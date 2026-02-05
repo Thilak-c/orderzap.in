@@ -13,10 +13,13 @@ export default function BrandLogo({
 }) {
   // If there's a logo image, show it
   if (brandLogo) {
+    // Ensure logo path is absolute from root
+    const logoSrc = brandLogo.startsWith('/') ? brandLogo : `/${brandLogo}`;
+    
     return (
       <div className="flex items-center gap-3">
         <img 
-          src={brandLogo} 
+          src={logoSrc} 
           alt={brandName} 
           className={`${className} object-cover rounded-full`}
         />

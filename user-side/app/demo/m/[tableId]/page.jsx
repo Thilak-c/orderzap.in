@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
-import { useBranding } from "@/lib/useBranding";
+import { useBranding } from "@/app/r/[restaurantId]/layout";
 import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import {

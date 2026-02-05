@@ -3,555 +3,1074 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import MenuItemImage from "@/components/MenuItemImage";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 
 export default function AdminDashboard() {
   const params = useParams();
   const restaurantId = params.restaurantId;
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const audioRef = useRef(null);
   
-  // Get restaurant info first
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
-
-  // Fetch data filtered by restaurant
   const stats = useQuery(api.orders.getStats, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
   const orders = useQuery(api.orders.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
-  const staffCalls = useQuery(api.staffCalls.listPending, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
-  const zoneRequests = useQuery(api.zoneRequests.listPending, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
-  const resolveStaffCall = useMutation(api.staffCalls.updateStatus);
-  const resolveZoneRequest = useMutation(api.zoneRequests.updateStatus);
   const updateRestaurant = useMutation(api.restaurants.update);
-  const updateOrderStatus = useMutation(api.orders.updateStatus);
 
-  // Play sound for new orders
-  useEffect(() => {
-    if (stats?.pendingOrders > 0) {
-      // Play notification sound
-      if (audioRef.current) {
-        audioRef.current.play().catch(() => {});
-      }
-    }
-  }, [stats?.pendingOrders]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      // Cmd/Ctrl + K for search
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        document.getElementById('global-search')?.focus();
-      }
-      // Cmd/Ctrl + O for orders
-      if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
-        e.preventDefault();
-        window.location.href = `/r/${restaurantId}/admin/orders`;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [restaurantId]);
-
-  const toggleRestaurantStatus = async () => {
-    if (!restaurantDbId) return;
-    const newStatus = !restaurant?.active;
-    await updateRestaurant({ 
-      restaurantId: restaurantDbId, 
-      active: newStatus 
-    });
-    showToast(newStatus ? "✓ Restaurant opened" : "✓ Restaurant closed");
-  };
-
-  const showToast = (message) => {
-    setToastMessage(message);
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
-  };
-
-  const handleQuickAction = async (orderId, newStatus) => {
-    await updateOrderStatus({ id: orderId, status: newStatus });
-    showToast(`✓ Order marked as ${newStatus}`);
-  };
-
-  const handlePrintKOT = (order) => {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>KOT #${order.orderNumber || order._id.slice(-4)}</title>
-          <style>
-            body { font-family: monospace; padding: 16px; max-width: 280px; margin: 0 auto; font-size: 14px; }
-            .kot-header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
-            .kot-header h1 { font-size: 22px; margin: 0 0 4px 0; }
-            .kot-meta { font-size: 16px; font-weight: bold; margin: 4px 0; }
-            .kot-item { font-size: 15px; margin: 6px 0; padding: 4px 0; border-bottom: 1px dashed #ccc; }
-            .kot-item .qty { font-weight: bold; margin-right: 8px; }
-            .kot-notes { margin-top: 12px; padding: 8px; background: #f5f5f5; font-size: 13px; border: 1px solid #ddd; }
-          </style>
-        </head>
-        <body>
-          <div class="kot-header">
-            <h1>KITCHEN ORDER</h1>
-            <p class="kot-meta">#${order.orderNumber || order._id.slice(-4)} | Table ${order.tableId}</p>
-            <p style="font-size: 12px;">${new Date(order._creationTime).toLocaleString()}</p>
-          </div>
-          <div class="kot-items">
-            ${order.items.map(item => `
-              <div class="kot-item"><span class="qty">${item.quantity}x</span> ${item.name}</div>
-            `).join('')}
-          </div>
-          ${order.notes ? `<div class="kot-notes"><strong>Note:</strong> ${order.notes}</div>` : ''}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-  };
-
-  const handlePrintBill = (order) => {
-    const billNumber = order.orderNumber || order._id.slice(-6).toUpperCase();
-    const dateTime = new Date(order._creationTime);
-    const dateStr = dateTime.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    const timeStr = dateTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const subtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-    const depositUsed = order.depositUsed ?? 0;
-    const paymentLabel = { 'pay-now': 'Paid Online', 'pay-later': 'Pay Later', 'pay-counter': 'Pay at Counter', 'pay-table': 'Pay at Table' }[order.paymentMethod] || order.paymentMethod;
-
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Bill #${billNumber}</title>
-          <style>
-            * { box-sizing: border-box; }
-            body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; max-width: 380px; margin: 0 auto; font-size: 13px; color: #111; }
-            .bill { border: 2px solid #000; padding: 20px; }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px; }
-            .header h1 { font-size: 20px; margin: 0 0 8px 0; font-weight: 700; letter-spacing: 0.5px; }
-            .bill-no { font-size: 18px; font-weight: 700; margin: 8px 0 4px 0; }
-            .meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; }
-            .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #ccc; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            th { text-align: left; padding: 6px 4px; font-weight: 600; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #ddd; }
-            td { padding: 6px 4px; border-bottom: 1px dotted #eee; }
-            td.num { text-align: center; }
-            td.amt { text-align: right; font-weight: 500; }
-            .summary { margin-top: 12px; }
-            .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
-            .summary-row.total { font-size: 16px; font-weight: 700; border-top: 2px solid #000; margin-top: 8px; padding-top: 10px; }
-            .notes { margin-top: 12px; padding: 10px; background: #f8f8f8; border: 1px solid #eee; font-size: 12px; }
-            .footer { text-align: center; margin-top: 20px; padding-top: 12px; border-top: 2px dashed #000; font-size: 12px; color: #555; }
-          </style>
-        </head>
-        <body>
-          <div class="bill">
-            <div class="header">
-              <h1>${(restaurant?.name || restaurant?.brandName || 'Restaurant').toUpperCase()}</h1>
-              <p class="bill-no">BILL NO. ${billNumber}</p>
-              <div class="meta">
-                <span>Date: ${dateStr}</span>
-                <span>Time: ${timeStr}</span>
-              </div>
-              <div class="meta">
-                <span>Table: ${order.tableId}</span>
-                <span>Order ID: ${order._id.slice(-8)}</span>
-              </div>
-            </div>
-
-            <div class="section-title">Itemised Bill</div>
-            <table>
-              <thead>
-                <tr>
-                  <th class="num">#</th>
-                  <th>Item</th>
-                  <th class="num">Qty</th>
-                  <th class="amt">Rate (₹)</th>
-                  <th class="amt">Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${order.items.map((item, idx) => {
-                  const amt = item.price * item.quantity;
-                  return `<tr>
-                    <td class="num">${idx + 1}</td>
-                    <td>${item.name}</td>
-                    <td class="num">${item.quantity}</td>
-                    <td class="amt">${item.price.toFixed(2)}</td>
-                    <td class="amt">${amt.toFixed(2)}</td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-
-            <div class="section-title">Bill Summary</div>
-            <div class="summary">
-              <div class="summary-row">
-                <span>Subtotal</span>
-                <span>₹${subtotal.toFixed(2)}</span>
-              </div>
-              ${depositUsed > 0 ? `
-              <div class="summary-row">
-                <span>Deposit / Credit applied</span>
-                <span>- ₹${depositUsed.toFixed(2)}</span>
-              </div>
-              ` : ''}
-              <div class="summary-row total">
-                <span>TOTAL</span>
-                <span>₹${order.total.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div class="section-title">Payment</div>
-            <div class="summary">
-              <div class="summary-row">
-                <span>Payment method</span>
-                <span>${paymentLabel}</span>
-              </div>
-            </div>
-
-            ${order.notes ? `
-            <div class="section-title">Order Notes</div>
-            <div class="notes">${order.notes}</div>
-            ` : ''}
-
-            <div class="footer">
-              <p style="margin: 0 0 4px 0;"><strong>Thank you for dining with us!</strong></p>
-              <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-  };
+  const [formData, setFormData] = useState({
+    userRole: "", // "owner" or "manager"
+    ownerName: "", // Owner's name
+    ownerPhone: "",
+    managerName: "", // Manager's name (if manager is filling or if owner specifies)
+    managerPhone: "",
+    hasSocialMedia: null, // true/false - do they have social media?
+    selectedPlatforms: [], // ["instagram", "youtube", "googleMaps"]
+    instagramLink: "",
+    youtubeLink: "",
+    googleMapsLink: "",
+    address: "",
+    mapLink: "",
+    businessHours: {
+      monday: { isOpen: true, openTime: "09:00", closeTime: "22:00" },
+      tuesday: { isOpen: true, openTime: "09:00", closeTime: "22:00" },
+      wednesday: { isOpen: true, openTime: "09:00", closeTime: "22:00" },
+      thursday: { isOpen: true, openTime: "09:00", closeTime: "22:00" },
+      friday: { isOpen: true, openTime: "09:00", closeTime: "22:00" },
+      saturday: { isOpen: true, openTime: "09:00", closeTime: "22:00" },
+      sunday: { isOpen: true, openTime: "09:00", closeTime: "22:00" },
+    },
+  });
+  const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(1); // 1: Who are you, 2: Names & Phones, 3: Social Links, 4: Address, 5: Business Hours
+  const [socialStep, setSocialStep] = useState(1); // 1: Do you have social media?, 2: Which platforms?, 3: Enter links
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
   const pendingOrders = stats?.pendingOrders ?? 0;
-  const preparingOrders = stats?.preparingOrders ?? 0;
   const todayRevenue = stats?.todayRevenue ?? 0;
-  const pendingCalls = staffCalls?.length ?? 0;
-  const pendingRequests = zoneRequests?.length ?? 0;
-  
   const totalOrders = orders?.length ?? 0;
-  const completedOrders = orders?.filter(o => o.status === 'completed').length ?? 0;
-  const avgOrderValue = totalOrders > 0 ? todayRevenue / totalOrders : 0;
+  const onboardingStatus = restaurant?.onboardingStatus ?? 0;
 
-  // Priority calculation
-  const hasUrgentIssues = pendingOrders > 5 || pendingCalls > 0;
+  const toggleRestaurantStatus = async () => {
+    if (!restaurantDbId || isTogglingStatus) return;
+    
+    setIsTogglingStatus(true);
+    try {
+      await updateRestaurant({
+        restaurantId: restaurantDbId,
+        isOpen: !restaurant?.isOpen,
+      });
+      
+      // Vibrate on toggle
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    } catch (error) {
+      console.error("Failed to toggle status:", error);
+    }
+    setIsTogglingStatus(false);
+  };
 
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Hidden audio element for notifications */}
-      <audio ref={audioRef} src="/notification.mp3" preload="auto" />
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!restaurantDbId) return;
 
-      {/* Toast Notification */}
-      {showSuccessToast && (
-        <div className="fixed top-6 right-6 z-50 animate-slide-in-right">
-          <div className="bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl font-medium">
-            {toastMessage}
-          </div>
-        </div>
-      )}
+    setSaving(true);
+    try {
+      const filledByName = formData.userRole === "owner" ? formData.ownerName : formData.managerName;
+      
+      await updateRestaurant({
+        restaurantId: restaurantDbId,
+        address: formData.address,
+        googleMapsLink: formData.googleMapsLink || undefined,
+        ownerName: formData.ownerName,
+        ownerPhone: formData.ownerPhone ? `+91${formData.ownerPhone}` : undefined,
+        managerName: formData.managerName || undefined,
+        managerPhone: formData.managerPhone ? `+91${formData.managerPhone}` : undefined,
+        instagramLink: formData.instagramLink || undefined,
+        youtubeLink: formData.youtubeLink || undefined,
+        businessHours: formData.businessHours,
+        onboardingFilledBy: formData.userRole, // Store who filled the form
+        onboardingFilledByName: filledByName, // Store name of person who filled
+        onboardingStatus: 25, // Move to next step
+      });
+      
+      // Trigger confetti and vibration on success
+      triggerSuccessAnimation();
+    } catch (error) {
+      console.error("Failed to save:", error);
+    }
+    setSaving(false);
+  };
 
-      {/* Top Bar - Always Visible */}
-      <div className="sticky top-0 z-40 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Search */}
-            <div className="flex-1 max-w-md">
-              <input
-                id="global-search"
-                type="text"
-                placeholder="Search orders, tables, menu... (⌘K)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+  const triggerSuccessAnimation = () => {
+    // Vibrate device if supported
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 200]);
+    }
+    
+    // Create confetti
+    createConfetti();
+  };
+
+  const createConfetti = () => {
+    const colors = ['#000000', '#333333', '#666666', '#999999'];
+    const confettiCount = 100;
+
+    for (let i = 0; i < confettiCount; i++) {
+      const confetti = document.createElement('div');
+      confetti.style.position = 'fixed';
+      confetti.style.width = '10px';
+      confetti.style.height = '10px';
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.left = Math.random() * window.innerWidth + 'px';
+      confetti.style.top = '-10px';
+      confetti.style.opacity = '1';
+      confetti.style.pointerEvents = 'none';
+      confetti.style.zIndex = '9999';
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+      document.body.appendChild(confetti);
+
+      const angle = Math.random() * Math.PI * 2;
+      const velocity = 2 + Math.random() * 3;
+      let x = parseFloat(confetti.style.left);
+      let y = -10;
+      let velX = Math.cos(angle) * velocity;
+      let velY = Math.sin(angle) * velocity + 5;
+      let rotation = 0;
+      let rotationSpeed = (Math.random() - 0.5) * 10;
+
+      const animate = () => {
+        y += velY;
+        x += velX;
+        velY += 0.3; // gravity
+        rotation += rotationSpeed;
+        
+        confetti.style.top = y + 'px';
+        confetti.style.left = x + 'px';
+        confetti.style.transform = `rotate(${rotation}deg)`;
+        confetti.style.opacity = Math.max(0, 1 - (y / window.innerHeight));
+
+        if (y < window.innerHeight + 50) {
+          requestAnimationFrame(animate);
+        } else {
+          confetti.remove();
+        }
+      };
+      
+      setTimeout(() => animate(), i * 10);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleRoleSelect = (role) => {
+    setFormData(prev => ({ ...prev, userRole: role }));
+    setStep(2);
+  };
+
+  const handlePhoneSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validate phone numbers are exactly 10 digits
+    if (formData.userRole === "owner") {
+      if (formData.ownerPhone.length !== 10) {
+        alert("Owner phone number must be exactly 10 digits");
+        return;
+      }
+      if (formData.managerPhone && formData.managerPhone.length !== 10) {
+        alert("Manager phone number must be exactly 10 digits");
+        return;
+      }
+    } else {
+      if (formData.managerPhone.length !== 10) {
+        alert("Manager phone number must be exactly 10 digits");
+        return;
+      }
+      if (formData.ownerPhone.length !== 10) {
+        alert("Owner phone number must be exactly 10 digits");
+        return;
+      }
+    }
+    
+    setStep(3);
+  };
+
+  const handleSocialLinksSubmit = (e) => {
+    e.preventDefault();
+    
+    // If they don't have social media, skip to address
+    if (formData.hasSocialMedia === false) {
+      setStep(4);
+      return;
+    }
+    
+    // Validate selected platform links
+    if (formData.selectedPlatforms.includes('instagram') && formData.instagramLink && !formData.instagramLink.includes('instagram.com')) {
+      alert("Please enter a valid Instagram link (must contain 'instagram.com')");
+      return;
+    }
+    
+    if (formData.selectedPlatforms.includes('youtube') && formData.youtubeLink && !formData.youtubeLink.includes('youtube.com') && !formData.youtubeLink.includes('youtu.be')) {
+      alert("Please enter a valid YouTube link (must contain 'youtube.com' or 'youtu.be')");
+      return;
+    }
+    
+    setStep(4);
+  };
+
+  const handleAddressSubmit = (e) => {
+    e.preventDefault();
+    setStep(5); // Go to business hours
+  };
+
+  const togglePlatform = (platform) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedPlatforms: prev.selectedPlatforms.includes(platform)
+        ? prev.selectedPlatforms.filter(p => p !== platform)
+        : [...prev.selectedPlatforms, platform]
+    }));
+  };
+
+  // Welcome screen for new restaurants
+  if (onboardingStatus === 0) {
+    return (
+      <div className="min-h-screen bg-white px-6 py-12">
+        <div className="max-w-2xl mx-auto">
+          
+          {/* Logo */}
+          {restaurant?.logo_url && (
+            <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <img 
+                src={restaurant.logo_url} 
+                alt={restaurant.name}
+                className="w-32 h-32 object-cover transition-transform hover:scale-105"
               />
             </div>
+          )}
 
-            {/* Quick Actions */}
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={toggleRestaurantStatus}
-                className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${
-                  restaurant?.active 
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                    : 'bg-red-500 text-white hover:bg-red-600'
-                }`}
+          {/* Welcome Message */}
+          <div className="text-center mb-12 opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+            <h1 className="text-4xl font-bold text-black mb-4">
+              Welcome {restaurant?.name}
+            </h1>
+            
+            <p className="text-xl text-gray-600">
+              The admin panel only for {restaurant?.name}
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div className="w-24 h-px bg-gray-300 mx-auto mb-12 opacity-0 animate-expand" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}></div>
+
+          {/* Step 1: Who are you? */}
+          {step === 1 && (
+            <div className="space-y-6 opacity-0 animate-fade-in" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
+              <h2 className="text-2xl font-bold text-black text-center mb-8">
+                Who are you?
+              </h2>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleRoleSelect("owner")}
+                  className="p-8 border-2 border-gray-300 hover:border-black hover:shadow-lg transition-all duration-300 text-center transform hover:scale-105 active:scale-95"
+                >
+                  <p className="text-xl font-bold text-black mb-2">Owner</p>
+                  <p className="text-sm text-gray-600">I own this restaurant</p>
+                </button>
+
+                <button
+                  onClick={() => handleRoleSelect("manager")}
+                  className="p-8 border-2 border-gray-300 hover:border-black hover:shadow-lg transition-all duration-300 text-center transform hover:scale-105 active:scale-95"
+                >
+                  <p className="text-xl font-bold text-black mb-2">Manager</p>
+                  <p className="text-sm text-gray-600">I manage this restaurant</p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Phone Numbers */}
+          {step === 2 && (
+            <form onSubmit={handlePhoneSubmit} className="space-y-6 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="text-sm text-gray-600 hover:text-black mb-4 transition-colors"
               >
-                {restaurant?.active ? 'OPEN' : 'CLOSED'}
+                ← Back
+              </button>
+
+              <h2 className="text-2xl font-bold text-black text-center mb-8">
+                Contact Information
+              </h2>
+
+              {formData.userRole === "owner" ? (
+                <>
+                  {/* Owner filling - ask for owner details */}
+                  <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+                    <label className="block text-sm font-medium text-black mb-2">
+                      Your Name (Owner)
+                    </label>
+                    <input
+                      type="text"
+                      name="ownerName"
+                      value={formData.ownerName}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                        setFormData(prev => ({ ...prev, ownerName: value }));
+                      }}
+                      required
+                      placeholder="Enter owner name"
+                      className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black transition-all"
+                    />
+                  </div>
+
+                  <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+                    <label className="block text-sm font-medium text-black mb-2">
+                      Your Phone Number (Owner)
+                    </label>
+                    <div className={`flex items-center border ${formData.ownerPhone && formData.ownerPhone.length !== 10 ? 'border-red-500' : 'border-gray-300'} focus-within:border-black transition-all`}>
+                      <span className="px-4 py-3 bg-gray-100 text-black font-medium border-r border-gray-300">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        name="ownerPhone"
+                        value={formData.ownerPhone}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setFormData(prev => ({ ...prev, ownerPhone: value }));
+                        }}
+                        required
+                        maxLength={10}
+                        placeholder="9876543210"
+                        className="flex-1 px-4 py-3 text-black focus:outline-none"
+                      />
+                    </div>
+                    {formData.ownerPhone && (
+                      <p className={`text-xs mt-2 transition-all ${formData.ownerPhone.length === 10 ? 'text-gray-500' : 'text-red-500'}`}>
+                        {formData.ownerPhone.length === 10 
+                          ? `Full number: +91 ${formData.ownerPhone}` 
+                          : `${formData.ownerPhone.length}/10 digits - Must be exactly 10 digits`
+                        }
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Optional: Manager details */}
+                  <div className="border-t border-gray-200 pt-6 opacity-0 animate-slide-up" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
+                    <p className="text-sm font-medium text-black mb-4">
+                      Do you have a manager? (Optional)
+                    </p>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-2">
+                          Manager Name
+                        </label>
+                        <input
+                          type="text"
+                          name="managerName"
+                          value={formData.managerName}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                            setFormData(prev => ({ ...prev, managerName: value }));
+                          }}
+                          placeholder="Enter manager name (optional)"
+                          className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-2">
+                          Manager Phone Number
+                        </label>
+                        <div className={`flex items-center border ${formData.managerPhone && formData.managerPhone.length !== 10 && formData.managerPhone.length > 0 ? 'border-red-500' : 'border-gray-300'} focus-within:border-black transition-all`}>
+                          <span className="px-4 py-3 bg-gray-100 text-black font-medium border-r border-gray-300">
+                            +91
+                          </span>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            name="managerPhone"
+                            value={formData.managerPhone}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setFormData(prev => ({ ...prev, managerPhone: value }));
+                            }}
+                            maxLength={10}
+                            placeholder="9876543210 (optional)"
+                            className="flex-1 px-4 py-3 text-black focus:outline-none"
+                          />
+                        </div>
+                        {formData.managerPhone && formData.managerPhone.length > 0 && (
+                          <p className={`text-xs mt-2 transition-all ${formData.managerPhone.length === 10 ? 'text-gray-500' : 'text-red-500'}`}>
+                            {formData.managerPhone.length === 10 
+                              ? `Full number: +91 ${formData.managerPhone}` 
+                              : `${formData.managerPhone.length}/10 digits - Must be exactly 10 digits`
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Manager filling - ask for both manager and owner details */}
+                  <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+                    <label className="block text-sm font-medium text-black mb-2">
+                      Your Name (Manager)
+                    </label>
+                    <input
+                      type="text"
+                      name="managerName"
+                      value={formData.managerName}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                        setFormData(prev => ({ ...prev, managerName: value }));
+                      }}
+                      required
+                      placeholder="Enter manager name"
+                      className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black transition-all"
+                    />
+                  </div>
+
+                  <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+                    <label className="block text-sm font-medium text-black mb-2">
+                      Your Phone Number (Manager)
+                    </label>
+                    <div className={`flex items-center border ${formData.managerPhone && formData.managerPhone.length !== 10 ? 'border-red-500' : 'border-gray-300'} focus-within:border-black transition-all`}>
+                      <span className="px-4 py-3 bg-gray-100 text-black font-medium border-r border-gray-300">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        name="managerPhone"
+                        value={formData.managerPhone}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setFormData(prev => ({ ...prev, managerPhone: value }));
+                        }}
+                        required
+                        maxLength={10}
+                        placeholder="9876543210"
+                        className="flex-1 px-4 py-3 text-black focus:outline-none"
+                      />
+                    </div>
+                    {formData.managerPhone && (
+                      <p className={`text-xs mt-2 transition-all ${formData.managerPhone.length === 10 ? 'text-gray-500' : 'text-red-500'}`}>
+                        {formData.managerPhone.length === 10 
+                          ? `Full number: +91 ${formData.managerPhone}` 
+                          : `${formData.managerPhone.length}/10 digits - Must be exactly 10 digits`
+                        }
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-6 opacity-0 animate-slide-up" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
+                    <p className="text-sm font-medium text-black mb-4">
+                      Owner Details
+                    </p>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Owner Name
+                        </label>
+                        <input
+                          type="text"
+                          name="ownerName"
+                          value={formData.ownerName}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                            setFormData(prev => ({ ...prev, ownerName: value }));
+                          }}
+                          required
+                          placeholder="Enter owner name"
+                          className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Owner Phone Number
+                        </label>
+                        <div className={`flex items-center border ${formData.ownerPhone && formData.ownerPhone.length !== 10 ? 'border-red-500' : 'border-gray-300'} focus-within:border-black transition-all`}>
+                          <span className="px-4 py-3 bg-gray-100 text-black font-medium border-r border-gray-300">
+                            +91
+                          </span>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            name="ownerPhone"
+                            value={formData.ownerPhone}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setFormData(prev => ({ ...prev, ownerPhone: value }));
+                            }}
+                            required
+                            maxLength={10}
+                            placeholder="9876543210"
+                            className="flex-1 px-4 py-3 text-black focus:outline-none"
+                          />
+                        </div>
+                        {formData.ownerPhone && (
+                          <p className={`text-xs mt-2 transition-all ${formData.ownerPhone.length === 10 ? 'text-gray-500' : 'text-red-500'}`}>
+                            {formData.ownerPhone.length === 10 
+                              ? `Full number: +91 ${formData.ownerPhone}` 
+                              : `${formData.ownerPhone.length}/10 digits - Must be exactly 10 digits`
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={
+                  formData.userRole === "owner" 
+                    ? !formData.ownerName.trim() || formData.ownerPhone.length !== 10 || (formData.managerPhone && formData.managerPhone.length !== 10)
+                    : !formData.managerName.trim() || !formData.ownerName.trim() || formData.managerPhone.length !== 10 || formData.ownerPhone.length !== 10
+                }
+                className="w-full py-4 bg-black text-white font-medium hover:bg-gray-800 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed transform active:scale-95 opacity-0 animate-slide-up"
+                style={{animationDelay: '0.5s', animationFillMode: 'forwards'}}
+              >
+                Continue
+              </button>
+            </form>
+          )}
+
+          {/* Step 3: Social Links */}
+          {step === 3 && (
+            <div className="space-y-6 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (socialStep === 1) {
+                    setStep(2);
+                  } else {
+                    setSocialStep(socialStep - 1);
+                  }
+                }}
+                className="text-sm text-gray-600 hover:text-black mb-4 transition-colors"
+              >
+                ← Back
+              </button>
+
+              {/* Social Step 1: Do you have social media? */}
+              {socialStep === 1 && (
+                <>
+                  <h2 className="text-2xl font-bold text-black text-center mb-8">
+                    Do you have social media accounts?
+                  </h2>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, hasSocialMedia: true }));
+                        setSocialStep(2);
+                      }}
+                      className="p-8 border-2 border-gray-300 hover:border-black hover:shadow-lg transition-all duration-300 text-center transform hover:scale-105 active:scale-95 opacity-0 animate-slide-up"
+                      style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}
+                    >
+                      <p className="text-xl font-bold text-black mb-2">Yes</p>
+                      <p className="text-sm text-gray-600">We have social media</p>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, hasSocialMedia: false, selectedPlatforms: [] }));
+                        setStep(4);
+                      }}
+                      className="p-8 border-2 border-gray-300 hover:border-black hover:shadow-lg transition-all duration-300 text-center transform hover:scale-105 active:scale-95 opacity-0 animate-slide-up"
+                      style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}
+                    >
+                      <p className="text-xl font-bold text-black mb-2">No</p>
+                      <p className="text-sm text-gray-600">Skip this step</p>
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Social Step 2: Which platforms? */}
+              {socialStep === 2 && (
+                <>
+                  <h2 className="text-2xl font-bold text-black text-center mb-8">
+                    Which platforms do you have?
+                  </h2>
+                  
+                  <p className="text-sm text-gray-600 text-center mb-6 opacity-0 animate-fade-in" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+                    Select all that apply
+                  </p>
+
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => togglePlatform('instagram')}
+                      className={`w-full p-4 border-2 transition-all duration-300 text-left flex items-center justify-between opacity-0 animate-slide-up ${
+                        formData.selectedPlatforms.includes('instagram')
+                          ? 'border-black bg-black text-white'
+                          : 'border-gray-300 hover:border-black'
+                      }`}
+                      style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}
+                    >
+                      <span className="font-medium">Instagram</span>
+                      {formData.selectedPlatforms.includes('instagram') && <span>✓</span>}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => togglePlatform('youtube')}
+                      className={`w-full p-4 border-2 transition-all duration-300 text-left flex items-center justify-between opacity-0 animate-slide-up ${
+                        formData.selectedPlatforms.includes('youtube')
+                          ? 'border-black bg-black text-white'
+                          : 'border-gray-300 hover:border-black'
+                      }`}
+                      style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}
+                    >
+                      <span className="font-medium">YouTube</span>
+                      {formData.selectedPlatforms.includes('youtube') && <span>✓</span>}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (formData.selectedPlatforms.length > 0) {
+                        setSocialStep(3);
+                      } else {
+                        alert("Please select at least one platform");
+                      }
+                    }}
+                    className="w-full py-4 bg-black text-white font-medium hover:bg-gray-800 transition-all duration-300 transform active:scale-95 opacity-0 animate-slide-up"
+                    style={{animationDelay: '0.5s', animationFillMode: 'forwards'}}
+                  >
+                    Continue
+                  </button>
+                </>
+              )}
+
+              {/* Social Step 3: Enter links */}
+              {socialStep === 3 && (
+                <form onSubmit={handleSocialLinksSubmit} className="space-y-6">
+                  <h2 className="text-2xl font-bold text-black text-center mb-8">
+                    Enter Your Links
+                  </h2>
+
+                  {formData.selectedPlatforms.includes('instagram') && (
+                    <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        Instagram Link
+                      </label>
+                      <input
+                        type="url"
+                        name="instagramLink"
+                        value={formData.instagramLink}
+                        onChange={handleChange}
+                        required
+                        placeholder="https://instagram.com/yourrestaurant"
+                        className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black transition-all"
+                      />
+                      {formData.instagramLink && !formData.instagramLink.includes('instagram.com') && (
+                        <p className="text-xs text-red-500 mt-2 transition-all">
+                          Must be a valid Instagram link
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {formData.selectedPlatforms.includes('youtube') && (
+                    <div className="opacity-0 animate-slide-up" style={{animationDelay: formData.selectedPlatforms.includes('instagram') ? '0.3s' : '0.2s', animationFillMode: 'forwards'}}>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        YouTube Link
+                      </label>
+                      <input
+                        type="url"
+                        name="youtubeLink"
+                        value={formData.youtubeLink}
+                        onChange={handleChange}
+                        required
+                        placeholder="https://youtube.com/@yourrestaurant"
+                        className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black transition-all"
+                      />
+                      {formData.youtubeLink && !formData.youtubeLink.includes('youtube.com') && !formData.youtubeLink.includes('youtu.be') && (
+                        <p className="text-xs text-red-500 mt-2 transition-all">
+                          Must be a valid YouTube link
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="w-full py-4 bg-black text-white font-medium hover:bg-gray-800 transition-all duration-300 transform active:scale-95 opacity-0 animate-slide-up"
+                    style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}
+                  >
+                    Continue
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Address */}
+          {step === 4 && (
+            <form onSubmit={handleAddressSubmit} className="space-y-6 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                className="text-sm text-gray-600 hover:text-black mb-4 transition-colors"
+              >
+                ← Back
+              </button>
+
+              <h2 className="text-2xl font-bold text-black text-center mb-8">
+                Restaurant Location
+              </h2>
+
+              <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+                <label className="block text-sm font-medium text-black mb-2">
+                  Full Address
+                </label>
+                <textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  required
+                  rows={3}
+                  placeholder="Enter full address"
+                  className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black resize-none transition-all"
+                />
+              </div>
+
+              <div className="relative opacity-0 animate-fade-in" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">or</span>
+                </div>
+              </div>
+
+              <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
+                <label className="block text-sm font-medium text-black mb-2">
+                  Google Maps Location Link (Optional)
+                </label>
+                <input
+                  type="url"
+                  name="googleMapsLink"
+                  value={formData.googleMapsLink}
+                  onChange={handleChange}
+                  placeholder="https://maps.google.com/..."
+                  className="w-full px-4 py-3 border border-gray-300 text-black focus:outline-none focus:border-black transition-all"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Paste your Google Maps location link for easy navigation
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-4 bg-black text-white font-medium hover:bg-gray-800 transition-all duration-300 transform active:scale-95 opacity-0 animate-slide-up"
+                style={{animationDelay: '0.5s', animationFillMode: 'forwards'}}
+              >
+                Continue
+              </button>
+            </form>
+          )}
+
+          {/* Step 5: Business Hours */}
+          {step === 5 && (
+            <form onSubmit={handleSubmit} className="space-y-6 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <button
+                type="button"
+                onClick={() => setStep(4)}
+                className="text-sm text-gray-600 hover:text-black mb-4 transition-colors"
+              >
+                ← Back
+              </button>
+
+              <h2 className="text-2xl font-bold text-black text-center mb-8">
+                Business Hours
+              </h2>
+
+              <p className="text-sm text-gray-600 text-center mb-6">
+                Set your opening and closing times for each day
+              </p>
+
+              <div className="space-y-4">
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day, index) => (
+                  <div key={day} className="border border-gray-200 p-4 opacity-0 animate-slide-up" style={{animationDelay: `${0.2 + index * 0.05}s`, animationFillMode: 'forwards'}}>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.businessHours[day].isOpen}
+                          onChange={(e) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              businessHours: {
+                                ...prev.businessHours,
+                                [day]: { ...prev.businessHours[day], isOpen: e.target.checked }
+                              }
+                            }));
+                          }}
+                          className="w-5 h-5"
+                        />
+                        <span className="text-sm font-bold text-black capitalize">{day}</span>
+                      </label>
+                    </div>
+                    
+                    {formData.businessHours[day].isOpen && (
+                      <div className="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Open Time</label>
+                          <input
+                            type="time"
+                            value={formData.businessHours[day].openTime}
+                            onChange={(e) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                businessHours: {
+                                  ...prev.businessHours,
+                                  [day]: { ...prev.businessHours[day], openTime: e.target.value }
+                                }
+                              }));
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 text-black focus:outline-none focus:border-black"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Close Time</label>
+                          <input
+                            type="time"
+                            value={formData.businessHours[day].closeTime}
+                            onChange={(e) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                businessHours: {
+                                  ...prev.businessHours,
+                                  [day]: { ...prev.businessHours[day], closeTime: e.target.value }
+                                }
+                              }));
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 text-black focus:outline-none focus:border-black"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full py-4 bg-black text-white font-medium hover:bg-gray-800 transition-all duration-300 disabled:bg-gray-400 transform active:scale-95 opacity-0 animate-slide-up"
+                style={{animationDelay: '0.8s', animationFillMode: 'forwards'}}
+              >
+                {saving ? "Saving..." : "Complete Setup"}
+              </button>
+            </form>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  // Regular dashboard for onboarded restaurants
+  return (
+    <div className="min-h-screen bg-white">
+      
+      {/* Header */}
+      <div className="border-b border-gray-200 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {restaurant?.logo_url && (
+                <img 
+                  src={restaurant.logo_url} 
+                  alt={restaurant.name}
+                  className="w-16 h-16 object-cover rounded-full border-2 border-gray-200"
+                />
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-black">{restaurant?.name || "Admin"}</h1>
+                <p className="text-sm text-gray-500 mt-1">Welcome back</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {/* Toggle Switch */}
+              <button
+                onClick={toggleRestaurantStatus}
+                disabled={isTogglingStatus}
+                className="relative inline-flex items-center gap-3 cursor-pointer disabled:opacity-50"
+              >
+                <span className="text-sm font-medium text-gray-600">
+                  {restaurant?.isOpen ? 'Open' : 'Closed'}
+                </span>
+                <div className={`w-16 h-8 rounded-full transition-all duration-300 ${
+                  restaurant?.isOpen ? 'bg-black' : 'bg-gray-300'
+                }`}>
+                  <div className={`w-6 h-6 bg-white rounded-full mt-1 transition-all duration-300 transform ${
+                    restaurant?.isOpen ? 'translate-x-9' : 'translate-x-1'
+                  }`} />
+                </div>
               </button>
               
-              <Link
-                href={`/r/${restaurantId}/admin/orders`}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-semibold text-sm hover:bg-slate-800 transition-all"
-              >
-                View All Orders
-              </Link>
+              {/* Business Hours Info */}
+              {restaurant?.businessHours && (() => {
+                const now = new Date();
+                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const currentDay = days[now.getDay()];
+                const daySchedule = restaurant.businessHours[currentDay];
+                
+                if (daySchedule && daySchedule.isOpen) {
+                  return (
+                    <div className="text-xs text-gray-500">
+                      <div>Today: {daySchedule.openTime} - {daySchedule.closeTime}</div>
+                      <div className="text-gray-400">Auto-updates every 5 min</div>
+                    </div>
+                  );
+                } else if (daySchedule && !daySchedule.isOpen) {
+                  return (
+                    <div className="text-xs text-gray-500">
+                      <div>Closed today</div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        
-        {/* URGENT SECTION - Priority Pyramid */}
-        {hasUrgentIssues && (
-          <div className="mb-8">
-            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
-              <h2 className="text-2xl font-bold text-red-900 mb-4">⚠️ URGENT ATTENTION NEEDED</h2>
-              
-              {/* Pending Orders Alert */}
-              {pendingOrders > 5 && (
-                <div className="bg-white rounded-xl p-5 mb-4 border border-red-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-lg font-bold text-slate-900">{pendingOrders} orders waiting</p>
-                      <p className="text-sm text-slate-600">Some orders are over 10 minutes old</p>
-                    </div>
-                    <Link
-                      href={`/r/${restaurantId}/admin/orders`}
-                      className="px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all"
-                    >
-                      Handle Now
-                    </Link>
-                  </div>
-                </div>
-              )}
+      {/* Stats Grid */}
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          
+          <div className="border-2 border-gray-200 p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+            <p className="text-sm font-medium text-gray-500 mb-3">Revenue Today</p>
+            <p className="text-5xl font-bold text-black">₹{todayRevenue.toLocaleString()}</p>
+          </div>
 
-              {/* Staff Calls */}
-              {pendingCalls > 0 && (
-                <div className="bg-white rounded-xl p-5 border border-red-200">
-                  <p className="text-lg font-bold text-slate-900 mb-4">{pendingCalls} staff calls waiting</p>
-                  <div className="space-y-3">
-                    {staffCalls?.slice(0, 3).map((call) => (
-                      <div key={call._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                        <div>
-                          <p className="font-bold text-slate-900">Table {call.tableNumber}</p>
-                          {call.reason && <p className="text-sm text-slate-600 mt-1">{call.reason}</p>}
-                        </div>
-                        <button
-                          onClick={() => {
-                            resolveStaffCall({ id: call._id, status: "resolved" });
-                            showToast("✓ Call resolved");
-                          }}
-                          className="px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-all"
-                        >
-                          Resolve
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div className="border-2 border-gray-200 p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+            <p className="text-sm font-medium text-gray-500 mb-3">Pending Orders</p>
+            <p className="text-5xl font-bold text-black">{pendingOrders}</p>
+          </div>
+
+          <div className="border-2 border-gray-200 p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
+            <p className="text-sm font-medium text-gray-500 mb-3">Total Orders</p>
+            <p className="text-5xl font-bold text-black">{totalOrders}</p>
+          </div>
+
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-12 opacity-0 animate-slide-up" style={{animationDelay: '0.5s', animationFillMode: 'forwards'}}>
+          <h2 className="text-2xl font-bold text-black mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            
+            <Link 
+              href={`/r/${restaurantId}/admin/orders`}
+              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+            >
+              <p className="font-bold text-lg mb-1 group-hover:text-white">Orders</p>
+              <p className="text-sm text-gray-500 group-hover:text-gray-300">Manage orders</p>
+            </Link>
+
+            <Link 
+              href={`/r/${restaurantId}/admin/menu`}
+              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+            >
+              <p className="font-bold text-lg mb-1 group-hover:text-white">Menu</p>
+              <p className="text-sm text-gray-500 group-hover:text-gray-300">Edit items</p>
+            </Link>
+
+            <Link 
+              href={`/r/${restaurantId}/admin/tables`}
+              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+            >
+              <p className="font-bold text-lg mb-1 group-hover:text-white">Tables</p>
+              <p className="text-sm text-gray-500 group-hover:text-gray-300">Manage tables</p>
+            </Link>
+
+            <Link 
+              href={`/r/${restaurantId}/admin/settings`}
+              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+            >
+              <p className="font-bold text-lg mb-1 group-hover:text-white">Settings</p>
+              <p className="text-sm text-gray-500 group-hover:text-gray-300">Configure</p>
+            </Link>
+
+          </div>
+        </div>
+
+        {/* Recent Orders */}
+        {orders && orders.length > 0 && (
+          <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.6s', animationFillMode: 'forwards'}}>
+            <h2 className="text-2xl font-bold text-black mb-6">Recent Orders</h2>
+            <div className="border-2 border-gray-200">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-bold text-black">Order</th>
+                    <th className="text-left p-4 text-sm font-bold text-black">Table</th>
+                    <th className="text-left p-4 text-sm font-bold text-black">Status</th>
+                    <th className="text-right p-4 text-sm font-bold text-black">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.slice(0, 5).map((order, index) => (
+                    <tr key={order._id} className="border-t border-gray-200 hover:bg-gray-50 transition-colors">
+                      <td className="p-4 text-sm font-medium text-black">#{order.orderNumber || order._id.slice(-4)}</td>
+                      <td className="p-4 text-sm text-gray-600">{order.tableId}</td>
+                      <td className="p-4">
+                        <span className={`text-xs font-medium px-3 py-1 border ${
+                          order.status === 'completed' ? 'border-black text-black' : 'border-gray-300 text-gray-600'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm font-bold text-black text-right">₹{order.total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* TODAY'S NUMBERS - Simple & Clear */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Today's Performance</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            
-            <div className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 rounded-2xl p-6">
-              <p className="text-sm text-slate-600 mb-2">Revenue</p>
-              <p className="text-4xl font-bold text-slate-900 mb-1">₹{todayRevenue.toLocaleString()}</p>
-              <p className="text-sm text-emerald-600 font-semibold">+23% from yesterday</p>
+        {/* Empty State */}
+        {(!orders || orders.length === 0) && (
+          <div className="text-center py-20 opacity-0 animate-fade-in" style={{animationDelay: '0.6s', animationFillMode: 'forwards'}}>
+            <div className="w-24 h-24 border-2 border-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <span className="text-4xl text-gray-300">📋</span>
             </div>
-
-            <div className={`bg-gradient-to-br ${pendingOrders > 5 ? 'from-red-50 to-white border-red-200' : 'from-amber-50 to-white border-amber-200'} border rounded-2xl p-6`}>
-              <p className="text-sm text-slate-600 mb-2">Pending Orders</p>
-              <p className="text-4xl font-bold text-slate-900 mb-1">{pendingOrders}</p>
-              <p className="text-sm text-slate-600">{preparingOrders} in kitchen</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-2xl p-6">
-              <p className="text-sm text-slate-600 mb-2">Completed</p>
-              <p className="text-4xl font-bold text-slate-900 mb-1">{completedOrders}</p>
-              <p className="text-sm text-slate-600">{totalOrders} total orders</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-200 rounded-2xl p-6">
-              <p className="text-sm text-slate-600 mb-2">Avg Order Value</p>
-              <p className="text-4xl font-bold text-slate-900 mb-1">₹{avgOrderValue.toFixed(0)}</p>
-              <p className="text-sm text-purple-600 font-semibold">+12% from average</p>
-            </div>
-
-          </div>
-        </div>
-
-        {/* RECENT ORDERS - Simplified Table */}
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Recent Orders</h2>
-              <p className="text-sm text-slate-600 mt-1">{totalOrders} orders today</p>
-            </div>
-            <Link
-              href={`/r/${restaurantId}/admin/orders`}
-              className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+            <h3 className="text-2xl font-bold text-black mb-2">No orders yet</h3>
+            <p className="text-gray-600 mb-8">Orders will appear here once customers start ordering</p>
+            <Link 
+              href={`/r/${restaurantId}/admin/qr-codes`}
+              className="inline-block px-8 py-4 bg-black text-white font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 active:scale-95"
             >
-              View All →
+              Generate QR Codes
             </Link>
           </div>
-
-          {!orders || orders.length === 0 ? (
-            <div className="py-20 text-center">
-              <p className="text-2xl font-bold text-slate-300 mb-2">No orders yet</p>
-              <p className="text-slate-500">Orders will appear here once customers start ordering</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {orders.slice(0, 10).map((order) => (
-                <div key={order._id} className="px-6 py-5 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center justify-between gap-6">
-                    
-                    {/* Order Info */}
-                    <div className="flex items-center gap-6 flex-1">
-                      <div className="min-w-[100px]">
-                        <p className="text-lg font-bold text-slate-900">#{order.orderNumber || order._id.slice(-4)}</p>
-                        <p className="text-sm text-slate-500">Table {order.tableId}</p>
-                      </div>
-
-                      {/* Items Preview */}
-                      <div className="flex items-center gap-2">
-                        {order.items.slice(0, 3).map((item, i) => (
-                          <MenuItemImage 
-                            key={i} 
-                            storageId={item.image} 
-                            alt={item.name} 
-                            className="w-12 h-12 rounded-xl object-cover border-2 border-slate-200" 
-                          />
-                        ))}
-                        {order.items.length > 3 && (
-                          <span className="text-sm text-slate-500 font-semibold">+{order.items.length - 3} more</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Status */}
-                    <div className="min-w-[120px]">
-                      <StatusBadge status={order.status} />
-                    </div>
-
-                    {/* Amount */}
-                    <div className="min-w-[100px] text-right">
-                      <p className="text-xl font-bold text-slate-900">₹{order.total.toFixed(0)}</p>
-                    </div>
-
-                    {/* Quick Actions + Print */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {order.status !== 'completed' && (
-                        <>
-                          {order.status === 'pending' && (
-                            <button
-                              onClick={() => handleQuickAction(order._id, 'preparing')}
-                              className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 transition-all"
-                            >
-                              Start
-                            </button>
-                          )}
-                          {order.status === 'preparing' && (
-                            <button
-                              onClick={() => handleQuickAction(order._id, 'ready')}
-                              className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-all"
-                            >
-                              Ready
-                            </button>
-                          )}
-                          {order.status === 'ready' && (
-                            <button
-                              onClick={() => handleQuickAction(order._id, 'completed')}
-                              className="px-4 py-2 bg-slate-500 text-white rounded-xl text-sm font-semibold hover:bg-slate-600 transition-all"
-                            >
-                              Complete
-                            </button>
-                          )}
-                        </>
-                      )}
-                      <button
-                        onClick={() => handlePrintKOT(order)}
-                        className="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 transition-all"
-                      >
-                        Print KOT
-                      </button>
-                      <button
-                        onClick={() => handlePrintBill(order)}
-                        className="px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-all"
-                      >
-                        Print Bill
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Keyboard Shortcuts Help */}
-        <div className="mt-8 p-6 bg-slate-50 border border-slate-200 rounded-2xl">
-          <p className="text-sm font-semibold text-slate-900 mb-3">Keyboard Shortcuts</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono">⌘K</kbd>
-              <span className="ml-2 text-slate-600">Search</span>
-            </div>
-            <div>
-              <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono">⌘O</kbd>
-              <span className="ml-2 text-slate-600">Orders</span>
-            </div>
-            <div>
-              <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono">⌘M</kbd>
-              <span className="ml-2 text-slate-600">Menu</span>
-            </div>
-            <div>
-              <kbd className="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-mono">⌘R</kbd>
-              <span className="ml-2 text-slate-600">Reports</span>
-            </div>
-          </div>
-        </div>
+        )}
 
       </div>
     </div>
-  );
-}
-
-// Simplified Status Badge
-function StatusBadge({ status }) {
-  const styles = {
-    pending: {
-      bg: 'bg-amber-100',
-      text: 'text-amber-900',
-      label: 'PENDING'
-    },
-    preparing: {
-      bg: 'bg-blue-100',
-      text: 'text-blue-900',
-      label: 'COOKING'
-    },
-    ready: {
-      bg: 'bg-emerald-100',
-      text: 'text-emerald-900',
-      label: 'READY'
-    },
-    completed: {
-      bg: 'bg-slate-100',
-      text: 'text-slate-600',
-      label: 'DONE'
-    },
-  };
-  
-  const style = styles[status] || styles.pending;
-  
-  return (
-    <span className={`inline-block px-4 py-2 rounded-xl text-sm font-bold ${style.bg} ${style.text}`}>
-      {style.label}
-    </span>
   );
 }

@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
-import { useBranding } from "@/lib/useBranding";
+import { useBranding } from "@/app/r/[restaurantId]/layout";
 import { checkLocationPermission, RESTAURANT_LOCATION } from "@/lib/location";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import { 

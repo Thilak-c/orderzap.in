@@ -6,13 +6,39 @@ export default defineSchema({
     id: v.string(), // Short ID (under 4 chars): "bts", "mgc", etc.
     name: v.string(),
     logo: v.optional(v.string()),
+    logo_url: v.optional(v.string()), // File system logo URL
     brandName: v.optional(v.string()),
     description: v.optional(v.string()),
     address: v.optional(v.string()),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
     active: v.boolean(),
+    isOpen: v.optional(v.boolean()), // Restaurant open/closed status (toggle by owner)
+    // Business hours for automatic open/close
+    businessHours: v.optional(v.object({
+      monday: v.object({ isOpen: v.boolean(), openTime: v.string(), closeTime: v.string() }),
+      tuesday: v.object({ isOpen: v.boolean(), openTime: v.string(), closeTime: v.string() }),
+      wednesday: v.object({ isOpen: v.boolean(), openTime: v.string(), closeTime: v.string() }),
+      thursday: v.object({ isOpen: v.boolean(), openTime: v.string(), closeTime: v.string() }),
+      friday: v.object({ isOpen: v.boolean(), openTime: v.string(), closeTime: v.string() }),
+      saturday: v.object({ isOpen: v.boolean(), openTime: v.string(), closeTime: v.string() }),
+      sunday: v.object({ isOpen: v.boolean(), openTime: v.string(), closeTime: v.string() }),
+    })),
     createdAt: v.number(),
+    // Owner details
+    ownerName: v.optional(v.string()),
+    ownerPhone: v.optional(v.string()),
+    managerName: v.optional(v.string()),
+    managerPhone: v.optional(v.string()),
+    // Social media links
+    instagramLink: v.optional(v.string()),
+    youtubeLink: v.optional(v.string()),
+    googleMapsLink: v.optional(v.string()),
+    // Onboarding tracking
+    onboardingFilledBy: v.optional(v.string()), // 'owner' | 'manager'
+    onboardingFilledByName: v.optional(v.string()), // Name of person who filled the form
+    mapLink: v.optional(v.string()), // Google Maps link (deprecated, use googleMapsLink)
+    onboardingStatus: v.optional(v.number()), // 0 = just created, 100 = fully setup
     // Theme customization
     themeColors: v.optional(v.object({
       dominant: v.string(),

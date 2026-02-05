@@ -2,7 +2,7 @@
 import { useRef, useEffect, useState } from "react";
 import { X, Send } from "lucide-react";
 import { useChat } from "@/lib/chat";
-import { useBranding } from "@/lib/useBranding";
+import { useBranding } from "@/app/r/[restaurantId]/layout";
 import ChatMessage from "./ChatMessage";
 import QuickReplyButtons from "./QuickReplyButtons";
 

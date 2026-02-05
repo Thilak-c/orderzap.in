@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
-import { useBranding } from '@/lib/useBranding';
+import { useBranding } from '@/app/r/[restaurantId]/layout';
 
 // Business hours: 12 PM (12:00) to 11 PM (23:00)
 const OPEN_HOUR = 12;  // 12 PM

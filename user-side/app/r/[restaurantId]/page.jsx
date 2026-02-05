@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useRestaurant } from "@/lib/restaurant";
+import { useBranding } from "@/app/r/[restaurantId]/layout";
 import { useSession } from "@/lib/session";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -12,6 +13,7 @@ export default function RestaurantHome() {
   const router = useRouter();
   const params = useParams();
   const { restaurant, isLoading } = useRestaurant();
+  const { brandName, brandLogo } = useBranding();
   const { sessionId } = useSession();
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
@@ -20,12 +22,6 @@ export default function RestaurantHome() {
   const hasOrders = useQuery(
     api.orders.hasOrders,
     sessionId ? { sessionId } : "skip"
-  );
-
-  // Get logo URL from storage ID
-  const logoUrl = useQuery(
-    api.files.getUrl,
-    restaurant?.logo ? { storageId: restaurant.logo } : "skip"
   );
 
   // Dynamically import html5-qrcode
@@ -116,14 +112,43 @@ export default function RestaurantHome() {
   };
 
   if (isLoading) {
+    // Calculate character length for animation
+    const nameLength = brandName?.length || 8;
+    const themeColor = restaurant?.themeColors?.darkVibrant || '#EF4444';
+    
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg] gap-4">
-        {/* <img 
-          className="w-16 h-16 rounded-full object-contain" 
-          src={logoUrl} 
-          alt={restaurant?.name || "Restaurant"} 
-        /> */}
-        <div className="loader-2">{restaurant?.name || "Loading"}</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg] gap-">
+        {brandLogo && (
+          <img 
+            className="w-16 h-16 rounded-full object-cover" 
+            src={brandLogo} 
+            alt={brandName} 
+          />
+        )}
+        <div 
+          className="loader-4" 
+          style={{ 
+            '--name-length': nameLength,
+            textShadow: `0 0 0 #000, ${nameLength}ch 0 0 #000`,
+            background: `linear-gradient(${themeColor} 0 0) bottom left/0% 3px no-repeat`,
+          }}
+        >
+          {brandName}
+        </div>
+        <style jsx>{`
+          .loader-4 {
+            animation: loader-anim-${nameLength} 1.5s infinite;
+          }
+          @keyframes loader-anim-${nameLength} {
+            80% {
+              text-shadow: 0 0 0 #000, ${nameLength}ch 0 0 #000;
+              background-size: 100% 3px;
+            }
+            100% {
+              text-shadow: -${nameLength}ch 0 0 #000, 0 0 0 #000;
+            }
+          }
+        `}</style>
       </div>
     );
   }
@@ -166,7 +191,9 @@ export default function RestaurantHome() {
           {/* Logo Circle */}
           <div className="flex justify-center mb-4 opacity-0 animate-slide-up" style={{animationDelay: '0.15s', animationFillMode: 'forwards'}}>
             <div className="w-20 h-20 rounded-full bg-[--primary] flex items-center justify-center shadow-lg">
-              <img src={logoUrl} alt={restaurant.name} className="w-16 h-16 rounded-full object-cover" />
+              {brandLogo && (
+                <img src={brandLogo} alt={brandName} className="w-16 h-16 rounded-full object-cover" />
+              )}
             </div>
           </div>
 

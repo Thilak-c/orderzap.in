@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { useBranding } from '@/lib/useBranding';
 
 export default function StaffLoginPage() {
   const router = useRouter();
-  const { brandName, isLoading: brandingLoading } = useBranding();
+  // Hardcoded branding for staff login
+  const brandName = "OrderZap";
+  const brandingLoading = false;
   const staff = useQuery(api.staff.listActive);
   const setOnline = useMutation(api.staff.setOnline);
   const [name, setName] = useState('');

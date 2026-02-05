@@ -8,7 +8,6 @@ import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
-import { useBranding } from "@/lib/useBranding";
 import { checkLocationPermission, RESTAURANT_LOCATION } from "@/lib/location";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import {
@@ -305,7 +304,10 @@ export default function CartPage() {
   const router = useRouter();
   const { sessionId } = useSession();
   const { setTable } = useTable();
-  const { brandName, brandLogo, isLoading: brandingLoading } = useBranding();
+  // Demo branding - hardcoded
+  const brandName = "Demo Restaurant";
+  const brandLogo = "/assets/logos/orderzap-logo.png";
+  const brandingLoading = false;
   const cartContext = useCart();
 
   // Initialize cart for this table

@@ -20,13 +20,15 @@ function LayoutContent({ children }) {
   const { tableInfo } = useTable();
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith('/admin') || pathname?.startsWith('/demo/admin');
+  const isRestaurantPage = pathname?.startsWith('/r/');
 
   return (
     <>
       <main className="relative z-10 min-h-screen">
         {children}
       </main>
-      {!isAdminPage && <Footer />}
+      {/* Hide footer on restaurant pages (they have their own footer handling) */}
+      {!isAdminPage && !isRestaurantPage && <Footer />}
     </>
   );
 }

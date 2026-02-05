@@ -4,7 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import Script from "next/script";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useBranding } from "@/lib/useBranding";
+import { useBranding } from "@/app/r/[restaurantId]/layout";
 import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { ArrowLeft, Check, Users } from "lucide-react";
 import Link from "next/link";

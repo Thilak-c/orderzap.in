@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useBranding } from "@/lib/useBranding";
 import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { ArrowLeft, Check, Users } from "lucide-react";
 import Link from "next/link";
@@ -116,7 +115,10 @@ const TableCard = ({ table, isSelected, onSelect, capacity }) => {
 
 export default function BookTablePage() {
   const router = useRouter();
-  const { brandName, brandLogo, isLoading: brandingLoading } = useBranding();
+  // Demo branding - hardcoded
+  const brandName = "Demo Restaurant";
+  const brandLogo = "/assets/logos/orderzap-logo.png";
+  const brandingLoading = false;
   const [step, setStep] = useState(1);
   const [selectedTable, setSelectedTable] = useState(null);
   const [selectedTables, setSelectedTables] = useState([]); // For multi-table booking

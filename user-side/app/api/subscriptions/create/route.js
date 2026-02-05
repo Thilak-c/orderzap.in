@@ -5,10 +5,19 @@ import { api } from '@/convex/_generated/api';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+function getRazorpayInstance() {
+  const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay credentials not configured');
+  }
+  
+  return new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+}
 
 export async function POST(request) {
   try {
@@ -34,6 +43,7 @@ export async function POST(request) {
     const priceData = await convex.query(api.subscriptions.calculatePrice, { days });
 
     // Create Razorpay order
+    const razorpay = getRazorpayInstance();
     const razorpayOrder = await razorpay.orders.create({
       amount: Math.round(priceData.totalPrice * 100), // Convert to paise
       currency: 'INR',
@@ -61,7 +71,7 @@ export async function POST(request) {
         subscriptionId,
         paymentId,
         razorpayOrder,
-        razorpayKey: process.env.RAZORPAY_KEY_ID,
+        razorpayKey: process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: priceData.totalPrice,
       },
     });

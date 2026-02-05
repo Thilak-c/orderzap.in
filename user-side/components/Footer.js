@@ -6,13 +6,6 @@ import Link from "next/link";
 export default function Footer() {
   const [gitInfo, setGitInfo] = useState(null);
 
-  useEffect(() => {
-    fetch('/git-info.json')
-      .then(res => res.json())
-      .then(data => setGitInfo(data))
-      .catch(() => setGitInfo(null));
-  }, []);
-
 
 
   return (
@@ -49,16 +42,7 @@ export default function Footer() {
       </div>
 
       {/* Git info (development only) */}
-      {gitInfo && (
-        <div className="absolute right-4 top-4 text-right" aria-hidden="true">
-          <div className="text-[8px] text-[--text-muted] font-mono">
-            {gitInfo.message}
-          </div>
-          <div className="text-[8px] text-[--text-muted] font-mono">
-            {gitInfo.author}
-          </div>
-        </div>
-      )}
+     
     </footer>
   );
 }

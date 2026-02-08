@@ -190,12 +190,12 @@ export default function AdminTablesPage() {
   const cancelledReservations = reservations?.filter(r => r.status === "cancelled") || [];
 
   return (
-    <div className="p-6">
-      <div className="mb-6 border-b border-slate-200 pb-4">
-        <div className="flex justify-between items-start mb-4">
+    <div className="p-3 md:p-6">
+      <div className="mb-4 md:mb-6 pb-3 md:pb-4">
+        <div className="flex justify-between items-start mb-3 md:mb-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Tables & Zones</h1>
-            <p className="text-slate-600 text-xs">
+            <h1 className="text-lg md:text-3xl font-bold text-black tracking-wider uppercase">Tables & Zones</h1>
+            <p className="text-gray-600 text-xs mt-1">
               {activeTab === 'tables' && `${tables?.length || 0} tables`}
               {activeTab === 'zones' && `${zones?.length || 0} zones`}
               {activeTab === 'qr-codes' && 'Print QR codes for tables'}
@@ -204,16 +204,16 @@ export default function AdminTablesPage() {
           </div>
           <div className="flex gap-2">
             {activeTab === 'tables' && (
-              <button onClick={() => setShowTableForm(true)} className="bg-emerald-500 text-white px-4 py-2 text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors">
+              <button onClick={() => setShowTableForm(true)} className="bg-black text-white px-3 md:px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">
                 + Add Table
               </button>
             )}
             {activeTab === 'zones' && (
               <>
-                <button onClick={() => seedZones()} className="bg-slate-100 text-slate-700 px-4 py-2 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors">
+                <button onClick={() => seedZones()} className="bg-white text-black px-3 md:px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 border-gray-300 hover:border-black transition-all">
                   Seed
                 </button>
-                <button onClick={() => setShowZoneForm(true)} className="bg-emerald-500 text-white px-4 py-2 text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors">
+                <button onClick={() => setShowZoneForm(true)} className="bg-black text-white px-3 md:px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">
                   + Add Zone
                 </button>
               </>
@@ -221,13 +221,13 @@ export default function AdminTablesPage() {
             {activeTab === 'qr-codes' && (
               <button 
                 onClick={() => setShowQRSettings(!showQRSettings)} 
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${showQRSettings ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                className={`px-3 md:px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 transition-all ${showQRSettings ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300 hover:border-black'}`}
               >
                 Settings
               </button>
             )}
             {activeTab === 'reservations' && (
-              <button onClick={() => { setReservationFormData({ ...reservationFormData, date: selectedDate }); setShowReservationForm(true); }} className="bg-emerald-500 text-white px-4 py-2 text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors">
+              <button onClick={() => { setReservationFormData({ ...reservationFormData, date: selectedDate }); setShowReservationForm(true); }} className="bg-black text-white px-3 md:px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">
                 + New Booking
               </button>
             )}
@@ -235,43 +235,43 @@ export default function AdminTablesPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('tables')}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+            className={`px-3 md:px-4 py-2 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
               activeTab === 'tables'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-black border-gray-300 hover:border-black'
             }`}
           >
             Tables
           </button>
           <button
             onClick={() => setActiveTab('zones')}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+            className={`px-3 md:px-4 py-2 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
               activeTab === 'zones'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-black border-gray-300 hover:border-black'
             }`}
           >
             Zones
           </button>
           <button
             onClick={() => setActiveTab('reservations')}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+            className={`px-3 md:px-4 py-2 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
               activeTab === 'reservations'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-black border-gray-300 hover:border-black'
             }`}
           >
             Reservations
           </button>
           <button
             onClick={() => setActiveTab('qr-codes')}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+            className={`px-3 md:px-4 py-2 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
               activeTab === 'qr-codes'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-black text-white border-black'
+                : 'bg-white text-black border-gray-300 hover:border-black'
             }`}
           >
             QR Codes
@@ -282,37 +282,37 @@ export default function AdminTablesPage() {
       {/* Table Form Modal */}
       {showTableForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 w-full max-w-sm">
+          <div className="bg-white border-2 border-black p-6 w-full max-w-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-900">{editingTable ? "Edit Table" : "Add Table"}</h2>
-              <button onClick={resetTableForm} className="text-slate-500 hover:text-slate-900 text-lg">✕</button>
+              <h2 className="text-sm font-bold text-black uppercase tracking-wider">{editingTable ? "Edit Table" : "Add Table"}</h2>
+              <button onClick={resetTableForm} className="text-gray-500 hover:text-black text-lg font-bold">✕</button>
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] text-slate-600 font-semibold mb-1">Name</label>
-                  <input type="text" value={tableFormData.name} onChange={(e) => setTableFormData({ ...tableFormData, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Table 1" />
+                  <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Name</label>
+                  <input type="text" value={tableFormData.name} onChange={(e) => setTableFormData({ ...tableFormData, name: e.target.value })} className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none" placeholder="Table 1" />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-slate-600 font-semibold mb-1">Number</label>
-                  <input type="number" value={tableFormData.number} onChange={(e) => setTableFormData({ ...tableFormData, number: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="1" min="1" />
+                  <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Number</label>
+                  <input type="number" value={tableFormData.number} onChange={(e) => setTableFormData({ ...tableFormData, number: e.target.value })} className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none" placeholder="1" min="1" />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Capacity (seats)</label>
-                <input type="number" value={tableFormData.capacity} onChange={(e) => setTableFormData({ ...tableFormData, capacity: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="4" min="1" max="20" />
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Capacity (seats)</label>
+                <input type="number" value={tableFormData.capacity} onChange={(e) => setTableFormData({ ...tableFormData, capacity: e.target.value })} className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none" placeholder="4" min="1" max="20" />
               </div>
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Zone</label>
-                <select value={tableFormData.zoneId} onChange={(e) => setTableFormData({ ...tableFormData, zoneId: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none">
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Zone</label>
+                <select value={tableFormData.zoneId} onChange={(e) => setTableFormData({ ...tableFormData, zoneId: e.target.value })} className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none">
                   <option value="">All Zones</option>
                   {zones?.map((zone) => (<option key={zone._id} value={zone._id}>{zone.name}</option>))}
                 </select>
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button onClick={resetTableForm} className="flex-1 bg-slate-100 text-slate-700 py-2 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
-              <button onClick={handleSaveTable} className="flex-1 bg-emerald-500 text-white py-2 text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors">{editingTable ? "Update" : "Add"}</button>
+              <button onClick={resetTableForm} className="flex-1 bg-white text-black py-2 text-xs font-bold uppercase tracking-wide border-2 border-gray-300 hover:border-black transition-all">Cancel</button>
+              <button onClick={handleSaveTable} className="flex-1 bg-black text-white py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">{editingTable ? "Update" : "Add"}</button>
             </div>
           </div>
         </div>
@@ -321,24 +321,24 @@ export default function AdminTablesPage() {
       {/* Zone Form Modal */}
       {showZoneForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 w-full max-w-sm">
+          <div className="bg-white border-2 border-black p-6 w-full max-w-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-900">{editingZone ? "Edit Zone" : "Add Zone"}</h2>
-              <button onClick={resetZoneForm} className="text-slate-500 hover:text-slate-900 text-lg">✕</button>
+              <h2 className="text-sm font-bold text-black uppercase tracking-wider">{editingZone ? "Edit Zone" : "Add Zone"}</h2>
+              <button onClick={resetZoneForm} className="text-gray-500 hover:text-black text-lg font-bold">✕</button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Zone Name</label>
-                <input type="text" value={zoneFormData.name} onChange={(e) => setZoneFormData({ ...zoneFormData, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="e.g. Smoking Zone" />
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Zone Name</label>
+                <input type="text" value={zoneFormData.name} onChange={(e) => setZoneFormData({ ...zoneFormData, name: e.target.value })} className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none" placeholder="e.g. Smoking Zone" />
               </div>
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Description</label>
-                <input type="text" value={zoneFormData.description} onChange={(e) => setZoneFormData({ ...zoneFormData, description: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="e.g. Hookah allowed" />
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Description</label>
+                <input type="text" value={zoneFormData.description} onChange={(e) => setZoneFormData({ ...zoneFormData, description: e.target.value })} className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none" placeholder="e.g. Hookah allowed" />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button onClick={resetZoneForm} className="flex-1 bg-slate-100 text-slate-700 py-2 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
-              <button onClick={handleSaveZone} className="flex-1 bg-emerald-500 text-white py-2 text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors">{editingZone ? "Update" : "Add"}</button>
+              <button onClick={resetZoneForm} className="flex-1 bg-white text-black py-2 text-xs font-bold uppercase tracking-wide border-2 border-gray-300 hover:border-black transition-all">Cancel</button>
+              <button onClick={handleSaveZone} className="flex-1 bg-black text-white py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">{editingZone ? "Update" : "Add"}</button>
             </div>
           </div>
         </div>
@@ -347,18 +347,18 @@ export default function AdminTablesPage() {
       {/* Reservation Form Modal */}
       {showReservationForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-white border-2 border-black p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-900">New Reservation</h2>
-              <button onClick={resetReservationForm} className="text-slate-500 hover:text-slate-900 text-lg">✕</button>
+              <h2 className="text-sm font-bold text-black uppercase tracking-wider">New Reservation</h2>
+              <button onClick={resetReservationForm} className="text-gray-500 hover:text-black text-lg font-bold">✕</button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Table *</label>
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Table *</label>
                 <select
                   value={reservationFormData.tableId}
                   onChange={(e) => setReservationFormData({ ...reservationFormData, tableId: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
                 >
                   <option value="">Select table...</option>
                   {tables?.map((table) => (
@@ -370,80 +370,80 @@ export default function AdminTablesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] text-slate-600 font-semibold mb-1">Customer Name *</label>
+                  <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Customer Name *</label>
                   <input
                     type="text"
                     value={reservationFormData.customerName}
                     onChange={(e) => setReservationFormData({ ...reservationFormData, customerName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
                     placeholder="Name"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-slate-600 font-semibold mb-1">Phone</label>
+                  <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Phone</label>
                   <input
                     type="tel"
                     value={reservationFormData.customerPhone}
                     onChange={(e) => setReservationFormData({ ...reservationFormData, customerPhone: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
                     placeholder="Phone"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Date *</label>
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Date *</label>
                 <input
                   type="date"
                   value={reservationFormData.date}
                   onChange={(e) => setReservationFormData({ ...reservationFormData, date: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
                   min={today}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] text-slate-600 font-semibold mb-1">Start Time *</label>
+                  <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Start Time *</label>
                   <input
                     type="time"
                     value={reservationFormData.startTime}
                     onChange={(e) => setReservationFormData({ ...reservationFormData, startTime: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-slate-600 font-semibold mb-1">End Time *</label>
+                  <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">End Time *</label>
                   <input
                     type="time"
                     value={reservationFormData.endTime}
                     onChange={(e) => setReservationFormData({ ...reservationFormData, endTime: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Party Size</label>
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Party Size</label>
                 <input
                   type="number"
                   value={reservationFormData.partySize}
                   onChange={(e) => setReservationFormData({ ...reservationFormData, partySize: parseInt(e.target.value) || 1 })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
                   min="1"
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-slate-600 font-semibold mb-1">Notes</label>
+                <label className="block text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Notes</label>
                 <textarea
                   value={reservationFormData.notes}
                   onChange={(e) => setReservationFormData({ ...reservationFormData, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none resize-none"
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none resize-none"
                   rows={2}
                   placeholder="Special requests..."
                 />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button onClick={resetReservationForm} className="flex-1 bg-slate-100 text-slate-700 py-2 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
-              <button onClick={handleCreateReservation} className="flex-1 bg-emerald-500 text-white py-2 text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors">Book Table</button>
+              <button onClick={resetReservationForm} className="flex-1 bg-white text-black py-2 text-xs font-bold uppercase tracking-wide border-2 border-gray-300 hover:border-black transition-all">Cancel</button>
+              <button onClick={handleCreateReservation} className="flex-1 bg-black text-white py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">Book Table</button>
             </div>
           </div>
         </div>
@@ -453,31 +453,31 @@ export default function AdminTablesPage() {
       {activeTab === 'tables' && (
         <>
           {!tables ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-600">Loading...</div>
+            <div className="bg-white border-2 border-gray-300 p-8 text-center text-gray-600">Loading...</div>
           ) : tables.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-              <p className="text-slate-600 mb-4">No tables yet</p>
-              <button onClick={() => setShowTableForm(true)} className="bg-emerald-500 text-white px-4 py-2 text-xs font-bold rounded-lg hover:bg-emerald-600">Add First Table</button>
+            <div className="bg-white border-2 border-gray-300 p-8 text-center">
+              <p className="text-gray-600 mb-4">No tables yet</p>
+              <button onClick={() => setShowTableForm(true)} className="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">Add First Table</button>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {tables.map((table) => (
-                <div key={table._id} className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                <div key={table._id} className="bg-white border-2 border-gray-300 p-4 hover:border-black transition-all">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-center">
-                      <span className="text-xl font-bold text-slate-900">{table.number}</span>
+                    <div className="w-12 h-12 bg-white border-2 border-black flex items-center justify-center">
+                      <span className="text-xl font-bold text-black">{table.number}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => handleEditTable(table)} className="text-[10px] text-blue-600 hover:text-blue-700 font-medium px-2 py-1">Edit</button>
-                      <button onClick={() => handleDeleteTable(table._id)} className="text-[10px] text-red-600 hover:text-red-700 font-medium px-2 py-1">✕</button>
+                      <button onClick={() => handleEditTable(table)} className="text-[10px] text-black hover:bg-black hover:text-white font-bold px-2 py-1 border border-black transition-all">EDIT</button>
+                      <button onClick={() => handleDeleteTable(table._id)} className="text-[10px] text-black hover:bg-black hover:text-white font-bold px-2 py-1 border border-black transition-all">✕</button>
                     </div>
                   </div>
-                  <h3 className="font-medium text-sm text-slate-900">{table.name}</h3>
-                  <p className="text-slate-600 text-xs mt-1">{table.capacity ? `${table.capacity} seats` : 'No limit'}</p>
+                  <h3 className="font-bold text-sm text-black uppercase tracking-wide">{table.name}</h3>
+                  <p className="text-gray-600 text-xs mt-1">{table.capacity ? `${table.capacity} seats` : 'No limit'}</p>
                   {table.zone ? (
-                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold">{table.zone.name}</span>
+                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-black text-white font-bold uppercase tracking-wide">{table.zone.name}</span>
                   ) : (
-                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-semibold">ALL ZONES</span>
+                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-white text-black border border-black font-bold uppercase tracking-wide">ALL ZONES</span>
                   )}
                 </div>
               ))}
@@ -490,37 +490,37 @@ export default function AdminTablesPage() {
       {activeTab === 'zones' && (
         <>
           {!zones ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-600">Loading...</div>
+            <div className="bg-white border-2 border-gray-300 p-8 text-center text-gray-600">Loading...</div>
           ) : zones.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-              <p className="text-slate-600 mb-4">No zones yet</p>
-              <button onClick={() => setShowZoneForm(true)} className="bg-emerald-500 text-white px-4 py-2 text-xs font-bold rounded-lg hover:bg-emerald-600">Add First Zone</button>
+            <div className="bg-white border-2 border-gray-300 p-8 text-center">
+              <p className="text-gray-600 mb-4">No zones yet</p>
+              <button onClick={() => setShowZoneForm(true)} className="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">Add First Zone</button>
             </div>
           ) : (
             <div className="space-y-3">
               {zones.map((zone) => {
                 const zoneTables = getTablesInZone(zone._id);
                 return (
-                  <div key={zone._id} className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                  <div key={zone._id} className="bg-white border-2 border-gray-300 p-4 hover:border-black transition-all">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-center">
-                          <span className="text-lg text-slate-700">◎</span>
+                        <div className="w-12 h-12 bg-white border-2 border-black flex items-center justify-center">
+                          <span className="text-lg text-black font-bold">◎</span>
                         </div>
                         <div>
-                          <h3 className="font-medium text-slate-900">{zone.name}</h3>
-                          <p className="text-xs text-slate-600">{zone.description}</p>
+                          <h3 className="font-bold text-black uppercase tracking-wide">{zone.name}</h3>
+                          <p className="text-xs text-gray-600 mt-1">{zone.description}</p>
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="text-[10px] text-emerald-600 font-semibold">{zoneTables.length} tables</span>
+                            <span className="text-[10px] text-black font-bold uppercase tracking-wide">{zoneTables.length} tables</span>
                             {zoneTables.length > 0 && (
-                              <span className="text-[10px] text-slate-500">({zoneTables.map((t) => t.name).join(", ")})</span>
+                              <span className="text-[10px] text-gray-500">({zoneTables.map((t) => t.name).join(", ")})</span>
                             )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => handleEditZone(zone)} className="text-xs text-blue-600 hover:text-blue-700 font-medium">Edit</button>
-                        <button onClick={() => handleDeleteZone(zone._id)} className="text-xs text-red-600 hover:text-red-700 font-medium">Delete</button>
+                        <button onClick={() => handleEditZone(zone)} className="text-xs text-black hover:bg-black hover:text-white font-bold px-2 py-1 border border-black transition-all">EDIT</button>
+                        <button onClick={() => handleDeleteZone(zone._id)} className="text-xs text-black hover:bg-black hover:text-white font-bold px-2 py-1 border border-black transition-all">DELETE</button>
                       </div>
                     </div>
                   </div>
@@ -535,47 +535,47 @@ export default function AdminTablesPage() {
       {activeTab === 'qr-codes' && (
         <>
           {showQRSettings && (
-            <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6">
-              <label className="block text-[10px] text-slate-600 font-semibold mb-2">Base URL</label>
+            <div className="bg-white border-2 border-gray-300 p-4 mb-6">
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">Base URL</label>
               <div className="flex gap-2">
                 <input 
                   type="text" 
                   value={baseUrl} 
                   onChange={(e) => setBaseUrl(e.target.value)} 
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" 
+                  className="flex-1 bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none" 
                   placeholder="https://your-domain.com/" 
                 />
                 <button
                   onClick={handleSaveBaseUrl}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-black text-white text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all disabled:opacity-50"
                 >
                   {isSaving ? 'Saving...' : 'Save'}
                 </button>
               </div>
-              <p className="text-[10px] text-slate-500 mt-2">QR codes will link to: {baseUrl}r/{restaurantId}/a/[table-number]</p>
-              <p className="text-[10px] text-emerald-600 mt-1 font-semibold">
+              <p className="text-[10px] text-gray-500 mt-2">QR codes will link to: {baseUrl}r/{restaurantId}/a/[table-number]</p>
+              <p className="text-[10px] text-black mt-1 font-bold">
                 {settings?.baseUrl ? '✓ Saved in database' : '⚠ Auto-detected (not saved)'}
               </p>
             </div>
           )}
 
           {!tables ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-600">Loading...</div>
+            <div className="bg-white border-2 border-gray-300 p-8 text-center text-gray-600">Loading...</div>
           ) : tables.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-              <p className="text-slate-600">No tables. Add tables first.</p>
+            <div className="bg-white border-2 border-gray-300 p-8 text-center">
+              <p className="text-gray-600">No tables. Add tables first.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {tables.map((table) => (
-                <div key={table._id} className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                <div key={table._id} className="bg-white border-2 border-gray-300 p-4 hover:border-black transition-all">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium text-sm text-slate-900">{table.name}</h3>
-                    <span className="text-[10px] text-slate-500">#{table.number}</span>
+                    <h3 className="font-bold text-sm text-black uppercase tracking-wide">{table.name}</h3>
+                    <span className="text-[10px] text-gray-500">#{table.number}</span>
                   </div>
                   
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 mb-3">
+                  <div className="bg-white border-2 border-black p-2 mb-3">
                     <img 
                       src={getQRCodeUrl(table.number)} 
                       alt={`QR for ${table.name}`} 
@@ -587,14 +587,14 @@ export default function AdminTablesPage() {
                     <a 
                       href={getQRCodeUrl(table.number)} 
                       download={`table-${table.number}.png`} 
-                      className="flex-1 text-center bg-slate-100 text-slate-700 py-2 text-[10px] font-semibold rounded-lg hover:bg-slate-200 transition-colors"
+                      className="flex-1 text-center bg-white text-black py-2 text-[10px] font-bold uppercase tracking-wide border-2 border-gray-300 hover:border-black transition-all"
                     >
                       Download
                     </a>
                     <Link 
                       href={`/r/${restaurantId}/a/${table.number}`} 
                       target="_blank" 
-                      className="flex-1 text-center bg-emerald-500 text-white py-2 text-[10px] font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
+                      className="flex-1 text-center bg-black text-white py-2 text-[10px] font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all"
                     >
                       Test →
                     </Link>
@@ -611,17 +611,17 @@ export default function AdminTablesPage() {
         <>
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <p className="text-[10px] text-slate-600 font-semibold mb-1">Today's Bookings</p>
-              <p className="text-2xl font-bold text-slate-900">{todayStats?.total || 0}</p>
+            <div className="bg-white border-2 border-gray-300 p-4">
+              <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Today's Bookings</p>
+              <p className="text-2xl font-bold text-black">{todayStats?.total || 0}</p>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <p className="text-[10px] text-slate-600 font-semibold mb-1">Upcoming Today</p>
-              <p className="text-2xl font-bold text-amber-600">{todayStats?.upcoming || 0}</p>
+            <div className="bg-white border-2 border-gray-300 p-4">
+              <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Upcoming Today</p>
+              <p className="text-2xl font-bold text-black">{todayStats?.upcoming || 0}</p>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <p className="text-[10px] text-slate-600 font-semibold mb-1">Selected Date</p>
-              <p className="text-lg font-bold text-slate-900">{confirmedReservations.length} bookings</p>
+            <div className="bg-white border-2 border-gray-300 p-4">
+              <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Selected Date</p>
+              <p className="text-lg font-bold text-black">{confirmedReservations.length} bookings</p>
             </div>
           </div>
 
@@ -629,7 +629,7 @@ export default function AdminTablesPage() {
           <div className="flex gap-2 mb-6 items-center">
             <button
               onClick={() => setSelectedDate(today)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${selectedDate === today ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 transition-all ${selectedDate === today ? 'bg-black text-white border-black' : 'bg-white border-gray-300 text-black hover:border-black'}`}
             >
               Today
             </button>
@@ -638,7 +638,7 @@ export default function AdminTablesPage() {
                 const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
                 setSelectedDate(tomorrow);
               }}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-white border-2 border-gray-300 text-black hover:border-black transition-all"
             >
               Tomorrow
             </button>
@@ -646,26 +646,26 @@ export default function AdminTablesPage() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+              className="bg-white border-2 border-gray-300 px-3 py-1.5 text-xs text-black focus:border-black outline-none"
             />
           </div>
 
           {/* Reservations List */}
           {confirmedReservations.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-              <p className="text-slate-600">No reservations for {selectedDate}</p>
+            <div className="bg-white border-2 border-gray-300 p-8 text-center">
+              <p className="text-gray-600">No reservations for {selectedDate}</p>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="bg-white border-2 border-gray-300 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-[10px] font-semibold">
+                <thead className="bg-white text-[10px] font-bold border-b-2 border-gray-300">
                   <tr>
-                    <th className="text-left py-3 px-4 text-slate-600">Time</th>
-                    <th className="text-left py-3 px-3 text-slate-600">Table</th>
-                    <th className="text-left py-3 px-3 text-slate-600">Customer</th>
-                    <th className="text-center py-3 px-3 text-slate-600">Party</th>
-                    <th className="text-left py-3 px-3 text-slate-600">Notes</th>
-                    <th className="text-right py-3 px-4 text-slate-600">Actions</th>
+                    <th className="text-left py-3 px-4 text-black uppercase tracking-wide">Time</th>
+                    <th className="text-left py-3 px-3 text-black uppercase tracking-wide">Table</th>
+                    <th className="text-left py-3 px-3 text-black uppercase tracking-wide">Customer</th>
+                    <th className="text-center py-3 px-3 text-black uppercase tracking-wide">Party</th>
+                    <th className="text-left py-3 px-3 text-black uppercase tracking-wide">Notes</th>
+                    <th className="text-right py-3 px-4 text-black uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -674,27 +674,27 @@ export default function AdminTablesPage() {
                     const isNow = selectedDate === today && now >= res.startTime && now <= res.endTime;
                     const isPast = selectedDate === today && now > res.endTime;
                     return (
-                      <tr key={res._id} className={`border-t border-slate-100 ${isNow ? 'bg-amber-50' : isPast ? 'opacity-50' : ''}`}>
+                      <tr key={res._id} className={`border-t border-gray-300 ${isNow ? 'bg-gray-100' : isPast ? 'opacity-50' : ''}`}>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            {isNow && <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />}
-                            <span className="font-medium text-slate-900">{res.startTime} - {res.endTime}</span>
+                            {isNow && <span className="w-2 h-2 bg-black rounded-full animate-pulse" />}
+                            <span className="font-bold text-black">{res.startTime} - {res.endTime}</span>
                           </div>
                         </td>
                         <td className="py-3 px-3">
-                          <span className="font-medium text-slate-900">🪑 {res.table?.name || `Table ${res.tableNumber}`}</span>
+                          <span className="font-bold text-black">🪑 {res.table?.name || `Table ${res.tableNumber}`}</span>
                         </td>
                         <td className="py-3 px-3">
-                          <p className="font-medium text-slate-900">{res.customerName}</p>
-                          {res.customerPhone && <p className="text-[10px] text-slate-500">{res.customerPhone}</p>}
+                          <p className="font-bold text-black">{res.customerName}</p>
+                          {res.customerPhone && <p className="text-[10px] text-gray-500">{res.customerPhone}</p>}
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <span className="bg-slate-100 px-2 py-0.5 text-xs rounded text-slate-700">{res.partySize} pax</span>
+                          <span className="bg-black text-white px-2 py-0.5 text-xs font-bold uppercase tracking-wide">{res.partySize} pax</span>
                         </td>
-                        <td className="py-3 px-3 text-slate-600 text-xs">{res.notes || '-'}</td>
+                        <td className="py-3 px-3 text-gray-600 text-xs">{res.notes || '-'}</td>
                         <td className="py-3 px-4 text-right">
                           {!isPast && (
-                            <button onClick={() => handleCancelReservation(res._id)} className="text-xs text-red-600 hover:text-red-700 font-medium">Cancel</button>
+                            <button onClick={() => handleCancelReservation(res._id)} className="text-xs text-black hover:bg-black hover:text-white font-bold px-2 py-1 border border-black transition-all">CANCEL</button>
                           )}
                         </td>
                       </tr>
@@ -708,12 +708,12 @@ export default function AdminTablesPage() {
           {/* Cancelled */}
           {cancelledReservations.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-xs text-slate-600 font-semibold mb-2">Cancelled ({cancelledReservations.length})</h3>
-              <div className="bg-white border border-slate-200 rounded-xl p-4 opacity-50">
+              <h3 className="text-xs text-gray-600 font-bold mb-2 uppercase tracking-wide">Cancelled ({cancelledReservations.length})</h3>
+              <div className="bg-white border-2 border-gray-300 p-4 opacity-50">
                 {cancelledReservations.map((res) => (
-                  <div key={res._id} className="flex justify-between text-sm py-1 text-slate-700">
+                  <div key={res._id} className="flex justify-between text-sm py-1 text-gray-700">
                     <span>{res.startTime} - {res.table?.name} - {res.customerName}</span>
-                    <span className="text-red-600 text-xs font-semibold">CANCELLED</span>
+                    <span className="text-black text-xs font-bold uppercase tracking-wide">CANCELLED</span>
                   </div>
                 ))}
               </div>

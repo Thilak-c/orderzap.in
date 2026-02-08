@@ -8,6 +8,7 @@ export default defineSchema({
     logo: v.optional(v.string()),
     logo_url: v.optional(v.string()), // File system logo URL
     brandName: v.optional(v.string()),
+    primaryColor: v.optional(v.string()), // Brand primary color (hex)
     description: v.optional(v.string()),
     address: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -57,21 +58,39 @@ export default defineSchema({
     .index("by_status", ["status"]),
 
   zones: defineTable({
-    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())), // Can be Convex ID or short ID
     name: v.string(), // "Smoking Zone", "Main Dining", "VIP", etc.
     description: v.string(),
   }).index("by_restaurant", ["restaurantId"]),
 
+  categories: defineTable({
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())), // Can be Convex ID or short ID
+    name: v.string(), // Category name
+    icon: v.optional(v.string()), // Default icon name (e.g., "starters", "mains", "drinks")
+    iconFileUrl: v.optional(v.string()), // Custom icon file path: /restro_assets/changu-mangu/icons/custom-category.webp
+    iconUrl: v.optional(v.string()), // Custom icon API route: /api/category_icon/changu-mangu/custom-category.webp
+    order: v.optional(v.number()), // Display order
+    createdAt: v.number(),
+  }).index("by_restaurant", ["restaurantId"]),
+
   menuItems: defineTable({
-    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())), // Can be Convex ID or short ID like "changu-mangu"
     name: v.string(),
     price: v.number(),
     category: v.string(),
-    image: v.string(),
+    image: v.optional(v.string()), // Legacy field - kept for backward compatibility
+    imageFileUrl: v.optional(v.string()), // Legacy field - kept for backward compatibility
+    imageUrl: v.optional(v.string()), // API route: /api/menu_item/changu-mangu/butter-chicken.webp
     description: v.string(),
     available: v.boolean(),
     // Zones where this item is available. Empty array = "All Zones" (available everywhere)
     allowedZones: v.optional(v.array(v.id("zones"))),
+    // Theme colors extracted from image
+    themeColors: v.optional(v.object({
+      primary: v.string(),
+      secondary: v.string(),
+      accent: v.string(),
+    })),
   }).index("by_restaurant", ["restaurantId"]),
 
   orders: defineTable({

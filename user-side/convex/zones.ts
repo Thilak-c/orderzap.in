@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: { restaurantId: v.optional(v.id("restaurants")) },
+  args: { restaurantId: v.optional(v.union(v.id("restaurants"), v.string())) },
   handler: async (ctx, args) => {
     if (args.restaurantId) {
       return await ctx.db
@@ -16,7 +16,7 @@ export const list = query({
 
 export const create = mutation({
   args: {
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())),
     name: v.string(),
     description: v.string(),
   },

@@ -14,6 +14,12 @@ export default function AdminDashboard() {
   const stats = useQuery(api.orders.getStats, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
   const orders = useQuery(api.orders.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
   const updateRestaurant = useMutation(api.restaurants.update);
+  
+  // Get setup data
+  const menuItems = useQuery(api.menuItems.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const tables = useQuery(api.tables.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const zones = useQuery(api.zones.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const staff = useQuery(api.staff.listActive, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
 
   const [formData, setFormData] = useState({
     userRole: "", // "owner" or "manager"
@@ -39,6 +45,7 @@ export default function AdminDashboard() {
     },
   });
   const [saving, setSaving] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [step, setStep] = useState(1); // 1: Who are you, 2: Names & Phones, 3: Social Links, 4: Address, 5: Business Hours
   const [socialStep, setSocialStep] = useState(1); // 1: Do you have social media?, 2: Which platforms?, 3: Enter links
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
@@ -47,6 +54,13 @@ export default function AdminDashboard() {
   const todayRevenue = stats?.todayRevenue ?? 0;
   const totalOrders = orders?.length ?? 0;
   const onboardingStatus = restaurant?.onboardingStatus ?? 0;
+  
+  // Check if restaurant needs setup
+  const hasMenuItems = menuItems && menuItems.length > 0;
+  const hasTables = tables && tables.length > 0;
+  const hasZones = zones && zones.length > 0;
+  const hasStaff = staff && staff.length > 0;
+  const needsSetup = !hasMenuItems || !hasTables;
 
   const toggleRestaurantStatus = async () => {
     if (!restaurantDbId || isTogglingStatus) return;
@@ -89,11 +103,22 @@ export default function AdminDashboard() {
         businessHours: formData.businessHours,
         onboardingFilledBy: formData.userRole, // Store who filled the form
         onboardingFilledByName: filledByName, // Store name of person who filled
-        onboardingStatus: 25, // Move to next step
+        onboardingStatus: 100, // Complete onboarding
       });
       
       // Trigger confetti and vibration on success
       triggerSuccessAnimation();
+      
+      // Show welcome message after confetti
+      setTimeout(() => {
+        setShowWelcome(true);
+        
+        // Reload page after 3 seconds to show dashboard
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      }, 1000);
+      
     } catch (error) {
       console.error("Failed to save:", error);
     }
@@ -106,13 +131,18 @@ export default function AdminDashboard() {
       navigator.vibrate([200, 100, 200, 100, 200]);
     }
     
-    // Create confetti
+    // Create confetti with theme colors
     createConfetti();
   };
 
   const createConfetti = () => {
-    const colors = ['#000000', '#333333', '#666666', '#999999'];
-    const confettiCount = 100;
+    // Use theme colors if available, otherwise use grayscale
+    const themeColors = restaurant?.themeColors;
+    const colors = themeColors 
+      ? [themeColors.dominant, themeColors.darkVibrant, themeColors.lightVibrant, themeColors.muted]
+      : ['#000000', '#333333', '#666666', '#999999'];
+    
+    const confettiCount = 150;
 
     for (let i = 0; i < confettiCount; i++) {
       const confetti = document.createElement('div');
@@ -238,6 +268,48 @@ export default function AdminDashboard() {
 
   // Welcome screen for new restaurants
   if (onboardingStatus === 0) {
+    
+    // Show welcome message after form completion
+    if (showWelcome) {
+      return (
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+          <div className="max-w-2xl mx-auto text-center">
+            
+            {/* Logo */}
+            {restaurant?.logo_url && (
+              <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+                <img 
+                  src={restaurant.logo_url} 
+                  alt={restaurant.name}
+                  className="w-32 h-32 object-cover rounded-full border-4 border-black transition-transform hover:scale-105"
+                />
+              </div>
+            )}
+
+            {/* Welcome Message */}
+            <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+              <h1 className="text-4xl sm:text-5xl font-bold text-black mb-4">
+                Setup Complete!
+              </h1>
+              
+              <p className="text-2xl sm:text-3xl text-gray-600 mb-12">
+                Welcome to the Admin Panel
+              </p>
+              
+              <p className="text-xl text-black font-medium mb-2">
+                {restaurant?.name}
+              </p>
+              
+              <p className="text-sm text-gray-500">
+                Redirecting to your dashboard...
+              </p>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen bg-white px-6 py-12">
         <div className="max-w-2xl mx-auto">
@@ -891,45 +963,84 @@ export default function AdminDashboard() {
 
   // Regular dashboard for onboarded restaurants
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-20">
+      
+      {/* Welcome Overlay */}
+      {showWelcome && (
+        <div className="fixed inset-0 bg-white z-[9998] flex flex-col items-center justify-center px-6">
+          <div className="max-w-2xl mx-auto text-center">
+            
+            {/* Logo */}
+            {restaurant?.logo_url && (
+              <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+                <img 
+                  src={restaurant.logo_url} 
+                  alt={restaurant.name}
+                  className="w-32 h-32 object-cover rounded-full border-4 border-black transition-transform hover:scale-105"
+                />
+              </div>
+            )}
+
+            {/* Welcome Message */}
+            <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+              <h1 className="text-4xl sm:text-5xl font-bold text-black mb-4">
+                Setup Complete!
+              </h1>
+              
+              <p className="text-2xl sm:text-3xl text-gray-600 mb-12">
+                Welcome to the Admin Panel
+              </p>
+              
+              <p className="text-xl text-black font-medium mb-2">
+                {restaurant?.name}
+              </p>
+              
+              <p className="text-sm text-gray-500">
+                Get ready to manage your restaurant...
+              </p>
+            </div>
+
+          </div>
+        </div>
+      )}
       
       {/* Header */}
       <div className="border-b border-gray-200 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               {restaurant?.logo_url && (
                 <img 
                   src={restaurant.logo_url} 
                   alt={restaurant.name}
-                  className="w-16 h-16 object-cover rounded-full border-2 border-gray-200"
+                  className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-full border-2 border-gray-200"
                 />
               )}
               <div>
-                <h1 className="text-3xl font-bold text-black">{restaurant?.name || "Admin"}</h1>
-                <p className="text-sm text-gray-500 mt-1">Welcome back</p>
+                <h1 className="text-xl sm:text-3xl font-bold text-black">{restaurant?.name || "Admin"}</h1>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">Welcome back</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
               {/* Toggle Switch */}
               <button
                 onClick={toggleRestaurantStatus}
                 disabled={isTogglingStatus}
-                className="relative inline-flex items-center gap-3 cursor-pointer disabled:opacity-50"
+                className="relative inline-flex items-center gap-2 sm:gap-3 cursor-pointer disabled:opacity-50"
               >
-                <span className="text-sm font-medium text-gray-600">
+                <span className="text-xs sm:text-sm font-medium text-gray-600">
                   {restaurant?.isOpen ? 'Open' : 'Closed'}
                 </span>
-                <div className={`w-16 h-8 rounded-full transition-all duration-300 ${
+                <div className={`w-14 h-7 sm:w-16 sm:h-8 rounded-full transition-all duration-300 ${
                   restaurant?.isOpen ? 'bg-black' : 'bg-gray-300'
                 }`}>
-                  <div className={`w-6 h-6 bg-white rounded-full mt-1 transition-all duration-300 transform ${
-                    restaurant?.isOpen ? 'translate-x-9' : 'translate-x-1'
+                  <div className={`w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full mt-1 transition-all duration-300 transform ${
+                    restaurant?.isOpen ? 'translate-x-8 sm:translate-x-9' : 'translate-x-1'
                   }`} />
                 </div>
               </button>
               
-              {/* Business Hours Info */}
+              {/* Business Hours Info - Hidden on mobile */}
               {restaurant?.businessHours && (() => {
                 const now = new Date();
                 const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -938,14 +1049,14 @@ export default function AdminDashboard() {
                 
                 if (daySchedule && daySchedule.isOpen) {
                   return (
-                    <div className="text-xs text-gray-500">
+                    <div className="hidden sm:block text-xs text-gray-500">
                       <div>Today: {daySchedule.openTime} - {daySchedule.closeTime}</div>
                       <div className="text-gray-400">Auto-updates every 5 min</div>
                     </div>
                   );
                 } else if (daySchedule && !daySchedule.isOpen) {
                   return (
-                    <div className="text-xs text-gray-500">
+                    <div className="hidden sm:block text-xs text-gray-500">
                       <div>Closed today</div>
                     </div>
                   );
@@ -958,61 +1069,198 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        
+        {/* Setup Checklist - Show if restaurant needs setup */}
+        {needsSetup && (
+          <div className="mb-8 sm:mb-12 opacity-0 animate-fade-in" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+            <div className="border-2 border-black p-6 sm:p-8 bg-white">
+              <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">Get Started</h2>
+              <p className="text-sm sm:text-base text-gray-600 mb-6">Complete these steps to start accepting orders</p>
+              
+              <div className="space-y-3">
+                {/* Menu Items */}
+                <Link 
+                  href={`/r/${restaurantId}/admin/menu`}
+                  className={`flex items-center justify-between p-4 border-2 transition-all duration-300 ${
+                    hasMenuItems 
+                      ? 'border-gray-200 bg-gray-50' 
+                      : 'border-black hover:bg-black hover:text-white group'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      hasMenuItems 
+                        ? 'border-black bg-black' 
+                        : 'border-black group-hover:border-white'
+                    }`}>
+                      {hasMenuItems && <span className="text-white text-xs">✓</span>}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm sm:text-base">Add Menu Items</p>
+                      <p className={`text-xs sm:text-sm ${hasMenuItems ? 'text-gray-500' : 'text-gray-600 group-hover:text-gray-300'}`}>
+                        {hasMenuItems ? `${menuItems.length} items added` : 'Add your dishes and drinks'}
+                      </p>
+                    </div>
+                  </div>
+                  {!hasMenuItems && <span className="text-black group-hover:text-white">→</span>}
+                </Link>
+
+                {/* Tables */}
+                <Link 
+                  href={`/r/${restaurantId}/admin/tables`}
+                  className={`flex items-center justify-between p-4 border-2 transition-all duration-300 ${
+                    hasTables 
+                      ? 'border-gray-200 bg-gray-50' 
+                      : 'border-black hover:bg-black hover:text-white group'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      hasTables 
+                        ? 'border-black bg-black' 
+                        : 'border-black group-hover:border-white'
+                    }`}>
+                      {hasTables && <span className="text-white text-xs">✓</span>}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm sm:text-base">Add Tables</p>
+                      <p className={`text-xs sm:text-sm ${hasTables ? 'text-gray-500' : 'text-gray-600 group-hover:text-gray-300'}`}>
+                        {hasTables ? `${tables.length} tables added` : 'Set up your table numbers'}
+                      </p>
+                    </div>
+                  </div>
+                  {!hasTables && <span className="text-black group-hover:text-white">→</span>}
+                </Link>
+
+                {/* Zones (Optional) */}
+                <Link 
+                  href={`/r/${restaurantId}/admin/zones`}
+                  className={`flex items-center justify-between p-4 border-2 transition-all duration-300 ${
+                    hasZones 
+                      ? 'border-gray-200 bg-gray-50' 
+                      : 'border-gray-200 hover:border-black hover:bg-gray-50 group'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      hasZones 
+                        ? 'border-black bg-black' 
+                        : 'border-gray-300 group-hover:border-black'
+                    }`}>
+                      {hasZones && <span className="text-white text-xs">✓</span>}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm sm:text-base">Add Zones <span className="text-xs text-gray-500">(Optional)</span></p>
+                      <p className={`text-xs sm:text-sm ${hasZones ? 'text-gray-500' : 'text-gray-600'}`}>
+                        {hasZones ? `${zones.length} zones added` : 'Organize tables by area'}
+                      </p>
+                    </div>
+                  </div>
+                  {!hasZones && <span className="text-gray-400 group-hover:text-black">→</span>}
+                </Link>
+
+                {/* Staff (Optional) */}
+                <Link 
+                  href={`/r/${restaurantId}/admin/staff`}
+                  className={`flex items-center justify-between p-4 border-2 transition-all duration-300 ${
+                    hasStaff 
+                      ? 'border-gray-200 bg-gray-50' 
+                      : 'border-gray-200 hover:border-black hover:bg-gray-50 group'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      hasStaff 
+                        ? 'border-black bg-black' 
+                        : 'border-gray-300 group-hover:border-black'
+                    }`}>
+                      {hasStaff && <span className="text-white text-xs">✓</span>}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm sm:text-base">Add Staff <span className="text-xs text-gray-500">(Optional)</span></p>
+                      <p className={`text-xs sm:text-sm ${hasStaff ? 'text-gray-500' : 'text-gray-600'}`}>
+                        {hasStaff ? `${staff.length} staff members added` : 'Add your team members'}
+                      </p>
+                    </div>
+                  </div>
+                  {!hasStaff && <span className="text-gray-400 group-hover:text-black">→</span>}
+                </Link>
+
+                {/* QR Codes */}
+                <Link 
+                  href={`/r/${restaurantId}/admin/qr-codes`}
+                  className="flex items-center justify-between p-4 border-2 border-gray-200 hover:border-black hover:bg-gray-50 transition-all duration-300 group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300 group-hover:border-black flex items-center justify-center">
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm sm:text-base">Generate QR Codes</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Print QR codes for your tables</p>
+                    </div>
+                  </div>
+                  <span className="text-gray-400 group-hover:text-black">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
           
-          <div className="border-2 border-gray-200 p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
-            <p className="text-sm font-medium text-gray-500 mb-3">Revenue Today</p>
-            <p className="text-5xl font-bold text-black">₹{todayRevenue.toLocaleString()}</p>
+          <div className="border-2 border-gray-200 p-6 sm:p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3">Revenue Today</p>
+            <p className="text-3xl sm:text-5xl font-bold text-black">₹{todayRevenue.toLocaleString()}</p>
           </div>
 
-          <div className="border-2 border-gray-200 p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
-            <p className="text-sm font-medium text-gray-500 mb-3">Pending Orders</p>
-            <p className="text-5xl font-bold text-black">{pendingOrders}</p>
+          <div className="border-2 border-gray-200 p-6 sm:p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3">Pending Orders</p>
+            <p className="text-3xl sm:text-5xl font-bold text-black">{pendingOrders}</p>
           </div>
 
-          <div className="border-2 border-gray-200 p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
-            <p className="text-sm font-medium text-gray-500 mb-3">Total Orders</p>
-            <p className="text-5xl font-bold text-black">{totalOrders}</p>
+          <div className="border-2 border-gray-200 p-6 sm:p-8 hover:border-black transition-all duration-300 transform hover:scale-105 opacity-0 animate-slide-up" style={{animationDelay: '0.4s', animationFillMode: 'forwards'}}>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3">Total Orders</p>
+            <p className="text-3xl sm:text-5xl font-bold text-black">{totalOrders}</p>
           </div>
 
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-12 opacity-0 animate-slide-up" style={{animationDelay: '0.5s', animationFillMode: 'forwards'}}>
-          <h2 className="text-2xl font-bold text-black mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="mb-8 sm:mb-12 opacity-0 animate-slide-up" style={{animationDelay: '0.5s', animationFillMode: 'forwards'}}>
+          <h2 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             
             <Link 
               href={`/r/${restaurantId}/admin/orders`}
-              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+              className="border-2 border-gray-200 p-4 sm:p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
             >
-              <p className="font-bold text-lg mb-1 group-hover:text-white">Orders</p>
-              <p className="text-sm text-gray-500 group-hover:text-gray-300">Manage orders</p>
+              <p className="font-bold text-base sm:text-lg mb-1 group-hover:text-white">Orders</p>
+              <p className="text-xs sm:text-sm text-gray-500 group-hover:text-gray-300">Manage orders</p>
             </Link>
 
             <Link 
               href={`/r/${restaurantId}/admin/menu`}
-              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+              className="border-2 border-gray-200 p-4 sm:p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
             >
-              <p className="font-bold text-lg mb-1 group-hover:text-white">Menu</p>
-              <p className="text-sm text-gray-500 group-hover:text-gray-300">Edit items</p>
+              <p className="font-bold text-base sm:text-lg mb-1 group-hover:text-white">Menu</p>
+              <p className="text-xs sm:text-sm text-gray-500 group-hover:text-gray-300">Edit items</p>
             </Link>
 
             <Link 
               href={`/r/${restaurantId}/admin/tables`}
-              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+              className="border-2 border-gray-200 p-4 sm:p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
             >
-              <p className="font-bold text-lg mb-1 group-hover:text-white">Tables</p>
-              <p className="text-sm text-gray-500 group-hover:text-gray-300">Manage tables</p>
+              <p className="font-bold text-base sm:text-lg mb-1 group-hover:text-white">Tables</p>
+              <p className="text-xs sm:text-sm text-gray-500 group-hover:text-gray-300">Manage tables</p>
             </Link>
 
             <Link 
               href={`/r/${restaurantId}/admin/settings`}
-              className="border-2 border-gray-200 p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
+              className="border-2 border-gray-200 p-4 sm:p-6 hover:border-black hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 group"
             >
-              <p className="font-bold text-lg mb-1 group-hover:text-white">Settings</p>
-              <p className="text-sm text-gray-500 group-hover:text-gray-300">Configure</p>
+              <p className="font-bold text-base sm:text-lg mb-1 group-hover:text-white">Settings</p>
+              <p className="text-xs sm:text-sm text-gray-500 group-hover:text-gray-300">Configure</p>
             </Link>
 
           </div>
@@ -1021,8 +1269,10 @@ export default function AdminDashboard() {
         {/* Recent Orders */}
         {orders && orders.length > 0 && (
           <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.6s', animationFillMode: 'forwards'}}>
-            <h2 className="text-2xl font-bold text-black mb-6">Recent Orders</h2>
-            <div className="border-2 border-gray-200">
+            <h2 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6">Recent Orders</h2>
+            
+            {/* Desktop Table View */}
+            <div className="hidden sm:block border-2 border-gray-200 overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
@@ -1050,20 +1300,40 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3">
+              {orders.slice(0, 5).map((order, index) => (
+                <div key={order._id} className="border-2 border-gray-200 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-black">#{order.orderNumber || order._id.slice(-4)}</span>
+                    <span className="text-sm font-bold text-black">₹{order.total}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">Table {order.tableId}</span>
+                    <span className={`text-xs font-medium px-2 py-1 border ${
+                      order.status === 'completed' ? 'border-black text-black' : 'border-gray-300 text-gray-600'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Empty State */}
         {(!orders || orders.length === 0) && (
-          <div className="text-center py-20 opacity-0 animate-fade-in" style={{animationDelay: '0.6s', animationFillMode: 'forwards'}}>
-            <div className="w-24 h-24 border-2 border-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
-              <span className="text-4xl text-gray-300">📋</span>
+          <div className="text-center py-12 sm:py-20 opacity-0 animate-fade-in" style={{animationDelay: '0.6s', animationFillMode: 'forwards'}}>
+            <div className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-gray-200 rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center">
+              <span className="text-3xl sm:text-4xl text-gray-300">📋</span>
             </div>
-            <h3 className="text-2xl font-bold text-black mb-2">No orders yet</h3>
-            <p className="text-gray-600 mb-8">Orders will appear here once customers start ordering</p>
+            <h3 className="text-xl sm:text-2xl font-bold text-black mb-2">No orders yet</h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 px-4">Orders will appear here once customers start ordering</p>
             <Link 
               href={`/r/${restaurantId}/admin/qr-codes`}
-              className="inline-block px-8 py-4 bg-black text-white font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 active:scale-95"
+              className="inline-block px-6 sm:px-8 py-3 sm:py-4 bg-black text-white text-sm sm:text-base font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 active:scale-95"
             >
               Generate QR Codes
             </Link>

@@ -144,31 +144,37 @@ function ThemeLoader() {
       img.crossOrigin = "anonymous";
       
       img.onload = () => {
-        // Create canvas
-        const canvas = document.createElement('canvas');
-        const size = 128; // Favicon size
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        
-        // Draw circle clip path
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        
-        // Draw image centered and cropped
-        const minDim = Math.min(img.width, img.height);
-        const sx = (img.width - minDim) / 2;
-        const sy = (img.height - minDim) / 2;
-        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-        
-        // Convert to data URL
-        resolve(canvas.toDataURL('image/png'));
+        try {
+          // Create canvas
+          const canvas = document.createElement('canvas');
+          const size = 128; // Favicon size
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          
+          // Draw circle clip path
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          
+          // Draw image centered and cropped
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+          
+          // Convert to data URL
+          resolve(canvas.toDataURL('image/png'));
+        } catch (error) {
+          console.error('Error creating circular favicon:', error);
+          resolve(logoUrl); // Fallback to original URL
+        }
       };
       
       img.onerror = () => {
         // If image fails to load, resolve with original URL
+        console.warn('Failed to load logo for favicon, using original URL');
         resolve(logoUrl);
       };
       

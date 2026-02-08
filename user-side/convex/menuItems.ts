@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: { restaurantId: v.optional(v.id("restaurants")) },
+  args: { restaurantId: v.optional(v.union(v.id("restaurants"), v.string())) },
   handler: async (ctx, args) => {
     if (args.restaurantId) {
       return await ctx.db
@@ -15,7 +15,7 @@ export const list = query({
 });
 
 export const listAvailable = query({
-  args: { restaurantId: v.optional(v.id("restaurants")) },
+  args: { restaurantId: v.optional(v.union(v.id("restaurants"), v.string())) },
   handler: async (ctx, args) => {
     let items;
     if (args.restaurantId) {
@@ -33,7 +33,7 @@ export const listAvailable = query({
 // Get menu items with zone availability info
 export const listForZone = query({
   args: { 
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())),
     zoneId: v.optional(v.id("zones")) 
   },
   handler: async (ctx, args) => {
@@ -96,13 +96,18 @@ export const listForZone = query({
 
 export const create = mutation({
   args: {
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())), // Can be Convex ID or short ID
     name: v.string(),
     price: v.number(),
     category: v.string(),
-    image: v.string(),
     description: v.string(),
+    imageUrl: v.optional(v.string()), // API route
     allowedZones: v.optional(v.array(v.id("zones"))),
+    themeColors: v.optional(v.object({
+      primary: v.string(),
+      secondary: v.string(),
+      accent: v.string(),
+    })),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("menuItems", {
@@ -118,10 +123,15 @@ export const update = mutation({
     name: v.string(),
     price: v.number(),
     category: v.string(),
-    image: v.string(),
     description: v.string(),
     available: v.boolean(),
+    imageUrl: v.optional(v.string()), // API route
     allowedZones: v.optional(v.array(v.id("zones"))),
+    themeColors: v.optional(v.object({
+      primary: v.string(),
+      secondary: v.string(),
+      accent: v.string(),
+    })),
   },
   handler: async (ctx, args) => {
     const { id, ...data } = args;
@@ -148,16 +158,16 @@ export const seed = mutation({
 
     // All-zone items (empty allowedZones = available everywhere)
     const allZoneItems = [
-      { name: "Classic Burger", price: 12.99, category: "Mains", image: "🍔", description: "Juicy beef patty with fresh veggies" },
-      { name: "Margherita Pizza", price: 14.99, category: "Mains", image: "🍕", description: "Fresh tomato, mozzarella, basil" },
-      { name: "Caesar Salad", price: 9.99, category: "Starters", image: "🥗", description: "Crisp romaine, parmesan, croutons" },
-      { name: "French Fries", price: 4.99, category: "Sides", image: "🍟", description: "Crispy golden fries" },
-      { name: "Chicken Wings", price: 11.99, category: "Starters", image: "🍗", description: "Spicy buffalo wings" },
-      { name: "Coca Cola", price: 2.99, category: "Drinks", image: "🥤", description: "Ice cold refreshment" },
-      { name: "Lemonade", price: 3.49, category: "Drinks", image: "🍋", description: "Fresh squeezed lemonade" },
-      { name: "Chocolate Cake", price: 6.99, category: "Desserts", image: "🍰", description: "Rich chocolate layer cake" },
-      { name: "Butter Naan", price: 3.99, category: "Mains", image: "🫓", description: "Fresh baked Indian bread" },
-      { name: "Biryani", price: 15.99, category: "Mains", image: "🍚", description: "Aromatic rice with spices" },
+      { name: "Classic Burger", price: 12.99, category: "Mains", description: "Juicy beef patty with fresh veggies" },
+      { name: "Margherita Pizza", price: 14.99, category: "Mains", description: "Fresh tomato, mozzarella, basil" },
+      { name: "Caesar Salad", price: 9.99, category: "Starters", description: "Crisp romaine, parmesan, croutons" },
+      { name: "French Fries", price: 4.99, category: "Sides", description: "Crispy golden fries" },
+      { name: "Chicken Wings", price: 11.99, category: "Starters", description: "Spicy buffalo wings" },
+      { name: "Coca Cola", price: 2.99, category: "Drinks", description: "Ice cold refreshment" },
+      { name: "Lemonade", price: 3.49, category: "Drinks", description: "Fresh squeezed lemonade" },
+      { name: "Chocolate Cake", price: 6.99, category: "Desserts", description: "Rich chocolate layer cake" },
+      { name: "Butter Naan", price: 3.99, category: "Mains", description: "Fresh baked Indian bread" },
+      { name: "Biryani", price: 15.99, category: "Mains", description: "Aromatic rice with spices" },
     ];
 
     for (const item of allZoneItems) {
@@ -167,9 +177,9 @@ export const seed = mutation({
     // Smoking zone only items
     if (smokingZone) {
       const hookahItems = [
-        { name: "Classic Hookah", price: 24.99, category: "Hookah", image: "💨", description: "Traditional hookah experience" },
-        { name: "Fruit Hookah", price: 29.99, category: "Hookah", image: "🍇", description: "Mixed fruit flavors" },
-        { name: "Premium Shisha", price: 34.99, category: "Hookah", image: "✨", description: "Premium tobacco blend" },
+        { name: "Classic Hookah", price: 24.99, category: "Hookah", description: "Traditional hookah experience" },
+        { name: "Fruit Hookah", price: 29.99, category: "Hookah", description: "Mixed fruit flavors" },
+        { name: "Premium Shisha", price: 34.99, category: "Hookah", description: "Premium tobacco blend" },
       ];
       for (const item of hookahItems) {
         await ctx.db.insert("menuItems", { ...item, available: true, allowedZones: [smokingZone._id] });

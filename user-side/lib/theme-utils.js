@@ -105,11 +105,11 @@ export function getTextColor(backgroundColor) {
  * @returns {Object} Theme colors mapped to CSS variable names
  */
 export function mapColorsToTheme(colors) {
-  const bg = colors.dominant;
-  const primary = colors.darkVibrant;
-  const secondary = colors.lightVibrant;
-  const accent = colors.muted;
-  const text = getTextColor(bg);
+  const bg = colors.lightVibrant; // Use lightest color for background
+  const primary = colors.darkVibrant; // Use darkest color for primary elements
+  const secondary = colors.muted;
+  const accent = colors.dominant;
+  const text = colors.lightVibrant; // Use lightest color for text
   
   return {
     bg,

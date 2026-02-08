@@ -117,7 +117,7 @@ export default function OrderStatusPage() {
     }
     
     // Redirect to cart
-    router.push(`/r/${restaurantId}/cart/${order.tableId}`);
+    router.push(`/r/${restaurantId}/m/${order.tableId}/c/${order.tableId}`);
   };
 
   const handleCallStaff = async () => {
@@ -356,61 +356,69 @@ export default function OrderStatusPage() {
             </svg>
             
             {order.status === "pending" ? (
-              <video
-                src="/assets/videos/cooking.mp4"
-                autoPlay
-                loop
-                muted
-                preload="metadata"
-                poster="/assets/images/cooking-poster.jpg"
-                onContextMenu={(e) => e.preventDefault()}
-                playsInline
-                className="w-32 h-32 mx-auto relative z-10"
-              >
-                Your browser does not support the video tag.
-              </video>
+              <div className="w-48 h-48 rounded-full bg-white flex items-center justify-center mx-auto relative z-10 overflow-hidden">
+                <video
+                  src="/assets/videos/cooking.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  preload="metadata"
+                  poster="/assets/images/cooking-poster.jpg"
+                  onContextMenu={(e) => e.preventDefault()}
+                  playsInline
+                  className="w-40 h-40"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             ) : order.status === "preparing" ? (
-              <video
-                src="/assets/videos/prepare-food.mp4"
-                autoPlay
-                loop
-                muted
-                preload="metadata"
-                poster="/assets/images/prepare-food-poster.jpg"
-                onContextMenu={(e) => e.preventDefault()}
-                playsInline
-                className="w-32 h-32 mx-auto relative z-10"
-              >
-                Your browser does not support the video tag.
-              </video>
+              <div className="w-48 h-48 rounded-full bg-white flex items-center justify-center mx-auto relative z-10 overflow-hidden">
+                <video
+                  src="/assets/videos/prepare-food.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  preload="metadata"
+                  poster="/assets/images/prepare-food-poster.jpg"
+                  onContextMenu={(e) => e.preventDefault()}
+                  playsInline
+                  className="w-40 h-40"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             ) : order.status === "ready" ? (
-              <video
-                src="/assets/videos/pickup-order.mp4"
-                autoPlay
-                loop
-                muted
-                preload="metadata"
-                poster="/assets/images/pickup-order-poster.jpg"
-                onContextMenu={(e) => e.preventDefault()}
-                playsInline
-                className="w-32 h-32 mx-auto relative z-10"
-              >
-                Your browser does not support the video tag.
-              </video>
+              <div className="w-48 h-48 rounded-full bg-white flex items-center justify-center mx-auto relative z-10 overflow-hidden">
+                <video
+                  src="/assets/videos/pickup-order.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  preload="metadata"
+                  poster="/assets/images/pickup-order-poster.jpg"
+                  onContextMenu={(e) => e.preventDefault()}
+                  playsInline
+                  className="w-40 h-40"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             ) : order.status === "completed" ? (
-              <video
-                src="/assets/videos/food-delivered.mp4"
-                autoPlay     
-                loop
-                muted
-                preload="metadata"
-                poster="/assets/images/food-delivered-poster.jpg"
-                onContextMenu={(e) => e.preventDefault()}
-                playsInline
-                className="w-32 h-32 mx-auto relative z-10"
-              >
-                Your browser does not support the video tag.
-              </video>
+              <div className="w-48 h-48 rounded-full bg-white flex items-center justify-center mx-auto relative z-10 overflow-hidden">
+                <video
+                  src="/assets/videos/food-delivered.mp4"
+                  autoPlay     
+                  loop
+                  muted
+                  preload="metadata"
+                  poster="/assets/images/food-delivered-poster.jpg"
+                  onContextMenu={(e) => e.preventDefault()}
+                  playsInline
+                  className="w-40 h-40"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             ) : (
               <div className={`w-32 h-32 mx-auto rounded-2xl flex items-center justify-center ${currentStatus.cls} animate-glow relative z-10`}>
                 <currentStatus.icon size={40} />
@@ -670,7 +678,7 @@ export default function OrderStatusPage() {
           {/* Reorder Button */}
           <button
             onClick={handleReorder}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[--primary]/10 border border-[--primary]/30 text-[--primary] hover:bg-[--primary]/20 transition-all font-medium"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[white] border border-[--primary]/30 text-[--primary] hover:bg-[--primary]/20 transition-all font-medium"
           >
             <Image
               src="/assets/icons/order-status/again.png"

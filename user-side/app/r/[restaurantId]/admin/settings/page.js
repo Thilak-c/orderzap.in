@@ -1,333 +1,529 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Upload, X, Store, Palette, Save, RefreshCw } from "lucide-react";
-import ImageThemeUploader from "@/components/ImageThemeUploader";
-import { useRestaurant } from "@/lib/restaurant";
+import { Upload, Save, Palette, Image as ImageIcon } from "lucide-react";
 
-export default function AdminSettingsPage() {
-  const { restaurant } = useRestaurant();
+export default function SettingsPage() {
+  const params = useParams();
+  const restaurantId = params.restaurantId;
+  
+  // Get restaurant database ID
+  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
+  const restaurantDbId = restaurant?._id;
+  
   const updateRestaurant = useMutation(api.restaurants.update);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const getRestaurantLogoUrl = useQuery(
-    api.files.getUrl,
-    restaurant?.logo ? { storageId: restaurant.logo } : "skip"
-  );
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    brandName: "",
+    primaryColor: "#ff2530",
+    description: "",
+    phone: "",
+    address: "",
+  });
+  
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
-  const [restaurantName, setRestaurantName] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
-  const logoInputRef = useRef(null);
-
+  // Load restaurant data
   useEffect(() => {
     if (restaurant) {
-      setRestaurantName(restaurant.name || "");
+      console.log("Restaurant data from database:", restaurant);
+      console.log("Logo URL:", restaurant.logo_url);
+      console.log("Theme Colors:", restaurant.themeColors);
+      
+      setFormData({
+        name: restaurant.name || "",
+        brandName: restaurant.brandName || restaurant.name || "",
+        primaryColor: restaurant.themeColors?.dominant || restaurant.primaryColor || "#ff2530",
+        description: restaurant.description || "",
+        phone: restaurant.phone || "",
+        address: restaurant.address || "",
+      });
     }
   }, [restaurant]);
 
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: "", text: "" }), 4000);
-  };
-
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      showMessage("error", "Please upload an image file");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      showMessage("error", "Image must be less than 5MB");
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      const uploadUrl = await generateUploadUrl();
-      const result = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      const { storageId } = await result.json();
-
-      if (restaurant?._id) {
-        await updateRestaurant({
-          restaurantId: restaurant._id,
-          logo: storageId,
-        });
-        showMessage("success", "Logo uploaded successfully!");
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      showMessage("error", "Failed to upload logo");
-    }
-
-    setUploading(false);
-  };
-
-  const handleRemoveLogo = async () => {
-    try {
-      if (restaurant?._id) {
-        await updateRestaurant({
-          restaurantId: restaurant._id,
-          logo: "",
-        });
-        showMessage("success", "Logo removed");
-      }
-    } catch (error) {
-      showMessage("error", "Failed to remove logo");
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleSave = async () => {
-    if (!restaurantName.trim()) {
-      showMessage("error", "Restaurant name is required");
-      return;
-    }
-
-    setSaving(true);
-
+    if (!restaurantDbId) return;
+    
+    setIsSaving(true);
     try {
-      if (restaurant?._id) {
-        await updateRestaurant({
-          restaurantId: restaurant._id,
-          name: restaurantName,
+      let logoUrl = restaurant.logo;
+      
+      // Upload logo if changed
+      if (logoFile) {
+        const formDataToSend = new FormData();
+        formDataToSend.append('logo', logoFile);
+        formDataToSend.append('restaurant', restaurantId);
+        
+        const response = await fetch('/api/upload-logo', {
+          method: 'POST',
+          body: formDataToSend,
         });
-        showMessage("success", "Settings saved successfully!");
+        
+        if (response.ok) {
+          const data = await response.json();
+          logoUrl = data.logoUrl;
+        }
       }
+      
+      // Update restaurant
+      await updateRestaurant({
+        restaurantId: restaurantDbId,
+        name: formData.name,
+        brandName: formData.brandName,
+        primaryColor: formData.primaryColor,
+        description: formData.description,
+        phone: formData.phone,
+        address: formData.address,
+        logo_url: logoUrl,
+      });
+      
+      setToastMessage("✓ Settings saved successfully");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (error) {
-      showMessage("error", "Failed to save settings");
+      console.error("Error saving settings:", error);
+      setToastMessage("✗ Failed to save settings");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     }
-
-    setSaving(false);
+    setIsSaving(false);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Settings</h1>
-          <p className="text-slate-600">Manage your restaurant information and branding</p>
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="loader-4">Loading...</div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Message Banner */}
-        {message.text && (
-          <div
-            className={`mb-6 p-4 rounded-xl border animate-fade-in ${
-              message.type === "success"
-                ? "bg-green-50 border-green-200 text-green-800"
-                : "bg-red-50 border-red-200 text-red-800"
-            }`}
-          >
-            {message.text}
+  return (
+    <div className="min-h-screen bg-white p-3 md:p-6">
+      {/* Toast */}
+      {showToast && (
+        <div className="fixed top-6 right-6 z-50 animate-slide-in-right">
+          <div className="bg-black text-white px-6 py-4 border-2 border-black font-bold uppercase tracking-wide">
+            {toastMessage}
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Restaurant Information */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Store className="text-blue-600" size={24} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Restaurant Information</h2>
-                  <p className="text-sm text-slate-600">Basic details about your restaurant</p>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-lg md:text-3xl font-bold text-black uppercase tracking-wider mb-2">Settings</h1>
+        <p className="text-gray-600 text-xs md:text-sm">Manage your restaurant details and branding</p>
+      </div>
+
+      <div className="max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left Column - Settings Forms */}
+        <div className="lg:col-span-3 space-y-6">
+        {/* Logo Section */}
+        <div className="bg-white border-2 border-gray-300 p-4 md:p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <ImageIcon size={20} className="text-black" />
+            <h2 className="text-sm md:text-base font-bold text-black uppercase tracking-wide">Restaurant Logo</h2>
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            {/* Current Logo */}
+            <div className="flex-shrink-0">
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                Current Logo
+              </label>
+              <div className="w-32 h-32 border-2 border-black bg-white flex items-center justify-center overflow-hidden">
+                {restaurant.logo_url ? (
+                  <img 
+                    src={restaurant.logo_url} 
+                    alt="Current Logo" 
+                    className="w-full h-full object-contain" 
+                  />
+                ) : (
+                  <span className="text-4xl">🍽️</span>
+                )}
+              </div>
+            </div>
+            
+            {/* New Logo Preview */}
+            {logoPreview && (
+              <div className="flex-shrink-0">
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                  New Logo Preview
+                </label>
+                <div className="w-32 h-32 border-2 border-black bg-white flex items-center justify-center overflow-hidden">
+                  <img src={logoPreview} alt="New Logo" className="w-full h-full object-contain" />
                 </div>
               </div>
+            )}
+            
+            {/* Upload Button */}
+            <div className="flex-1">
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                Upload New Logo
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                className="hidden"
+                id="logo-upload"
+              />
+              <label
+                htmlFor="logo-upload"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black border-2 border-gray-300 hover:border-black font-bold text-xs uppercase tracking-wide cursor-pointer transition-all"
+              >
+                <Upload size={16} />
+                Choose File
+              </label>
+              <p className="text-xs text-gray-500 mt-2">Recommended: Square image, at least 200x200px</p>
+              {logoFile && (
+                <p className="text-xs text-black font-bold mt-2">✓ {logoFile.name}</p>
+              )}
+            </div>
+          </div>
+        </div>
 
-              {/* Restaurant Name */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Restaurant Name
+        {/* Brand Color */}
+        <div className="bg-white border-2 border-gray-300 p-4 md:p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Palette size={20} className="text-black" />
+            <h2 className="text-sm md:text-base font-bold text-black uppercase tracking-wide">Brand Color</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Color Picker */}
+            <div>
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                Primary Color
+              </label>
+              <div className="flex items-center gap-3 mb-4">
+                <input
+                  type="color"
+                  value={formData.primaryColor}
+                  onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
+                  className="w-16 h-16 border-2 border-black cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={formData.primaryColor}
+                  onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
+                  className="flex-1 bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none uppercase font-mono"
+                  placeholder="#ff2530"
+                />
+              </div>
+              
+              {/* Current vs New */}
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                    Current
+                  </label>
+                  <div 
+                    className="w-full h-16 border-2 border-black"
+                    style={{ backgroundColor: restaurant.themeColors?.dominant || restaurant.primaryColor || "#ff2530" }}
+                  />
+                  <p className="text-xs text-gray-600 mt-1 font-mono">{restaurant.themeColors?.dominant || restaurant.primaryColor || "#ff2530"}</p>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                    New
+                  </label>
+                  <div 
+                    className="w-full h-16 border-2 border-black"
+                    style={{ backgroundColor: formData.primaryColor }}
+                  />
+                  <p className="text-xs text-gray-600 mt-1 font-mono">{formData.primaryColor}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Theme Preview */}
+            <div>
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                Preview in App
+              </label>
+              <div className="border-2 border-black p-4 bg-white">
+                <div 
+                  className="p-3 mb-3 flex items-center justify-between"
+                  style={{ backgroundColor: formData.primaryColor }}
+                >
+                  <div className="flex items-center gap-2">
+                    {(logoPreview || restaurant.logo_url) ? (
+                      <img 
+                        src={logoPreview || restaurant.logo_url} 
+                        alt="Logo" 
+                        className="w-8 h-8 object-contain bg-white rounded-full p-1" 
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-sm">🍽️</div>
+                    )}
+                    <span className="text-white font-bold text-sm">{formData.brandName || formData.name}</span>
+                  </div>
+                  <span className="text-white text-xs">TABLE 1</span>
+                </div>
+                
+                {/* Mock Menu Item */}
+                <div className="border-2 border-gray-300 p-2 flex gap-2">
+                  <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-2xl flex-shrink-0">
+                    🍕
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-black mb-1">Sample Menu Item</p>
+                    <p className="text-[10px] text-gray-600 mb-2">Delicious food item</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">₹299</span>
+                      <button 
+                        className="px-3 py-1 text-[10px] font-bold text-white"
+                        style={{ backgroundColor: formData.primaryColor }}
+                      >
+                        Add +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mock Cart Bar */}
+                <div className="mt-3 p-2 bg-white border-2 border-gray-300 flex items-center justify-between">
+                  <span className="text-xs font-bold">2 Items</span>
+                  <div 
+                    className="px-3 py-1 text-white text-xs font-bold"
+                    style={{ backgroundColor: formData.primaryColor }}
+                  >
+                    ₹598 →
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Restaurant Details */}
+        <div className="bg-white border-2 border-gray-300 p-4 md:p-6 mb-6">
+          <h2 className="text-sm md:text-base font-bold text-black uppercase tracking-wide mb-4">Restaurant Details</h2>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                  Restaurant Name *
                 </label>
                 <input
                   type="text"
-                  value={restaurantName}
-                  onChange={(e) => setRestaurantName(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                  placeholder="Enter restaurant name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
+                  placeholder="My Restaurant"
                 />
               </div>
-
-              {/* Restaurant Logo */}
+              
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Restaurant Logo
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                  Brand Name
                 </label>
-
-                <div className="flex items-start gap-4">
-                  {/* Logo Preview */}
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-2xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden">
-                      {getRestaurantLogoUrl ? (
-                        <img
-                          src={getRestaurantLogoUrl}
-                          alt="Restaurant logo"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <Upload size={32} className="text-slate-400" />
-                      )}
-                    </div>
-                    {getRestaurantLogoUrl && (
-                      <button
-                        onClick={handleRemoveLogo}
-                        className="absolute -top-2 -right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors"
-                        title="Remove logo"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Upload Button */}
-                  <div className="flex-1">
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => logoInputRef.current?.click()}
-                      disabled={uploading}
-                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      <Upload size={18} />
-                      {uploading ? "Uploading..." : "Upload Logo"}
-                    </button>
-                    <p className="text-xs text-slate-500 mt-2">
-                      PNG, JPG or WebP (max 5MB). Square images work best.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="mt-6 pt-6 border-t border-slate-200">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <Save size={18} />
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
+                <input
+                  type="text"
+                  value={formData.brandName}
+                  onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
+                  placeholder="Brand Name"
+                />
               </div>
             </div>
-
-            {/* Theme Customization */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Palette className="text-purple-600" size={24} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Theme Customization</h2>
-                  <p className="text-sm text-slate-600">Generate colors from your logo</p>
-                </div>
+            
+            <div>
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none resize-none"
+                rows={3}
+                placeholder="Tell customers about your restaurant..."
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
+                  placeholder="+91 1234567890"
+                />
               </div>
-
-              <p className="text-sm text-slate-600 mb-4">
-                Upload an image to automatically extract colors and create a custom theme for your restaurant.
-              </p>
-
-              <ImageThemeUploader restaurantId={restaurant?._id} />
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Preview Card */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4">Preview</h3>
-              <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {getRestaurantLogoUrl ? (
-                      <img
-                        src={getRestaurantLogoUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <Store size={20} className="text-slate-400" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-slate-900 truncate">
-                      {restaurantName || "Your Restaurant"}
-                    </h4>
-                    <p className="text-xs text-slate-500">Admin Panel</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Info Card */}
-            <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2">💡 Quick Tips</h3>
-              <ul className="space-y-2 text-xs text-blue-800">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-0.5">•</span>
-                  <span>Use a high-quality logo for best results</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-0.5">•</span>
-                  <span>Square images (512x512px) work perfectly</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-0.5">•</span>
-                  <span>Theme colors update across your entire app</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-0.5">•</span>
-                  <span>Changes are saved automatically</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => window.location.href = `/r/${restaurant?.id}/admin/theme`}
-                  className="w-full px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium transition-colors text-left flex items-center gap-2"
-                >
-                  <Palette size={16} />
-                  Advanced Theme Editor
-                </button>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="w-full px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium transition-colors text-left flex items-center gap-2"
-                >
-                  <RefreshCw size={16} />
-                  Refresh Page
-                </button>
+              
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none"
+                  placeholder="123 Main St, City"
+                />
               </div>
             </div>
           </div>
         </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !formData.name}
+            className="flex items-center gap-2 px-6 py-3 bg-black text-white font-bold text-sm uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save size={16} />
+            {isSaving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+
+      {/* Right Column - Live Previews */}
+      <div className="lg:col-span-2">
+        <div className="sticky top-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-black uppercase tracking-wide">Live Preview</h2>
+            <p className="text-[10px] text-gray-600">Real-time updates</p>
+          </div>
+          
+          {/* Preview Grid - 2x2 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Preview 1: Landing Page */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[10px] text-gray-600 font-bold uppercase tracking-wide">
+                  Landing Page
+                </label>
+                <a 
+                  href={`/r/${restaurantId}`}
+                  target="_blank"
+                  className="text-[10px] text-black hover:underline font-bold uppercase flex items-center gap-1"
+                >
+                  Open →
+                </a>
+              </div>
+              <div className="border-2 border-black bg-gray-100 overflow-hidden aspect-[9/16] relative">
+                <iframe 
+                  src={`/r/${restaurantId}`}
+                  className="absolute inset-0 w-full h-full"
+                  title="Landing Page Preview"
+                  style={{ transform: 'scale(1)', transformOrigin: 'top left' }}
+                />
+              </div>
+            </div>
+
+            {/* Preview 2: Menu Page */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[10px] text-gray-600 font-bold uppercase tracking-wide">
+                  Menu Page
+                </label>
+                <a 
+                  href={`/r/${restaurantId}/m/1?key=preview`}
+                  target="_blank"
+                  className="text-[10px] text-black hover:underline font-bold uppercase flex items-center gap-1"
+                >
+                  Open →
+                </a>
+              </div>
+              <div className="border-2 border-black bg-gray-100 overflow-hidden aspect-[9/16] relative">
+                <iframe 
+                  src={`/r/${restaurantId}/m/1?key=preview`}
+                  className="absolute inset-0 w-full h-full"
+                  title="Menu Page Preview"
+                  style={{ transform: 'scale(1)', transformOrigin: 'top left' }}
+                />
+              </div>
+            </div>
+
+            {/* Preview 3: Cart Page */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[10px] text-gray-600 font-bold uppercase tracking-wide">
+                  Cart Page
+                </label>
+                <a 
+                  href={`/r/${restaurantId}/m/1/c/1`}
+                  target="_blank"
+                  className="text-[10px] text-black hover:underline font-bold uppercase flex items-center gap-1"
+                >
+                  Open →
+                </a>
+              </div>
+              <div className="border-2 border-black bg-gray-100 overflow-hidden aspect-[9/16] relative">
+                <iframe 
+                  src={`/r/${restaurantId}/m/1/c/1`}
+                  className="absolute inset-0 w-full h-full"
+                  title="Cart Page Preview"
+                  style={{ transform: 'scale(1)', transformOrigin: 'top left' }}
+                />
+              </div>
+            </div>
+
+            {/* Preview 4: Order Status */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[10px] text-gray-600 font-bold uppercase tracking-wide">
+                  Order Status
+                </label>
+                <a 
+                  href={`/r/${restaurantId}/order-status/demo`}
+                  target="_blank"
+                  className="text-[10px] text-black hover:underline font-bold uppercase flex items-center gap-1"
+                >
+                  Open →
+                </a>
+              </div>
+              <div className="border-2 border-black bg-gray-100 overflow-hidden aspect-[9/16] relative">
+                <iframe 
+                  src={`/r/${restaurantId}/order-status/demo`}
+                  className="absolute inset-0 w-full h-full"
+                  title="Order Status Preview"
+                  style={{ transform: 'scale(1)', transformOrigin: 'top left' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Refresh Note */}
+          <div className="bg-white border-2 border-gray-300 p-3">
+            <p className="text-[10px] text-gray-600 text-center mb-2">
+              💡 <span className="font-bold">Tip:</span> After saving changes, refresh the previews to see updates
+            </p>
+            <p className="text-[10px] text-gray-500 text-center">
+              Preview mode shows demo data for testing
+            </p>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
   );

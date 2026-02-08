@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
 
     // Build path to logo file in project root
     const projectRoot = path.join(process.cwd(), '..');
-    const logoPath = path.join(projectRoot, 'restro_logo', restaurant, 'logo', filename);
+    const logoPath = path.join(projectRoot, 'restro_assets', restaurant, 'logo', filename);
 
     // Read the file
     const fileBuffer = await readFile(logoPath);
@@ -36,10 +36,24 @@ export async function GET(request, { params }) {
     });
 
   } catch (error) {
-    console.error('Error serving logo:', error);
-    return NextResponse.json(
-      { error: 'Logo not found' },
-      { status: 404 }
-    );
+    // If logo not found, return default OrderZap logo
+    try {
+      const defaultLogoPath = path.join(process.cwd(), 'public', 'assets', 'logos', 's-logo-sq.webp');
+      const defaultBuffer = await readFile(defaultLogoPath);
+      
+      return new NextResponse(defaultBuffer, {
+        headers: {
+          'Content-Type': 'image/webp',
+          'Cache-Control': 'public, max-age=3600', // Cache for 1 hour (shorter than custom logos)
+        },
+      });
+    } catch (fallbackError) {
+      console.error('Error serving logo:', error);
+      console.error('Error serving fallback logo:', fallbackError);
+      return NextResponse.json(
+        { error: 'Logo not found' },
+        { status: 404 }
+      );
+    }
   }
 }

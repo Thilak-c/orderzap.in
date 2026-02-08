@@ -28,9 +28,21 @@ export const list = query({
 });
 
 export const getByNumber = query({
-  args: { number: v.number() },
+  args: { 
+    number: v.number(),
+    restaurantId: v.optional(v.id("restaurants"))
+  },
   handler: async (ctx, args) => {
-    const tables = await ctx.db.query("tables").collect();
+    let tables;
+    if (args.restaurantId) {
+      tables = await ctx.db
+        .query("tables")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      tables = await ctx.db.query("tables").collect();
+    }
+    
     const table = tables.find((t) => t.number === args.number);
     
     if (!table) return null;

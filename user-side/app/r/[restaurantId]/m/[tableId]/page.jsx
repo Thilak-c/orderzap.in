@@ -6,14 +6,12 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
-import { useBranding } from "@/app/r/[restaurantId]/layout";
 import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import {
   ChevronRight, Plus, Minus, ArrowLeft, Armchair,
   UtensilsCrossed, Search, X, Phone, Lock, GlassWater
 } from "lucide-react";
-import MenuItemImage from "@/components/MenuItemImage";
 import BrandLogo from "@/components/BrandLogo";
 import { AnimatedBottomSheet, AnimatedToast, AnimatedPopup, AnimatedOverlay } from "@/components/AnimatedPopup";
 
@@ -26,23 +24,30 @@ const formatTime = (time) => {
   return minutes === 0 ? `${hour12} ${period}` : `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
 };
 
-const categories = [
-  { id: "All", icon: "◉" },
-  { id: "Starters", icon: "◈" },
-  { id: "Mains", icon: "◆" },
-  { id: "Sides", icon: "◇" },
-  { id: "Drinks", icon: "○" },
-  { id: "Desserts", icon: "●" },
-  { id: "Hookah", icon: "◎" },
-];
-
 export default function MenuPage() {
-  const { restaurantId, tableId } = useParams();
+  const { tableId, restaurantId } = useParams();
+  const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionKey = searchParams.get('key');
   const { setTable } = useTable();
-  const { brandName, brandLogo, isLoading: brandingLoading } = useBranding();
+
+  // Get restaurant data
+  const restaurant = useQuery(api.restaurants.getByShortId,
+    restaurantId ? { id: restaurantId } : "skip"
+  );
+  const restaurantDbId = restaurant?._id;
+  const brandName = restaurant?.name || "Restaurant";
+  const brandLogo = restaurant?.logo_url;
+  const brandingLoading = restaurant === undefined;
+
+  // Get theme colors - create gradient from light to dark
+  const themeColors = restaurant?.themeColors;
+  const baseColor = themeColors?.lightVibrant || '#ff2530'; // Lightest - for background
+  const sidebarColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for sidebar
+  const headerColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for header
+  const buttonColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for buttons
+  const cartBarColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for cart bar
   const [activeCategory, setActiveCategory] = useState("All");
   const [dismissedReservation, setDismissedReservation] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -83,36 +88,67 @@ export default function MenuPage() {
   const [welcomeName, setWelcomeName] = useState('');
   const [showWaterPopup, setShowWaterPopup] = useState(false);
 
-  // Get restaurant database ID
-  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
-  const restaurantDbId = restaurant?._id;
+  const table = useQuery(api.tables.getByNumber,
+    restaurantDbId ? {
+      number: parseInt(tableId),
+      restaurantId: restaurantDbId
+    } : "skip"
+  );
 
-  const table = useQuery(api.tables.getByNumber, { number: parseInt(tableId) });
-
-  // Use cached query for menu items with image preloading
+  // Use cached query for menu items with restaurant and zone filtering
   const { data: menuItems, isLoading: menuLoading } = useCachedQuery(
     api.menuItems.listForZone,
-    table !== undefined && restaurantDbId ? { restaurantId: restaurantDbId, zoneId: table?.zoneId } : "skip",
-    table?.zoneId ? `${CACHE_KEYS.MENU_ITEMS}_${restaurantDbId}_${table.zoneId}` : null,
+    table !== undefined && restaurantId ? {
+      restaurantId: restaurantId, // Use short ID directly
+      zoneId: table?.zoneId
+    } : "skip",
+    table?.zoneId && restaurantId ? `${CACHE_KEYS.MENU_ITEMS}_${restaurantId}_${table.zoneId}` : null,
     {
       cacheDuration: CACHE_DURATIONS.LONG, // 1 hour cache for menu items
       preloadImageKey: 'image',
     }
   );
 
-  const reservation = useQuery(api.reservations.getCurrentForTable, { tableNumber: parseInt(tableId) });
+  const reservation = useQuery(api.reservations.getCurrentForTable,
+    restaurantDbId ? {
+      tableNumber: parseInt(tableId),
+      restaurantId: restaurantDbId
+    } : "skip"
+  );
+
+  // Get categories from database - use short restaurantId directly
+  const dbCategories = useQuery(api.categories.list,
+    restaurantId ? { restaurantId: restaurantId } : "skip"
+  );
+
   const createNotification = useMutation(api.staffNotifications.create);
   const createStaffCall = useMutation(api.staffCalls.create);
   const markArrived = useMutation(api.reservations.markArrived);
 
   // Set table context for call staff button
   useEffect(() => {
-    // Check QR session with key validation
-    if (!sessionKey || !isQRSessionValid(tableId, sessionKey)) {
-      // No valid QR session - redirect to home
-      router.replace('/');
-      return;
+    // Scroll to top when page loads
+    window.scrollTo(0, 0);
+    
+    // Ensure cart bar is visible
+    setHideCartBar(false);
+
+    // Set QR session for cart page validation
+    if (tableId && restaurantId) {
+      const qrSession = {
+        tableId: String(tableId),
+        restaurantId: restaurantId,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem('qr_scan_session', JSON.stringify(qrSession));
     }
+
+    // Check QR session with key validation
+    // if (!sessionKey || !isQRSessionValid(tableId, sessionKey)) {
+    //   // No valid QR session - redirect to home
+    //   router.replace('/');
+    //   return;
+    // }
 
     setCheckingSession(false);
 
@@ -122,7 +158,7 @@ export default function MenuPage() {
       setDismissedReservation(true);
     }
     setIsHydrated(true);
-  }, [tableId, sessionKey, router]);
+  }, [tableId, sessionKey, router]); // Removed setHideCartBar from dependencies
 
   // Show water popup for all customers after 10 seconds (if not already shown this session)
   useEffect(() => {
@@ -149,10 +185,10 @@ export default function MenuPage() {
 
   // Prefetch cart page when cart has items
   useEffect(() => {
-    if (cartCount > 0 && restaurantId) {
-      router.prefetch(`/r/${restaurantId}/cart/${tableId}`);
+    if (cartCount > 0) {
+      router.prefetch(`/r/${params.restaurantId}/m/${tableId}/c/${tableId}`);
     }
-  }, [cartCount, tableId, restaurantId, router]);
+  }, [cartCount, tableId, router, params.restaurantId]);
 
   // Preload cart bar video
   useEffect(() => {
@@ -230,8 +266,8 @@ export default function MenuPage() {
       <div className="min-h-screen flex flex-col">
         <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
           <div className="flex items-center gap-3">
-            <BrandLogo brandName={brandName} brandLogo={brandLogo} className="h-9 w-9 rounded-full" textClassName="text-slate-700 font-bold text-sm" />
-            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">{brandName}</span>
+            <img src="/assets/logos/orderzap-logo.png" alt="OrderZap" className="h-9 w-9 rounded-full object-contain" />
+            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">OrderZap</span>
           </div>
           <span className="text-[--text-dim] text-xs flex items-center gap-2">
             <Armchair size={14} /> 
@@ -277,7 +313,7 @@ export default function MenuPage() {
             Browse Menu Anyway
           </button>
           <Link 
-            href="/book"
+            href="/demo/book"
             className="block w-full py-3 text-center text-[--text-muted] text-sm hover:text-[--text-primary] transition-colors opacity-0 animate-slide-up"
             style={{animationDelay: '1s', animationFillMode: 'forwards'}}
           >
@@ -339,8 +375,8 @@ export default function MenuPage() {
         {/* Header */}
         <div className="p-5 flex items-center justify-between opacity-0 animate-slide-down" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
           <div className="flex items-center gap-3">
-            <BrandLogo brandName={brandName} brandLogo={brandLogo} className="h-9 w-9 rounded-full" textClassName="text-slate-700 font-bold text-sm" />
-            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">{brandName}</span>
+            <img src="/assets/logos/orderzap-logo.png" alt="OrderZap" className="h-9 w-9 rounded-full object-contain" />
+            <span className="text-[--text-dim] text-xs tracking-[0.15em] uppercase">OrderZap</span>
           </div>
           <span className="text-[--text-dim] text-xs flex items-center gap-2">
             <Armchair size={14} />
@@ -353,8 +389,8 @@ export default function MenuPage() {
           {/* Status Badge */}
           <div
             className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] mb-8 opacity-0 animate-bounce-in ${reservation.isCurrent
-                ? 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20'
-                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              ? 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20'
+              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
               }`}
             style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}
           >
@@ -451,7 +487,7 @@ export default function MenuPage() {
               </div>
 
               <div className="w-full max-w-xs space-y-3 opacity-0 animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
-                <Link href="/book" className="btn-primary w-full py-4 rounded-xl text-sm font-semibold block text-center">
+                <Link href="/demo/book" className="btn-primary w-full py-4 rounded-xl text-sm font-semibold block text-center">
                   Book Your Own Table
                 </Link>
                 <Link href="/" className="btn-secondary w-full py-4 rounded-xl text-sm font-semibold block text-center">
@@ -474,24 +510,6 @@ export default function MenuPage() {
   // Loading state
   // Show loading while branding loads
   if (brandingLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[--bg]">
-        <div className="loader" />
-      </div>
-    );
-  }
-
-  // Check if restaurant exists and is closed
-  if (restaurant && !restaurant.active) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[--bg] px-6">
-       <img className="h-[200px]" src="/assets/icons/currently-closed.png" alt="" />
-      </div>
-    );
-  }
-
-  // Show loading if restaurant hasn't loaded yet
-  if (!restaurant) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[--bg]">
         <div className="loader" />
@@ -523,13 +541,35 @@ export default function MenuPage() {
     );
   }
 
-  // For "All" category, prioritize Starters and Mains first
-  if (activeCategory === "All") {
-    const starters = filteredItems.filter(item => item.category === "Starters");
-    const mains = filteredItems.filter(item => item.category === "Mains");
-    const others = filteredItems.filter(item => item.category !== "Starters" && item.category !== "Mains");
-    filteredItems = [...starters, ...mains, ...others];
-  }
+  // Build dynamic categories from database
+  const categories = [
+    { id: "All", icon: "◉", iconType: "default" },
+    ...(dbCategories?.map(cat => {
+      // Determine icon source
+      let iconSrc = null;
+      let iconType = "default";
+
+      if (cat.iconUrl || cat.iconFileUrl) {
+        // Custom uploaded icon
+        iconSrc = cat.iconUrl || cat.iconFileUrl;
+        iconType = "custom";
+      } else if (cat.icon) {
+        // Default icon from assets
+        iconSrc = `/assets/icons/categories/v2/${cat.icon.toLowerCase()}-active.png`;
+        iconType = "image";
+      }
+
+      return {
+        id: cat.name,
+        icon: cat.icon || "◈",
+        iconSrc: iconSrc,
+        iconType: iconType
+      };
+    }) || [])
+  ];
+
+  // For "All" category, show all items (no need to reorder)
+  // Items are already filtered above
 
   // Limit displayed items for performance
   const displayedItems = filteredItems.slice(0, displayCount);
@@ -542,8 +582,8 @@ export default function MenuPage() {
     // Vibrate if supported
     navigator.vibrate(50);
 
-    // Show GIF for 2 seconds to let it play fully
-    setTimeout(() => setShowAddedGif(false), 2000);
+    // Show GIF for 1.5 seconds to let it play fully
+    setTimeout(() => setShowAddedGif(false), 1500);
   };
 
   const handleAddToCart = (item) => {
@@ -551,7 +591,7 @@ export default function MenuPage() {
       menuItemId: item._id,
       name: item.name,
       price: item.price,
-      image: item.image
+      image: item.imageUrl || item.image // Use imageUrl (API route) with fallback
     });
     triggerAddedGif();
   };
@@ -574,19 +614,26 @@ export default function MenuPage() {
     : null;
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20" style={{ 
+      backgroundColor: baseColor,
+      '--theme-bg': baseColor,
+      '--theme-header': headerColor,
+      '--theme-button': buttonColor
+    }}>
       {/* Header - Full width */}
-      <header className="sticky top-0 z-30 glass">
+      <header className="sticky top-0 z-30">
         {/* Top row */}
-        <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--primary, #ff2530)' }}>
-          <div className="flex-1 px-2 min-w-0">
-            <BrandLogo 
-              brandName={brandName} 
-              brandLogo={brandLogo} 
-              className="h-10 w-10" 
-              textClassName="text-white font-bold text-xl tracking-wide"
-              showText={true}
-            />
+        <div className="pr-2 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: headerColor }}>
+          <div className="flex-1 px-2 min-w-0 flex items-center gap-3">
+            {brandLogo ? (
+              <img src={brandLogo} className="h-12 w-12 rounded-full object-cover" alt={brandName} />
+            ) : (
+              <img src="/assets/logos/orderzap-logo.png" className="h-8 w-18" alt="" />
+            )}
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-white font-bold text-base truncate">{brandName}</h1>
+              <p className="text-white/80 text-xs">Table {tableId}</p>
+            </div>
           </div>
 
           <button
@@ -610,13 +657,12 @@ export default function MenuPage() {
         </div>
 
         {/* Search bar - Enhanced design */}
-        <div 
-          className={`px-4 overflow-hidden transition-all duration-300 ${
-            showSearch 
-              ? 'max-h-32 opacity-100 pb-3 pt-2' 
+        <div
+          className={`px-4 overflow-hidden transition-all duration-300 ${showSearch
+              ? 'max-h-32 opacity-100 pb-3 pt-2'
               : 'max-h-0 opacity-0'
-          }`}
-          style={{ backgroundColor: 'var(--primary, #ff2530)' }}
+            }`}
+          style={{ backgroundColor: headerColor }}
         >
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -642,7 +688,7 @@ export default function MenuPage() {
               </button>
             )}
           </div>
-          
+
           {/* Search suggestions/quick filters */}
           {searchQuery && (
             <div className="mt-2 flex items-center gap-2 text-xs text-white/80">
@@ -656,15 +702,14 @@ export default function MenuPage() {
       </header>
 
       {/* Left Sidebar - Quick Access */}
-      <aside className={`fixed left-0 top-14 bottom-0 w-16 bg-white/0 border-r border-[--border] z-20 overflow-y-auto scrollbar-hide transition-transform duration-300 ${
-        showSearch ? '-translate-x-full' : 'translate-x-0'
-      }`}>
+      <aside
+        className={`fixed left-0 top-16 bottom-0 w-16 border-r border-white/10 z-20 overflow-y-auto scrollbar-hide transition-transform duration-300 ${showSearch ? '-translate-x-full' : 'translate-x-0'
+          }`}
+        style={{ backgroundColor: headerColor }}
+      >
         <div className="flex flex-col gap-1.5 p-1.5">
           {categories.map((cat) => {
             const isActive = activeCategory === cat.id;
-            const categoryName = cat.id.toLowerCase();
-            const iconState = isActive ? 'active' : 'inactive';
-            const iconPath = `/assets/icons/categories/v2/${categoryName}-${iconState}.png`;
 
             // Count cart items in this category
             const cartItemsInCategory = cat.id === "All"
@@ -679,21 +724,33 @@ export default function MenuPage() {
                 key={cat.id}
                 onClick={() => {
                   navigator.vibrate(50);
-
                   setActiveCategory(cat.id);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="relative flex flex-col items-center justify-center rounded-lg transition-all active:scale-95 bg-transparent"
+                className="relative flex flex-col items-center justify-center rounded-lg transition-all active:scale-95 bg-transparent py-2"
               >
-                <img
-                  key={iconPath}
-                  src={iconPath}
-                  alt={cat.id}
-                  className="w-14 my-4 h-14 object-contain"
-                />
+                {/* Display icon based on type */}
+                {cat.iconType === "image" || cat.iconType === "custom" ? (
+                  <img
+                    src={cat.iconSrc}
+                    alt={cat.id}
+                    className="w-12 h-12 object-contain mb-1"
+                  />
+                ) : (
+                  <div className="w-12 h-12 flex items-center justify-center text-xl mb-1">
+                    {cat.icon}
+                  </div>
+                )}
+
+                {/* Category name */}
+                <span className="text-white text-[9px] font-medium text-center leading-tight px-1">
+                  {cat.id}
+                </span>
+
                 {/* Cart count badge */}
                 {cartItemsInCategory > 0 && (
-                  <div className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[] text-[--primary] text-[9px] font-bold flex items-center justify-center">
+                  <div
+                    style={{ Color: buttonColor }} className="absolute top-1 right-1 w-5 h-5 rounded-full   text-[9px] font-bold flex items-center justify-center">
                     <OdometerNumber value={cartItemsInCategory} />
                   </div>
                 )}
@@ -760,6 +817,7 @@ export default function MenuPage() {
                         onAdd={() => handleAddToCart(item)}
                         onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
                         onUnavailable={() => setUnavailablePopup(item)}
+                        buttonColor={buttonColor}
                       />
                     </div>
                   ))}
@@ -782,6 +840,7 @@ export default function MenuPage() {
                   onAdd={() => handleAddToCart(item)}
                   onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
                   onUnavailable={() => setUnavailablePopup(item)}
+                  buttonColor={buttonColor}
                 />
               </div>
             ))}
@@ -798,9 +857,9 @@ export default function MenuPage() {
         {/* Empty state */}
         {filteredItems.length === 0 && (
           <div className="text-center py-12 animate-fade-in">
-            <img 
-              src="/assets/icons/no-results.png" 
-              alt="No results" 
+            <img
+              src="/assets/icons/no-results.png"
+              alt="No results"
               className="w-32 h-32 mx-auto mb-4 object-contain"
             />
             <p className="text-[--text-muted] text-sm mb-2">No items found</p>
@@ -819,9 +878,9 @@ export default function MenuPage() {
       {/* Cart Bar - Redesigned with gradient and better styling */}
       {cartCount > 0 && !hideCartBar && (
         <div className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
-          <div className="bg-white px-4 py-4">
+          <div className="px-4 py-3 text-white" style={{ backgroundColor: cartBarColor }}>
             <button
-              onClick={() => router.push(`/r/${restaurantId}/cart/${tableId}`)}
+              onClick={() => router.push(`/r/${params.restaurantId}/m/${tableId}/c/${tableId}`)}
               className="flex items-center justify-between w-full active:scale-[0.98] transition-transform"
             >
               {/* Left */}
@@ -829,24 +888,21 @@ export default function MenuPage() {
                 {/* Video overlay that appears when item is added */}
                 {showAddedGif && (
                   <div className="absolute left-0 z-10 animate-scale-bounce">
-                    <video
-                      src="/assets/videos/added-animation.mp4"
-                      autoPlay
-                      muted
-                      playsInline
+                    <img
+                     src="/assets/gifs/added.gif"
                       className="w-12 h-12 object-cover rounded-lg"
                     />
                   </div>
                 )}
 
-                <div className={`leading-tight transition-transform duration-300 ${showAddedGif ? 'translate-x-14' : 'translate-x-0'}`}>
+                <div  style={{ Color: buttonColor }} className={`leading-none transition-transform duration-400 ${showAddedGif ? 'translate-x-14' : 'translate-x-0'}`}>
                   <div className="flex items-baseline gap-1">
-                    <OdometerNumber value={cartCount} className="text-black text-base font-bold" />
-                    <span className="text-black text-base font-bold ml-1">
+                    <OdometerNumber value={cartCount} className=" text-base font-bold" />
+                    <span className="text- text-base font-bold ml-1">
                       {cartCount === 1 ? 'Item' : 'Items'}
                     </span>
                   </div>
-                  <p className="text-black/90 text-xs">
+                  <p className=" text-xs">
                     View Cart
                   </p>
                 </div>
@@ -855,10 +911,10 @@ export default function MenuPage() {
               {/* Right */}
               <div className="flex items-center gap-3">
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-black text-lg font-bold font-['Montserrat']">₹</span>
-                  <OdometerNumber value={cartTotal.toFixed(0)} className="text-black text-lg font-bold font-['Montserrat']" />/-
+                  <span className=" text-lg font-bold font-['Montserrat']">₹</span>
+                  <OdometerNumber value={cartTotal.toFixed(0)} className=" text-lg font-bold font-['Montserrat']" />/-
                 </div>
-                <ChevronRight size={20} className="text-black" />
+                <ChevronRight size={20} className="text-" />
               </div>
             </button>
           </div>
@@ -929,7 +985,7 @@ export default function MenuPage() {
         <div className="text-center">
           <p className="text-[--text-dim] text-xs uppercase tracking-[0.3em] mb-4">Welcome</p>
           <h1 className="text-4xl font-luxury font-semibold text-[--text-primary] mb-2">{welcomeName}</h1>
-          <p className="text-[--text-muted] text-sm">Enjoy your time at BTS DISC</p>
+          <p className="text-[--text-muted] text-sm">Enjoy your time at OrderZap</p>
         </div>
       </AnimatedOverlay>
 
@@ -948,12 +1004,15 @@ export default function MenuPage() {
             </button>
             <button
               onClick={async () => {
-                await createStaffCall({
-                  tableId: String(tableId),
-                  tableNumber: parseInt(tableId),
-                  zoneName: table?.zone?.name,
-                  reason: 'Asking for water',
-                });
+                if (restaurantDbId) {
+                  await createStaffCall({
+                    restaurantId: restaurantDbId,
+                    tableId: String(tableId),
+                    tableNumber: parseInt(tableId),
+                    zoneName: table?.zone?.name,
+                    reason: 'Asking for water',
+                  });
+                }
                 setShowWaterPopup(false);
               }}
               className="flex-1 btn-primary py-3 rounded-xl text-sm font-medium"
@@ -994,7 +1053,7 @@ function OdometerNumber({ value, className = "" }) {
 }
 
 // Menu Item Component - Memoized to prevent unnecessary re-renders
-const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
+const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable, buttonColor }) {
   const isRestricted = !item.isAvailableInZone;
   const imageRef = useRef(null);
   const buttonRef = useRef(null);
@@ -1056,16 +1115,15 @@ const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavaila
 
   return (
     <div
-      className={`menu-card-item  overflow-hidden bg-[--card] 
-flex h-32 shadow-sm hover:shadow-lg transition-shadow ${isRestricted ? "opacity-70" : ""
+      onClick={handleAdd}
+      className={`menu-card-item overflow-hidden flex h-36 shadow-md hover:shadow-xl transition-all duration-300 ${isRestricted ? "opacity-70" : ""
         }`}
-
     >
       {/* IMAGE - Left side, fixed width */}
       <div
         ref={imageRef}
         onClick={handleAdd}
-        className="relative w-32 h-32 flex-shrink-0 cursor-pointer overflow-hidden group"
+        className="relative w-24 h-24 flex-shrink-0 cursor-pointer overflow-hidden group"
         role="button"
         aria-disabled={isRestricted}
       >
@@ -1077,8 +1135,8 @@ flex h-32 shadow-sm hover:shadow-lg transition-shadow ${isRestricted ? "opacity-
             height: '100%'
           }}
         >
-          <MenuItemImage
-            storageId={item.image}
+          <img
+            src={item.imageUrl}
             alt={item.name}
             className="w-full h-full object-cover transition-transform group-active:scale-95"
           />
@@ -1086,69 +1144,75 @@ flex h-32 shadow-sm hover:shadow-lg transition-shadow ${isRestricted ? "opacity-
 
         {/* Restricted Overlay */}
         {isRestricted && (
-          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-[10px] text-white font-medium gap-1">
-            <Lock size={14} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-[10px] text-white font-medium gap-1">
+            <Lock size={16} />
             <span>Unavailable</span>
           </div>
         )}
 
         {/* Quantity Badge */}
-        {qty > 0 && !isRestricted && (
-          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[--primary] text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
-            <OdometerNumber value={qty} />
-          </div>
-        )}
+
       </div>
 
       {/* INFO - Right side, takes remaining space */}
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+      <div className="flex-1 p-2 flex flex-col justify-between min-w-0 g-gradient-to-br ">
         <div className="flex-1 min-h-0">
-          <h3 className="text-sm font-semibold text-[--text-primary] line-clamp-2 mb-1 leading-tight">
+          <h3 className="text-xs font-bold text-gray-900 line-clamp-2 mb-0.5 leading-tight">
             {item.name}
           </h3>
 
-          <p className="text-[10px] text-[--text-muted] line-clamp-2 leading-snug">
+          <p className="text-[9px] text-gray-600 line-clamp-1 leading-snug">
             {item.description}
           </p>
         </div>
 
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-base font-bold text-[--text-primary] font-['Montserrat']">₹{item.price.toFixed(0)}/-</span>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-sm font-bold text-gray-900 font-['Montserrat']">₹{item.price.toFixed(0)}/-</span>
 
           {/* ACTIONS */}
           {isRestricted ? (
-            <span className="text-[9px] text-red-400 font-medium">Unavailable</span>
+            <span className="text-[8px] text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded-full">Unavailable</span>
           ) : qty > 0 ? (
             <div
-              className="flex items-center rounded-lg border border-[--border] bg-[--bg-elevated] shadow-sm"
+              className="flex items-center  shadow-sm overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={handleDecrement}
-                className="w-8 h-8 flex items-center justify-center active:scale-90 text-[--text-primary]"
+                className="w-6 h-6 flex items-center justify-center active:scale-90 text-white transition-all"
+                style={{ backgroundColor: buttonColor }}
                 aria-label="Decrease quantity"
               >
                 <Minus size={14} />
               </button>
 
-              <div className="w-6 flex justify-center">
-                <OdometerNumber value={qty} className="text-xs font-semibold text-[--text-primary]" />
+              <div
+                style={{ backgroundColor: buttonColor }}
+                className="min-w-[28px] h-6 flex items-center justify-center"
+              >
+                <OdometerNumber
+                  value={qty}
+                  className="text-sm font-bold text-gray-200"
+                />
               </div>
 
               <button
                 onClick={handleIncrement}
-                className="w-8 h-8 flex items-center justify-center text-[--primary] active:scale-90"
+                className="w-6 h-6 flex items-center justify-center active:scale-90 text-white transition-all"
+                style={{ backgroundColor: buttonColor }}
                 aria-label="Increase quantity"
               >
                 <Plus size={14} />
               </button>
             </div>
+
           ) : (
             <button
               ref={buttonRef}
               onClick={handleAdd}
-              className="px-4 py-2 rounded-lg bg-[--primary] text-white text-xs font-semibold active:scale-95 transition-transform shadow-sm"
+              className="w-[74px] py-1  text-white text-[10px] font-bold active:scale-95 transition-all shadow-sm"
               style={{
+                backgroundColor: buttonColor,
                 transform: `translateY(${buttonParallaxY}px)`,
                 transition: 'transform 0.1s ease-out'
               }}

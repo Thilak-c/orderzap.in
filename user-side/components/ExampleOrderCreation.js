@@ -6,7 +6,7 @@
  * 
  * Copy this pattern into your cart pages:
  * - user-side/app/demo/cart/[tableId]/page.js
- * - user-side/app/r/[restaurantId]/cart/[tableId]/page.js
+ * - user-side/app/r/[restaurantId]/m/[tableId]/c/[cartId]/page.js
  */
 
 'use client';

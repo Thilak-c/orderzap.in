@@ -6,7 +6,6 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
-import { useBranding } from "@/app/r/[restaurantId]/layout";
 import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import {
@@ -14,6 +13,7 @@ import {
   UtensilsCrossed, Search, X, Phone, Lock, GlassWater
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
+import BrandLogo from "@/components/BrandLogo";
 import { AnimatedBottomSheet, AnimatedToast, AnimatedPopup, AnimatedOverlay } from "@/components/AnimatedPopup";
 
 // Format 24h time to 12h format
@@ -41,7 +41,10 @@ export default function MenuPage() {
   const searchParams = useSearchParams();
   const sessionKey = searchParams.get('key');
   const { setTable } = useTable();
-  const { brandName, brandLogo, isLoading: brandingLoading } = useBranding();
+  // Demo branding - hardcoded
+  const brandName = "Demo Restaurant";
+  const brandLogo = null;
+  const brandingLoading = false;
   const [activeCategory, setActiveCategory] = useState("All");
   const [dismissedReservation, setDismissedReservation] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);

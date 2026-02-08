@@ -96,6 +96,7 @@ export const update = mutation({
     logo: v.optional(v.string()),
     logo_url: v.optional(v.string()),
     brandName: v.optional(v.string()),
+    primaryColor: v.optional(v.string()),
     description: v.optional(v.string()),
     address: v.optional(v.string()),
     phone: v.optional(v.string()),

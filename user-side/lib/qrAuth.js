@@ -52,6 +52,9 @@ export function getQRSession() {
 }
 
 export function isQRSessionValid(tableId, sessionKey) {
+  // Allow preview key for admin preview
+  if (sessionKey === 'preview') return true;
+  
   const session = getQRSession();
   if (!session) return false;
   

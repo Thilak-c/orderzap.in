@@ -61,13 +61,24 @@ export const getByTable = query({
 
 // Get current/upcoming reservation for a table number (for customer view)
 export const getCurrentForTable = query({
-  args: { tableNumber: v.number() },
+  args: { 
+    tableNumber: v.number(),
+    restaurantId: v.optional(v.id("restaurants"))
+  },
   handler: async (ctx, args) => {
-    // Find the table by number
-    const tables = await ctx.db.query("tables").collect();
+    // Find the table by number (optionally filtered by restaurant)
+    let tables;
+    if (args.restaurantId) {
+      tables = await ctx.db
+        .query("tables")
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .collect();
+    } else {
+      tables = await ctx.db.query("tables").collect();
+    }
+    
     const table = tables.find(t => t.number === args.tableNumber);
     if (!table) {
-      // console.log('DEBUG: Table not found for number:', args.tableNumber);
       return null;
     }
 

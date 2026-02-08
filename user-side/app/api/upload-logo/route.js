@@ -35,10 +35,10 @@ export async function POST(request) {
     // Always save as WebP for better compression
     const fileName = 'logo.webp';
 
-    // Create directory path: ROOT/restro_logo/[name]/logo/
+    // Create directory path: ROOT/restro_assets/[name]/logo/
     // Go up from user-side to project root
     const projectRoot = path.join(process.cwd(), '..');
-    const uploadDir = path.join(projectRoot, 'restro_logo', folderName, 'logo');
+    const uploadDir = path.join(projectRoot, 'restro_assets', folderName, 'logo');
     
     // Create directory if it doesn't exist
     await mkdir(uploadDir, { recursive: true });

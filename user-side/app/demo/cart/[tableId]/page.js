@@ -416,8 +416,13 @@ export default function CartPage() {
     }
   }, [storedPhone]);
 
-  // Check QR session validity
+  // Check QR session validity - SKIP for demo routes
   useEffect(() => {
+    // Skip session check for demo routes
+    if (window.location.pathname.startsWith('/demo/')) {
+      return;
+    }
+
     const session = typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('qr_scan_session') || 'null') : null;
 
     if (!session || session.tableId !== String(tableId)) {

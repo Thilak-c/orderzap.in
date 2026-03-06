@@ -102,7 +102,7 @@ export const create = mutation({
         name: v.string(),
         price: v.number(),
         quantity: v.number(),
-        image: v.string(),
+        image: v.optional(v.string()),
       })
     ),
     total: v.number(),

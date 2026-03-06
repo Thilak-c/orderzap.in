@@ -79,12 +79,30 @@ export default function RestaurantForm() {
         applyTheme(theme);
         console.log("Theme applied!");
       } else {
-        const errorData = await colorResponse.json();
-        console.error("Color extraction failed:", errorData);
+        console.error("Color extraction failed, using defaults");
+        // Use default colors if extraction fails
+        const defaultColors = {
+          dominant: '#3b82f6',
+          muted: '#ec4899',
+          darkVibrant: '#1e40af',
+          lightVibrant: '#8b5cf6'
+        };
+        setThemeColors(defaultColors);
+        const theme = mapColorsToTheme(defaultColors);
+        applyTheme(theme);
       }
     } catch (colorError) {
       console.error("Color extraction failed:", colorError);
-      // Don't show error to user, theme is optional
+      // Use default colors on error
+      const defaultColors = {
+        dominant: '#3b82f6',
+        muted: '#ec4899',
+        darkVibrant: '#1e40af',
+        lightVibrant: '#8b5cf6'
+      };
+      setThemeColors(defaultColors);
+      const theme = mapColorsToTheme(defaultColors);
+      applyTheme(theme);
     } finally {
       setExtractingColors(false);
     }
@@ -132,11 +150,6 @@ export default function RestaurantForm() {
       setError("❌ Please upload a logo");
       return;
     }
-    
-    if (!themeColors) {
-      setError("Please wait for color extraction to complete");
-      return;
-    }
 
     // Start fade out
     setIsTransitioning(true);
@@ -150,6 +163,7 @@ export default function RestaurantForm() {
         // Upload logo to file system during loading animation
         let uploadedLogoUrl = "";
         if (logoFile) {
+          console.log("Uploading logo to file system...");
           const uploadFormData = new FormData();
           uploadFormData.append('file', logoFile);
           uploadFormData.append('restaurantName', formData.name);
@@ -164,7 +178,9 @@ export default function RestaurantForm() {
             uploadedLogoUrl = uploadData.logoUrl;
             console.log("Logo uploaded to file system:", uploadedLogoUrl);
           } else {
-            console.error("Logo upload failed, continuing without file system URL");
+            const errorData = await uploadResponse.json();
+            console.error("Logo upload failed:", errorData);
+            // Continue without file system URL - not critical
           }
         }
 
@@ -179,12 +195,14 @@ export default function RestaurantForm() {
           return;
         }
         
+        console.log("Creating restaurant with ID:", restaurantId);
+        
         // Wait for minimum 5 seconds to show the animation
         const minAnimationTime = 5000; // 5 seconds
         const startTime = Date.now();
         
         // Create restaurant with uploaded logo URL and theme colors
-        await createRestaurant({
+        const restaurantData = {
           id: restaurantId,
           name: formData.name,
           phone: `+91${formData.phone}`,
@@ -192,7 +210,13 @@ export default function RestaurantForm() {
           logo_url: uploadedLogoUrl || "", // New: file system URL
           brandName: formData.name,
           themeColors: themeColors || null,
-        });
+        };
+        
+        console.log("Calling createRestaurant mutation with:", restaurantData);
+        
+        await createRestaurant(restaurantData);
+        
+        console.log("Restaurant created successfully!");
 
         // Calculate remaining time to reach 5 seconds
         const elapsedTime = Date.now() - startTime;
@@ -212,10 +236,13 @@ export default function RestaurantForm() {
         }, 3000);
 
       } catch (err) {
+        console.error("Restaurant creation error:", err);
         // If ID exists, add a number suffix
         if (err.message?.includes("already exists")) {
           const randomNum = Math.floor(Math.random() * 999) + 1;
           const newId = `${generateRestaurantId(formData.name)}-${randomNum}`;
+          
+          console.log("Retrying with new ID:", newId);
           
           try {
             await createRestaurant({
@@ -235,12 +262,13 @@ export default function RestaurantForm() {
               router.push(`/r/${newId}/admin`);
             }, 3000);
           } catch (retryErr) {
+            console.error("Retry failed:", retryErr);
             setError(retryErr.message || "Failed to create restaurant");
             setLoading(false);
             setIsTransitioning(false);
           }
         } else {
-          setError(err.message || "Failed to create restaurant");
+          setError(err.message || "Failed to create restaurant. Please check your connection and try again.");
           setLoading(false);
           setIsTransitioning(false);
         }

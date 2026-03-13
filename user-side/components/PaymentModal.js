@@ -14,8 +14,13 @@ export default function PaymentModal({ plan, restaurantId, onSuccess, onClose })
     document.body.appendChild(script);
 
     return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
+      try {
+        // Be defensive: the script's parent may have changed or been removed
+        if (typeof document !== 'undefined' && script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+      } catch (err) {
+        // defensive: ignore if document/body is not available
       }
     };
   }, []);

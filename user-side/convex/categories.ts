@@ -23,10 +23,22 @@ export const create = mutation({
     iconUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // normalize restaurant ID to actual Convex ID
+    let rid: string | undefined = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) {
+        rid = rest._id;
+      }
+    }
+
     // Check if category already exists
     const existing = await ctx.db
       .query("categories")
-      .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+      .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
       .collect();
     
     const existingCategory = existing.find(c => c.name.toLowerCase() === args.name.toLowerCase());
@@ -35,7 +47,7 @@ export const create = mutation({
     }
 
     return await ctx.db.insert("categories", {
-      restaurantId: args.restaurantId,
+      restaurantId: rid,
       name: args.name,
       icon: args.icon,
       iconFileUrl: args.iconFileUrl,

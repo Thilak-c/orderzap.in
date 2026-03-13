@@ -20,6 +20,8 @@ import {
 import MenuItemImage from "@/components/MenuItemImage";
 import BrandLogo from "@/components/BrandLogo";
 
+  // Fetch restaurant data for branding
+
 // Tip options
 const tipOptions = [
   { id: 'none', label: 'Not This Time', amount: 0 },
@@ -38,8 +40,12 @@ const customizationOptions = [
   { id: 'no-garlic', label: 'No Garlic', category: 'preference' },
 ];
 
+
+
+
+
 // CartItem Component - separate to avoid hooks in map
-function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart, openItemEdit, handleSaveForLater, darkColor, lightColor }) {
+function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart, openItemEdit, handleSaveForLater }) {
   const imageRef = useRef(null);
   const [parallaxY, setParallaxY] = useState(0);
 
@@ -61,23 +67,20 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
   return (
     <div
       key={item.menuItemId}
-      className={`rounded-2xl p-3 ${removingItemId === item.menuItemId
+      className={`bg-[--card] border border-[--border] rounded-2xl p-3 ${removingItemId === item.menuItemId
           ? 'animate-slide-out-left'
           : 'animate-slide-up'
         }`}
       style={{
         animationDelay: removingItemId === item.menuItemId ? '0s' : `${index * 0.05}s`,
-        animationFillMode: 'forwards',
-        backgroundColor: darkColor,
-        border: `1px solid ${darkColor}`
+        animationFillMode: 'forwards'
       }}
     >
       <div className="flex gap-3">
         {/* Image */}
         <div
           ref={imageRef}
-          className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0"
-          style={{ backgroundColor: lightColor }}
+          className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[--bg-elevated]"
         >
           <div
             style={{
@@ -94,14 +97,14 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
         {/* Details */}
         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
           <div>
-            <h3 className="font-medium text-white text-sm line-clamp-1">{item.name}</h3>
-            <div className="text-white font-semibold text-sm mt-0.5 flex items-baseline gap-0.5">
+            <h3 className="font-medium text-[--text-primary] text-sm line-clamp-1">{item.name}</h3>
+            <div className="text-[--primary] font-semibold text-sm mt-0.5 flex items-baseline gap-0.5">
               <span>₹</span>
               <OdometerNumber value={item.price.toString()} />
             </div>
             {/* Show item note if exists */}
             {item.itemNote && (
-              <p className="text-white/60 text-[10px] mt-1 line-clamp-1">📝 {item.itemNote}</p>
+              <p className="text-[--text-dim] text-[10px] mt-1 line-clamp-1">📝 {item.itemNote}</p>
             )}
             {/* Show customizations if exists */}
             {item.customizations?.length > 0 && (
@@ -113,37 +116,35 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
 
           {/* Quantity & Actions */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 rounded-lg p-0.5">
+            <div className="flex items-center gap-1 bg-[--bg-elevated] rounded-lg p-0.5">
               <button
                 onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
-                className="w-7 h-7 rounded-md flex items-center justify-center active:scale-95 transition-all"
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
               >
-                <Minus size={14} className="text-white/80" />
+                <Minus size={14} className="text-[--text-muted]" />
               </button>
-              <span className="w-6 text-center text-sm font-bold text-white flex items-center justify-center">
+              <span className="w-6 text-center text-sm font-bold text-[--text-primary] flex items-center justify-center">
                 <OdometerNumber value={item.quantity.toString()} />
               </span>
               <button
                 onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
-                className="w-7 h-7 rounded-md flex items-center justify-center active:scale-95 transition-all"
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[--card] active:scale-95 transition-all"
               >
-                <Plus size={14} className="text-white" />
+                <Plus size={14} className="text-[--primary]" />
               </button>
             </div>
             <div className="flex items-center gap-1">
               {/* Edit/Customize button */}
               <button
                 onClick={() => openItemEdit(item)}
-                className="w-8 h-8 rounded-lg text-white/80 flex items-center justify-center hover:text-white active:scale-95 transition-all"
+                className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-[--primary]/10 hover:text-[--primary] active:scale-95 transition-all"
               >
                 <Edit3 size={14} />
               </button>
               {/* Save for later */}
               <button
                 onClick={() => handleSaveForLater(item)}
-                className="w-8 h-8 rounded-lg text-white/80 flex items-center justify-center hover:text-amber-400 active:scale-95 transition-all"
+                className="w-8 h-8 rounded-lg bg-[--bg-elevated] text-[--text-muted] flex items-center justify-center hover:bg-amber-500/10 hover:text-amber-400 active:scale-95 transition-all"
               >
                 <Bookmark size={14} />
               </button>
@@ -160,7 +161,7 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
 
         {/* Item Total */}
         <div className="text-right py-0.5">
-          <div className="text-white font-bold text-sm flex items-baseline gap-0.5 justify-end">
+          <div className="text-[--text-primary] font-bold text-sm flex items-baseline gap-0.5 justify-end">
             <span>₹</span>
             <OdometerNumber value={(item.price * item.quantity).toFixed(0)} />
           </div>
@@ -169,9 +170,8 @@ function CartItem({ item, index, removingItemId, updateQuantity, removeFromCart,
     </div>
   );
 }
-
 // SavedItem Component
-function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSaved, darkColor, lightColor }) {
+function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSaved }) {
   const imageRef = useRef(null);
   const [parallaxY, setParallaxY] = useState(0);
 
@@ -193,21 +193,18 @@ function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSa
   return (
     <div
       key={item.menuItemId}
-      className={`rounded-xl p-3 flex items-center gap-3 ${addingToCartId === item.menuItemId
+      className={`bg-[--card] border border-[--border] rounded-xl p-3 flex items-center gap-3 ${addingToCartId === item.menuItemId
           ? 'animate-slide-out-left'
           : 'animate-scale-in'
         }`}
       style={{
         animationDelay: addingToCartId === item.menuItemId ? '0s' : `${index * 0.05}s`,
-        animationFillMode: 'forwards',
-        backgroundColor: darkColor,
-        border: `1px solid ${darkColor}`
+        animationFillMode: 'forwards'
       }}
     >
       <div
         ref={imageRef}
-        className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0"
-        style={{ backgroundColor: lightColor }}
+        className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-[--bg-elevated]"
       >
         <div
           style={{
@@ -221,21 +218,21 @@ function SavedItem({ item, index, addingToCartId, handleMoveToCart, removeFromSa
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm text-white line-clamp-1">{item.name}</h4>
-        <div className="text-xs text-white flex items-baseline gap-0.5">
+        <h4 className="text-sm text-[--text-primary] line-clamp-1">{item.name}</h4>
+        <div className="text-xs text-[--primary] flex items-baseline gap-0.5">
           <span>₹</span>
           <OdometerNumber value={item.price.toString()} />
         </div>
       </div>
       <button
         onClick={() => handleMoveToCart(item)}
-        className="px-3 py-1.5 bg-white/10 text-white rounded-lg text-xs font-medium hover:bg-white/20 active:scale-95 transition-all"
+        className="px-3 py-1.5 bg-[--primary]/10 text-[--primary] rounded-lg text-xs font-medium hover:bg-[--primary]/20 active:scale-95 transition-all"
       >
         Add to Cart
       </button>
       <button
         onClick={() => removeFromSaved(item.menuItemId)}
-        className="text-white/60 hover:text-red-400"
+        className="text-[--text-dim] hover:text-red-400"
       >
         <X size={16} />
       </button>
@@ -301,7 +298,13 @@ const createConfetti = () => {
       if (y < window.innerHeight + 100) {
         requestAnimationFrame(animate);
       } else {
-        confetti.remove();
+        try {
+          if (confetti.parentNode) {
+            confetti.parentNode.removeChild(confetti);
+          }
+        } catch (e) {
+          // Silently ignore
+        }
       }
     };
     animate();
@@ -309,9 +312,9 @@ const createConfetti = () => {
 };
 
 const paymentOptions = [
-  { id: "pay-now", label: "Pay Now", image: "/assets/icons/payment/pay-now.png", imageActive: "/assets/icons/payment/pay-now-a.png", desc: "Online payment" },
-  { id: "pay-counter", label: "At Counter", image: "/assets/icons/payment/at-counter.png", imageActive: "/assets/icons/payment/at-counter-1.png", desc: "Pay when ready" },
-  { id: "pay-table", label: "At Table", image: "/assets/icons/payment/at-table.png", imageActive: "/assets/icons/payment/at-table-a.png", desc: "Staff comes to you" },
+  { id: "pay-now", label: "Pay Now", svg: "/assets/icons/payment/v2/pay-online.svg", desc: "Online payment" },
+  { id: "pay-counter", label: "At Counter", svg: "/assets/icons/payment/v2/at-counter.svg", desc: "Pay when ready" },
+  { id: "pay-table", label: "At Table", svg: "/assets/icons/payment/v2/at-table.svg", desc: "Staff comes to you" },
 ];
 
 export default function CartPage() {
@@ -325,11 +328,6 @@ export default function CartPage() {
   // Get restaurant to check if it's active and get database ID
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
-
-  // Get theme colors
-  const themeColors = restaurant?.themeColors;
-  const darkColor = themeColors?.darkVibrant || '#b01820'; // Darkest color for cards and sections
-  const lightColor = themeColors?.lightVibrant || '#ff2530'; // Light color for input backgrounds
 
   // Initialize cart for this table
   useEffect(() => {
@@ -437,41 +435,11 @@ export default function CartPage() {
     }
   }, [storedPhone]);
 
-  // Check QR session validity
+  // Preload payment method SVGs (SVGs are lightweight, so just mark as loaded)
   useEffect(() => {
-    const session = typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('qr_scan_session') || 'null') : null;
-
-    if (!session || session.tableId !== String(tableId)) {
-      // No valid session - redirect to home
-      router.replace('/');
-    }
-  }, [tableId, router]);
-
-  // Preload payment method images
-  useEffect(() => {
-    const imagesToLoad = paymentOptions.flatMap(option => [option.image, option.imageActive]);
-    let loaded = 0;
-
-    imagesToLoad.forEach(src => {
-      const img = new Image();
-      img.onload = () => {
-        loaded++;
-        setLoadedImagesCount(loaded);
-        if (loaded === imagesToLoad.length) {
-          setImagesLoaded(true);
-        }
-      };
-      img.onerror = () => {
-        loaded++;
-        setLoadedImagesCount(loaded);
-        if (loaded === imagesToLoad.length) {
-          setImagesLoaded(true);
-        }
-      };
-      img.src = src;
-    });
+    setImagesLoaded(true);
   }, []);
-
+  
   // Calculate totals including tip and customizations
   const subtotal = cartTotal + customizationTotal;
   const depositToUse = depositBalance > 0 ? Math.min(depositBalance, subtotal) : 0;
@@ -962,7 +930,7 @@ export default function CartPage() {
           </p>
 
           <Link
-            href="/my-orders"
+            href={`/r/${restaurantId}/my-orders`}
             className="btn-primary px-8 py-4 rounded-xl text-sm font-semibold inline-flex items-center gap-2 animate-slide-up"
             style={{ animationDelay: '0.4s', animationFillMode: 'forwards', opacity: 0 }}
           >
@@ -974,12 +942,12 @@ export default function CartPage() {
     );
   }
 
-  // Show loading while branding or images load
+  // Show loading while branding loads
   if (brandingLoading || !imagesLoaded) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg]">
         <div className="loader mb-4" />
-        <p className="text-[--text-dim] text-xs">Loading assets... {loadedImagesCount}/{paymentOptions.length * 2}</p>
+        <p className="text-[--text-dim] text-xs">Loading...</p>
       </div>
     );
   }
@@ -992,19 +960,24 @@ export default function CartPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 glass">
         {/* Top row */}
-        <div className="px-2 py-3 flex items-center justify-between" style={{ backgroundColor: 'var(--primary, #ff2530)' }}>
-          <div className="flex-1 px-2 min-w-0">
-            <BrandLogo
-              brandName={brandName}
-              brandLogo={brandLogo}
-              className="h-10 w-10"
-              textClassName="text-white font-bold text-xl tracking-wide"
-              showText={true}
+        <div className="px-2 py-1 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--primary, #ff2530)' }}>
+          <div className="flex-1 px-2 min-w-0 flex items-center gap-3">
+            <img
+              src={
+                restaurantId
+                  ? `/api/logo/${restaurantId}/full_logo.webp`
+                  : '/assets/logos/bts/full-bg.png'
+              }
+              className="h-12 rounded-full"
+              alt="Brand Logo"
             />
+            <span className="text-white font-jersey-25 text-2xl tracking-wide truncate">
+              {brandName}
+            </span>
           </div>
 
-          <Link href={`/r/${restaurantId}/m/${tableId}`} className="w-10 h-8 flex items-center justify-center rounded-lg transition-all active:scale-95 flex-shrink-0">
-            <ArrowLeft size={18} className="text-white" />
+          <Link href={`/r/${restaurantId}/m/${tableId}`} className="w-12 h-12 flex items-center justify-center transition-all active:scale-95 flex-shrink-0">
+            <ArrowLeft size={24} className="text-white" />
           </Link>
         </div>
       </header>
@@ -1012,7 +985,7 @@ export default function CartPage() {
       <div className="max-w-lg mx-auto px-4 py-4">
         {/* Deposit Banner - show if has credit AND cart has items */}
         {(cart?.length || 0) > 0 && depositBalance > 0 && (
-          <div className="rounded-2xl p-4 mb-4 animate-slide-down" style={{ animationFillMode: 'forwards', backgroundColor: darkColor, borderColor: darkColor }}>
+          <div className="bg-[--card] border border-[--border] rounded-2xl p-4 mb-4 animate-slide-down" style={{ animationFillMode: 'forwards' }}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
                 <Ticket size={20} className="text-emerald-400" />
@@ -1047,31 +1020,31 @@ export default function CartPage() {
                 Have a reservation? Enter phone for credit
               </button>
             ) : (
-              <div className="rounded-xl p-4 animate-scale-in" style={{ animationFillMode: 'forwards', backgroundColor: darkColor, border: `1px solid ${darkColor}` }}>
-                <p className="text-xs text-white/60 mb-3">Enter reservation phone number</p>
+              <div className="bg-[--card] border border-[--border] rounded-xl p-4 animate-scale-in" style={{ animationFillMode: 'forwards' }}>
+                <p className="text-xs text-[--text-dim] mb-3">Enter reservation phone number</p>
                 <div className="flex gap-2">
-                  <div className="flex items-center rounded-lg overflow-hidden flex-1" style={{ backgroundColor: lightColor, border: `1px solid rgba(255,255,255,0.1)` }}>
-                    <span className="px-3 py-2.5 text-white/80 text-sm border-r" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>+91</span>
+                  <div className="flex items-center bg-[--bg-elevated] border border-[--border] rounded-lg overflow-hidden flex-1">
+                    <span className="px-3 py-2.5 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
                     <input
                       type="tel"
                       value={couponPhone}
                       onChange={(e) => { setCouponPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setCouponError(''); }}
                       placeholder="10 digit number"
                       maxLength={10}
-                      className="flex-1 px-3 py-2.5 text-sm outline-none text-white bg-transparent placeholder:text-white/30"
+                      className="flex-1 px-3 py-2.5 text-sm outline-none text-[--text-primary] bg-transparent placeholder:text-[--text-dim]"
                       autoFocus
                     />
                   </div>
                   <button
                     onClick={handleApplyCoupon}
                     disabled={couponPhone.length !== 10}
-                    className="px-4 py-2.5 bg-white text-black rounded-lg text-sm font-semibold disabled:opacity-50"
+                    className="px-4 py-2.5 bg-[--primary] text-white rounded-lg text-sm font-semibold disabled:opacity-50"
                   >
                     Apply
                   </button>
                   <button
                     onClick={() => { setShowCouponInput(false); setCouponPhone(''); setCouponError(''); }}
-                    className="px-3 py-2.5 text-white/60"
+                    className="px-3 py-2.5 text-[--text-muted]"
                   >
                     <X size={18} />
                   </button>
@@ -1089,25 +1062,17 @@ export default function CartPage() {
         <div>
           {(cart?.length || 0) === 0 && !isAddingToCart ? (
             <Link href={`/r/${restaurantId}/m/${tableId}`}>
-
               <div
-                className={`rounded-2xl text-center mb-4 overflow-hidden ${isTransitioning ? 'animate-expand-height p-0' : 'animate-scale-in p-8'}`}
-                style={{
-                  animationFillMode: 'forwards',
-                  backgroundColor: darkColor,
-                  border: `1px solid ${darkColor}`
-                }}
+                className={`bg-[--card] border border-[--border] rounded-2xl text-center mb-4 overflow-hidden ${isTransitioning ? 'animate-expand-height p-0' : 'animate-scale-in p-8'}`}
+                style={{ animationFillMode: 'forwards' }}
               >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center animate-bounce-in" style={{ animationDelay: isTransitioning ? '0.25s' : '0.1s', animationFillMode: 'forwards', opacity: 0, backgroundColor: lightColor }}>
-                  <Plus size={24} className="text-white" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[--bg-elevated] flex items-center justify-center animate-bounce-in" style={{ animationDelay: isTransitioning ? '0.25s' : '0.1s', animationFillMode: 'forwards', opacity: 0 }}>
+                  <Plus size={24} className="text-[--text-dim]" />
                 </div>
-                <p className="text-white/60 text-sm mb-4">Your cart is empty</p>
-                <Link
-                  href={`/r/${restaurantId}/m/${tableId}`}
-                  className="inline-flex items-center gap-2 text-white text-sm font-medium hover:underline"
-                >
+                <p className="text-[--text-muted] text-sm mb-4">Your cart is empty</p>
+                <span className="inline-flex items-center gap-2 text-[--primary] text-sm font-medium">
                   Add items from menu
-                </Link>
+                </span>
               </div>
             </Link>
 
@@ -1118,7 +1083,7 @@ export default function CartPage() {
                 <Clock size={14} className="text-[--primary]" />
                 <span className="text-xs text-[--text-muted] flex items-baseline gap-1">
                   <span>Estimated time:</span>
-                  <span className="text-[--text-primary] font-medium flex items-baseline gap-0.5" style={{ backgroundColor: lightColor }}>
+                  <span className="text-[--text-primary] font-medium flex items-baseline gap-0.5">
                     <OdometerNumber value={estimatedTime.toString()} />
                     <span>-</span>
                     <OdometerNumber value={(estimatedTime + 10).toString()} />
@@ -1137,8 +1102,6 @@ export default function CartPage() {
                   removeFromCart={removeFromCart}
                   openItemEdit={openItemEdit}
                   handleSaveForLater={handleSaveForLater}
-                  darkColor={darkColor}
-                  lightColor={lightColor}
                 />
               ))}
 
@@ -1174,8 +1137,6 @@ export default function CartPage() {
                   addingToCartId={addingToCartId}
                   handleMoveToCart={handleMoveToCart}
                   removeFromSaved={removeFromSaved}
-                  darkColor={darkColor}
-                  lightColor={lightColor}
                 />
               ))}
             </div>
@@ -1186,12 +1147,12 @@ export default function CartPage() {
               <Bookmark size={12} />
               Saved for Later
             </p>
-            <div className="rounded-xl p-6 text-center" style={{ backgroundColor: darkColor, border: `1px dashed rgba(255,255,255,0.2)` }}>
-              <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ backgroundColor: lightColor }}>
-                <Bookmark size={18} className="text-white" />
+            <div className="bg-[--card] border border-dashed border-[--border] rounded-xl p-6 text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[--bg-elevated] flex items-center justify-center">
+                <Bookmark size={18} className="text-[--text-muted]" />
               </div>
-              <p className="text-white/60 text-xs">No saved items yet</p>
-              <p className="text-white/40 text-[10px] mt-1">Tap bookmark icon to save items for later</p>
+              <p className="text-[--text-muted] text-xs">No saved items yet</p>
+              <p className="text-[--text-dim] text-[10px] mt-1">Tap bookmark icon to save items for later</p>
             </div>
           </div>
         )}
@@ -1200,16 +1161,15 @@ export default function CartPage() {
         <div className="mt-4">
           <button
             onClick={() => setShowNotes(!showNotes)}
-            className="w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300"
-            style={{ backgroundColor: darkColor, border: `1px solid ${darkColor}` }}
+            className="w-full flex items-center justify-between p-4 bg-[--card] border border-[--border] rounded-xl transition-all duration-300"
           >
             <div className="flex items-center gap-3">
-              <MessageSquare size={18} className={`transition-colors duration-300 ${showNotes ? 'text-white' : 'text-white/60'}`} />
-              <span className="text-sm text-white/60">
+              <MessageSquare size={18} className={`transition-colors duration-300 ${showNotes ? 'text-[--primary]' : 'text-[--text-muted]'}`} />
+              <span className="text-sm text-[--text-muted]">
                 {notes ? notes.slice(0, 30) + (notes.length > 30 ? '...' : '') : 'Add special instructions'}
               </span>
             </div>
-            <ChevronRight size={18} className={`text-white/40 transition-transform duration-300 ease-out ${showNotes ? 'rotate-90' : ''}`} />
+            <ChevronRight size={18} className={`text-[--text-dim] transition-transform duration-300 ease-out ${showNotes ? 'rotate-90' : ''}`} />
           </button>
           <div className={`grid transition-all duration-300 ease-out ${showNotes ? 'grid-rows-[1fr] mt-2 opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
             <div className="overflow-hidden">
@@ -1217,8 +1177,7 @@ export default function CartPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Allergies, spice level, special requests..."
-                className="w-full rounded-xl p-4 text-sm resize-none outline-none transition-all duration-300 text-white placeholder-white/40"
-                style={{ backgroundColor: darkColor, border: `1px solid ${darkColor}` }}
+                className="w-full bg-[--card] border border-[--border] rounded-xl p-4 text-sm resize-none outline-none transition-all duration-300 text-[--text-primary] placeholder:text-[--text-dim]"
                 rows={3}
               />
             </div>
@@ -1228,8 +1187,8 @@ export default function CartPage() {
         {/* Phone Number */}
         <div className="mt-6">
           <p className="text-[10px] tracking-[0.2em] text-[--text-dim] mb-3 uppercase font-medium">Your Phone Number</p>
-          <div className="flex items-center rounded-xl overflow-hidden" style={{ backgroundColor: darkColor, border: `1px solid ${darkColor}` }}>
-            <span className="px-4 py-3 text-white/80 text-sm border-r" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>+91</span>
+          <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden">
+            <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
             <input
               type="tel"
               value={orderPhone}
@@ -1239,7 +1198,7 @@ export default function CartPage() {
               }}
               placeholder="10 digit number"
               maxLength={10}
-              className="flex-1 bg-transparent px-4 py-3 text-sm outline-none text-white placeholder-white/50"
+              className="flex-1 bg-transparent px-4 py-3 text-sm outline-none text-[--text-primary] placeholder:text-[--text-dim]"
             />
           </div>
           {phoneError && <p className="text-red-400 text-xs mt-2">{phoneError}</p>}
@@ -1260,20 +1219,33 @@ export default function CartPage() {
                     }
                     setPaymentMethod(option.id);
                   }}
-                  className={`flex flex-col items-center p-4 rounded-xl transition-all active:scale-95`}
-                  style={{
-                    backgroundColor: isSelected ? 'rgba(255,255,255,0.1)' : darkColor,
-                    border: isSelected ? '2px solid white' : `1px solid ${darkColor}`
-                  }}
+                  className={`flex flex-col items-center p-4 rounded-xl transition-all active:scale-95 ${
+                    isSelected ? 'bg-[--primary]/10 border-2 border-[--primary]' : 'bg-[--card] border border-[--border]'
+                  }`}
                 >
-                  <div className="w-16 h-16 mb-2">
+                  <div className="w-16 h-16 mb-2 flex items-center justify-center relative">
                     <img
-                      src={isSelected ? option.imageActive : option.image}
+                      src={option.svg}
                       alt={option.label}
                       className="w-full h-full object-contain"
+                      style={isSelected ? {
+                        WebkitMaskImage: `url(${option.svg})`,
+                        maskImage: `url(${option.svg})`,
+                        WebkitMaskSize: 'contain',
+                        maskSize: 'contain',
+                        WebkitMaskRepeat: 'no-repeat',
+                        maskRepeat: 'no-repeat',
+                        WebkitMaskPosition: 'center',
+                        maskPosition: 'center',
+                        backgroundColor: 'var(--primary)',
+                      } : {
+                        opacity: 0.6
+                      }}
                     />
                   </div>
-
+                  <span className={`text-xs font-medium ${isSelected ? 'text-[--primary]' : 'text-[--text-muted]'}`}>
+                    {option.label}
+                  </span>
                 </button>
               );
             })}
@@ -1298,17 +1270,12 @@ export default function CartPage() {
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 active:scale-95 ${tip.id === 'custom'
                       ? selectedTip === 'custom'
-                        ? 'text-white'
-                        : 'text-white/60 hover:text-white'
+                        ? 'text-[--primary]'
+                        : 'text-[--text-muted] hover:text-[--text-primary]'
                       : selectedTip === tip.id
-                        ? 'bg-white text-black scale-105 shadow-lg'
-                        : 'text-white/60 hover:text-white'
+                        ? 'bg-[--primary] text-white scale-105 shadow-lg'
+                        : 'bg-[--card] border border-[--border] text-[--text-muted] hover:text-[--text-primary]'
                     }`}
-                  style={{
-                    animationDelay: `${index * 0.05}s`,
-                    backgroundColor: tip.id === 'custom' ? 'transparent' : (selectedTip === tip.id ? 'white' : darkColor),
-                    border: tip.id === 'custom' ? 'none' : `1px solid ${selectedTip === tip.id ? 'white' : darkColor}`
-                  }}
                 >
                   {tip.label}
                 </button>
@@ -1319,14 +1286,14 @@ export default function CartPage() {
             )}
             <div className={`grid transition-all duration-300 ease-out ${selectedTip === 'custom' ? 'grid-rows-[1fr] mt-3 opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
               <div className="overflow-hidden">
-                <div className="flex items-center rounded-xl overflow-hidden" style={{ backgroundColor: lightColor, border: `1px solid rgba(255,255,255,0.1)` }}>
-                  <span className="px-4 py-3 text-white/80 text-sm border-r" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>₹</span>
+                <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden">
+                  <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">₹</span>
                   <input
                     type="number"
                     value={customTipAmount}
                     onChange={(e) => setCustomTipAmount(e.target.value.replace(/\D/g, ''))}
                     placeholder="Enter amount"
-                    className="flex-1 bg-transparent px-4 py-3 text-sm outline-none text-white placeholder-white/50"
+                    className="flex-1 bg-transparent px-4 py-3 text-sm outline-none text-[--text-primary] placeholder:text-[--text-dim]"
                   />
                 </div>
               </div>
@@ -1340,48 +1307,38 @@ export default function CartPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center animate-fade-in" onClick={() => setEditingItemId(null)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
-            className="relative w-full max-w-lg rounded-t-3xl p-6 border-t animate-slide-up"
-            style={{
-              paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))',
-              backgroundColor: darkColor,
-              borderColor: 'rgba(255,255,255,0.1)'
-            }}
+            className="relative w-full max-w-lg bg-[--card] border-t border-[--border] rounded-t-3xl p-6 animate-slide-up"
+            style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+            <div className="w-10 h-1 rounded-full bg-[--border] mx-auto mb-5" />
 
-            <h3 className="text-white font-semibold text-lg mb-4">Customize Item</h3>
+            <h3 className="text-[--text-primary] font-semibold text-lg mb-4">Customize Item</h3>
 
             {/* Item Note */}
             <div className="mb-4">
-              <p className="text-xs text-white/60 mb-2">Special instructions for this item</p>
+              <p className="text-xs text-[--text-muted] mb-2">Special instructions for this item</p>
               <textarea
                 value={editingItemNote}
                 onChange={(e) => setEditingItemNote(e.target.value)}
                 placeholder="No onions, extra spicy, etc..."
-                className="w-full rounded-xl p-3 text-sm resize-none outline-none transition-all duration-300 text-white placeholder-white/50"
-                style={{ backgroundColor: lightColor, border: '1px solid rgba(255,255,255,0.1)' }}
+                className="w-full bg-[--bg-elevated] border border-[--border] rounded-xl p-3 text-sm resize-none outline-none transition-all duration-300 text-[--text-primary] placeholder:text-[--text-dim]"
                 rows={2}
               />
             </div>
 
             {/* Customizations */}
             <div className="mb-6">
-              <p className="text-xs text-white/60 mb-2">Customizations</p>
+              <p className="text-xs text-[--text-muted] mb-2">Customizations</p>
               <div className="flex flex-wrap gap-2">
                 {customizationOptions.map((cust, index) => (
                   <button
                     key={cust.id}
                     onClick={() => toggleCustomization(cust.id)}
                     className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 active:scale-95 ${editingCustomizations.includes(cust.id)
-                        ? 'bg-white text-black scale-105'
-                        : 'text-white/60 hover:text-white'
+                        ? 'bg-[--primary] text-white scale-105'
+                        : 'bg-[--bg-elevated] border border-[--border] text-[--text-muted] hover:text-[--text-primary]'
                       }`}
-                    style={{
-                      animationDelay: `${index * 0.05}s`,
-                      backgroundColor: editingCustomizations.includes(cust.id) ? 'white' : lightColor,
-                      border: `1px solid ${editingCustomizations.includes(cust.id) ? 'white' : 'rgba(255,255,255,0.1)'}`
-                    }}
                   >
                     {cust.label}
                   </button>
@@ -1392,7 +1349,7 @@ export default function CartPage() {
             {/* Save Button */}
             <button
               onClick={saveItemEdit}
-              className="w-full py-3 rounded-xl text-sm font-semibold bg-white text-black"
+              className="w-full py-3 rounded-xl text-sm font-semibold btn-primary"
             >
               Save Changes
             </button>
@@ -1633,7 +1590,7 @@ export default function CartPage() {
             zIndex: 9999,
           }}
         >
-          <div className="text-6xl animate-spin-slow">
+          <div className="text-3xl ">
             📄
           </div>
         </div>

@@ -27,7 +27,41 @@ const paymentLabels = {
 export default function OrderStatusPage() {
   const { orderId, restaurantId } = useParams();
   const router = useRouter();
-  const order = useQuery(api.orders.getById, { id: orderId });
+  
+  // Skip query if orderId is "demo" - we'll use demo data instead
+  const orderFromDb = useQuery(
+    api.orders.getById, 
+    orderId === "demo" ? "skip" : { id: orderId }
+  );
+  
+  // Use demo data if orderId is "demo"
+  const demoOrder = orderId === "demo" ? {
+    _id: "demo",
+    _creationTime: Date.now() - (10 * 60 * 1000), // 10 minutes ago
+    orderNumber: "DEMO123",
+    status: "preparing",
+    tableId: "5",
+    items: [
+      {
+        name: "Margherita Pizza",
+        price: 299,
+        quantity: 2,
+        image: null
+      },
+      {
+        name: "Caesar Salad",
+        price: 199,
+        quantity: 1,
+        image: null
+      }
+    ],
+    total: 797,
+    depositUsed: 0,
+    paymentMethod: "pay-counter",
+    notes: "Extra cheese please"
+  } : null;
+  
+  const order = demoOrder || orderFromDb;
   const cartContext = useCart();
   
   // Get restaurant to check if it's active
@@ -176,7 +210,15 @@ export default function OrderStatusPage() {
         </div>
       `;
       document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2500);
+      setTimeout(() => {
+        try {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        } catch (e) {
+          // Silently ignore
+        }
+      }, 2500);
     } catch (error) {
       console.error("Failed to send message:", error);
       alert("Failed to send message. Please try again.");
@@ -194,8 +236,8 @@ export default function OrderStatusPage() {
     setRetryCount(prev => prev + 1);
   };
 
-  // Loading state with skeleton
-  if (order === undefined) {
+  // Loading state with skeleton (skip for demo)
+  if (orderId !== "demo" && order === undefined) {
     return (
       <div className="min-h-screen bg-[--bg]">
         <header className="glass sticky top-0 z-10">
@@ -236,34 +278,60 @@ export default function OrderStatusPage() {
     );
   }
 
-  // Error state with retry
-  if (!order) {
+  // Error state with retry (skip for demo)
+  if (orderId !== "demo" && !order) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[--bg]">
-        <div className="text-center animate-scale-in max-w-sm">
-          <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-red-500/20 flex items-center justify-center">
-            <AlertCircle size={40} className="text-red-400" />
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[--bg] relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-32 h-32 bg-red-500/5 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-40 right-10 w-40 h-40 bg-red-500/5 rounded-full blur-3xl animate-pulse delay-700" />
+        </div>
+
+        <div className="text-center animate-scale-in max-w-md relative z-10">
+          {/* Animated icon container */}
+          <div className="relative w-32 h-32 mx-auto mb-8">
+            {/* Pulsing rings */}
+            <div className="absolute inset-0 rounded-full bg-red-500/10 animate-ping" style={{ animationDuration: '2s' }} />
+            <div className="absolute inset-2 rounded-full bg-red-500/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+            
+            {/* Main icon */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-red-500/20 to-red-600/20 backdrop-blur-sm border border-red-500/30 flex items-center justify-center">
+              <AlertCircle size={56} className="text-red-400 animate-pulse" />
+            </div>
           </div>
-          <h1 className="font-luxury text-xl font-semibold text-[--text-primary] mb-3">
+
+          {/* Error message */}
+          <h1 className="font-luxury text-2xl font-bold text-[--text-primary] mb-3 tracking-tight">
             Order Not Found
           </h1>
-          <p className="text-[--text-muted] text-sm mb-6">
-            We couldn't find this order. It may have been cancelled or the link is incorrect.
+          <p className="text-[--text-muted] text-sm leading-relaxed mb-8 max-w-xs mx-auto">
+            We couldn't locate this order. It may have been cancelled, completed, or the link might be incorrect.
           </p>
-          <div className="flex gap-3">
+
+          {/* Action buttons */}
+          <div className="space-y-3">
             <button
               onClick={handleRetry}
-              className="flex-1 btn-secondary py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+              className="w-full btn-primary py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 group"
             >
-              <RefreshCw size={16} />
-              Retry
+              <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+              Try Again
             </button>
+            
             <Link
-              href="/my-orders"
-              className="flex-1 btn-primary py-3 rounded-xl text-sm font-semibold text-center"
+              href={`/r/${restaurantId}/my-orders`}
+              className="block w-full btn-secondary py-4 rounded-xl text-sm font-medium text-center"
             >
-              My Orders
+              View All Orders
             </Link>
+          </div>
+
+          {/* Help text */}
+          <div className="mt-8 p-4 bg-[--card] border border-[--border] rounded-xl">
+            <p className="text-xs text-[--text-dim] leading-relaxed">
+              Need help? Contact our support team or visit the counter for assistance.
+            </p>
           </div>
         </div>
       </div>
@@ -690,7 +758,7 @@ export default function OrderStatusPage() {
           </button>
           
           <Link
-            href="/my-orders"
+            href={`/r/${restaurantId}/my-orders`}
             className="block text-center btn-secondary py-4 rounded-xl text-sm font-medium"
           >
             ← All Orders
@@ -852,7 +920,15 @@ const createConfetti = () => {
     ], {
       duration: fallDuration,
       easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-    }).onfinish = () => confetti.remove();
+    }).onfinish = () => {
+      try {
+        if (confetti.parentNode) {
+          confetti.parentNode.removeChild(confetti);
+        }
+      } catch (e) {
+        // Silently ignore
+      }
+    };
   }
 };
 

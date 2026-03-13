@@ -5,6 +5,23 @@ import { useState } from "react";
 
 export default function MenuItemImage({ storageId, alt, className = "", restaurantId, itemName }) {
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Normalize legacy file-system paths to the stable API route
+  // Example legacy: /restro_assets/bts/menu_img/biryani.webp
+  // Becomes:       /api/menu_item/bts/biryani.webp
+  if (storageId && typeof storageId === "string" && storageId.startsWith("/restro_assets/")) {
+    try {
+      const parts = storageId.split("/").filter(Boolean);
+      // parts = ["restro_assets", "<restaurantId>", "menu_img", "<filename>"]
+      if (parts.length >= 4 && parts[0] === "restro_assets") {
+        const restaurantFromPath = parts[1];
+        const filename = parts[3]; // e.g. biryani.webp
+        storageId = `/api/menu_item/${restaurantFromPath}/${filename}`;
+      }
+    } catch {
+      // If anything goes wrong, fall back to original storageId
+    }
+  }
   
   // If restaurantId and itemName provided, construct the API path
   if (restaurantId && itemName) {

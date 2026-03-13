@@ -4,17 +4,52 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useRouteProtection } from "@/lib/useRouteProtection";
+import { AlertCircle } from "lucide-react";
 
 export default function AdminTablesPage() {
   const params = useParams();
   const restaurantId = params.restaurantId;
   
-  // Get restaurant database ID
+  // Route protection - only Owner and Manager can access Tables
+  const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
+  
+  // Show access denied if not authorized
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access Tables & Zones. Only owners and managers can manage tables.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+  
+  // Get restaurant database ID (for operations that need it)
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
   
-  const tables = useQuery(api.tables.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
-  const zones = useQuery(api.zones.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  // Use short ID for both tables and zones (consistent across all pages)
+  const tables = useQuery(api.tables.list, restaurantId ? { restaurantId } : "skip");
+  const zones = useQuery(api.zones.list, restaurantId ? { restaurantId } : "skip");
+  const orders = useQuery(api.orders.list, restaurantId ? { restaurantId } : "skip");
   const settings = useQuery(api.settings.getAll);
   const createTable = useMutation(api.tables.create);
   const updateTable = useMutation(api.tables.update);
@@ -69,12 +104,13 @@ export default function AdminTablesPage() {
   const handleSaveTable = async () => {
     if (!tableFormData.name || !tableFormData.number || !restaurantDbId) return;
     const data = { 
-      restaurantId: restaurantDbId,
+      restaurantId: restaurantId,
       name: tableFormData.name, 
       number: parseInt(tableFormData.number), 
       capacity: tableFormData.capacity ? parseInt(tableFormData.capacity) : undefined,
       zoneId: tableFormData.zoneId || undefined 
     };
+    console.log("Saving table with data:", data);
     if (editingTable) await updateTable({ id: editingTable._id, ...data });
     else await createTable(data);
     resetTableForm();
@@ -98,11 +134,11 @@ export default function AdminTablesPage() {
 
   // Zone handlers
   const handleSaveZone = async () => {
-    if (!zoneFormData.name || !restaurantDbId) return;
+    if (!zoneFormData.name || !restaurantId) return;
     if (editingZone) {
       await updateZone({ id: editingZone._id, name: zoneFormData.name, description: zoneFormData.description });
     } else {
-      await createZone({ restaurantId: restaurantDbId, name: zoneFormData.name, description: zoneFormData.description });
+      await createZone({ restaurantId, name: zoneFormData.name, description: zoneFormData.description || "" });
     }
     resetZoneForm();
   };
@@ -188,6 +224,20 @@ export default function AdminTablesPage() {
   const today = new Date().toISOString().split('T')[0];
   const confirmedReservations = reservations?.filter(r => r.status === "confirmed") || [];
   const cancelledReservations = reservations?.filter(r => r.status === "cancelled") || [];
+
+  // Compute per-table stats (sales, order count, active)
+  const tableStats = (tables || []).map((table) => {
+    const tableOrders = (orders || []).filter(o => o.tableId === table._id);
+    const totalSales = tableOrders.reduce((s, o) => s + (o.total || o.totalAmount || 0), 0);
+    const orderCount = tableOrders.length;
+    const active = tableOrders.some(o => o.status && o.status !== 'completed');
+    const lastOrder = tableOrders.sort((a,b) => new Date(b._creationTime) - new Date(a._creationTime))[0];
+    return { tableId: table._id, totalSales, orderCount, active, lastOrder };
+  });
+
+  const bestTableStat = tableStats.reduce((best, s) => (s.totalSales > (best?.totalSales || 0) ? s : best), null);
+  const activeCount = tableStats.filter(s => s.active).length;
+  const inactiveCount = (tables?.length || 0) - activeCount;
 
   return (
     <div className="p-3 md:p-6">
@@ -460,7 +510,29 @@ export default function AdminTablesPage() {
               <button onClick={() => setShowTableForm(true)} className="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-wide border-2 border-black hover:bg-white hover:text-black transition-all">Add First Table</button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                <div className="bg-white border-2 border-gray-300 p-4">
+                  <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Best Table</p>
+                  <p className="text-lg font-bold text-black">{bestTableStat ? (tables.find(t => t._id === bestTableStat.tableId)?.name || '—') : '—'}</p>
+                  <p className="text-xs text-gray-600">₹{bestTableStat ? bestTableStat.totalSales.toFixed(2) : '0.00'}</p>
+                </div>
+                <div className="bg-white border-2 border-gray-300 p-4">
+                  <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Active Tables</p>
+                  <p className="text-2xl font-bold text-black">{activeCount}</p>
+                </div>
+                <div className="bg-white border-2 border-gray-300 p-4">
+                  <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Inactive Tables</p>
+                  <p className="text-2xl font-bold text-black">{inactiveCount}</p>
+                </div>
+                <div className="bg-white border-2 border-gray-300 p-4">
+                  <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Total Tables</p>
+                  <p className="text-2xl font-bold text-black">{tables.length}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {tables.map((table) => (
                 <div key={table._id} className="bg-white border-2 border-gray-300 p-4 hover:border-black transition-all">
                   <div className="flex items-start justify-between mb-3">
@@ -479,9 +551,31 @@ export default function AdminTablesPage() {
                   ) : (
                     <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-white text-black border border-black font-bold uppercase tracking-wide">ALL ZONES</span>
                   )}
+
+                  {/* Table stats */}
+                  {(() => {
+                    const stat = tableStats.find(s => s.tableId === table._id) || { totalSales: 0, orderCount: 0, active: false };
+                    return (
+                      <div className="mt-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-600">Sales</span>
+                          <span className="text-xs font-bold">₹{stat.totalSales.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-gray-600">Orders</span>
+                          <span className="text-xs font-bold">{stat.orderCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-gray-600">Status</span>
+                          <span className={`text-xs font-bold uppercase ${stat.active ? 'text-green-700' : 'text-gray-500'}`}>{stat.active ? 'Active' : 'Inactive'}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </>
       )}
@@ -608,118 +702,9 @@ export default function AdminTablesPage() {
 
       {/* Reservations Tab Content */}
       {activeTab === 'reservations' && (
-        <>
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-white border-2 border-gray-300 p-4">
-              <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Today's Bookings</p>
-              <p className="text-2xl font-bold text-black">{todayStats?.total || 0}</p>
-            </div>
-            <div className="bg-white border-2 border-gray-300 p-4">
-              <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Upcoming Today</p>
-              <p className="text-2xl font-bold text-black">{todayStats?.upcoming || 0}</p>
-            </div>
-            <div className="bg-white border-2 border-gray-300 p-4">
-              <p className="text-[10px] text-gray-600 font-bold mb-1 uppercase tracking-wide">Selected Date</p>
-              <p className="text-lg font-bold text-black">{confirmedReservations.length} bookings</p>
-            </div>
-          </div>
-
-          {/* Date Filter */}
-          <div className="flex gap-2 mb-6 items-center">
-            <button
-              onClick={() => setSelectedDate(today)}
-              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 transition-all ${selectedDate === today ? 'bg-black text-white border-black' : 'bg-white border-gray-300 text-black hover:border-black'}`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => {
-                const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-                setSelectedDate(tomorrow);
-              }}
-              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-white border-2 border-gray-300 text-black hover:border-black transition-all"
-            >
-              Tomorrow
-            </button>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-white border-2 border-gray-300 px-3 py-1.5 text-xs text-black focus:border-black outline-none"
-            />
-          </div>
-
-          {/* Reservations List */}
-          {confirmedReservations.length === 0 ? (
-            <div className="bg-white border-2 border-gray-300 p-8 text-center">
-              <p className="text-gray-600">No reservations for {selectedDate}</p>
-            </div>
-          ) : (
-            <div className="bg-white border-2 border-gray-300 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-white text-[10px] font-bold border-b-2 border-gray-300">
-                  <tr>
-                    <th className="text-left py-3 px-4 text-black uppercase tracking-wide">Time</th>
-                    <th className="text-left py-3 px-3 text-black uppercase tracking-wide">Table</th>
-                    <th className="text-left py-3 px-3 text-black uppercase tracking-wide">Customer</th>
-                    <th className="text-center py-3 px-3 text-black uppercase tracking-wide">Party</th>
-                    <th className="text-left py-3 px-3 text-black uppercase tracking-wide">Notes</th>
-                    <th className="text-right py-3 px-4 text-black uppercase tracking-wide">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {confirmedReservations.map((res) => {
-                    const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                    const isNow = selectedDate === today && now >= res.startTime && now <= res.endTime;
-                    const isPast = selectedDate === today && now > res.endTime;
-                    return (
-                      <tr key={res._id} className={`border-t border-gray-300 ${isNow ? 'bg-gray-100' : isPast ? 'opacity-50' : ''}`}>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            {isNow && <span className="w-2 h-2 bg-black rounded-full animate-pulse" />}
-                            <span className="font-bold text-black">{res.startTime} - {res.endTime}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className="font-bold text-black">🪑 {res.table?.name || `Table ${res.tableNumber}`}</span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <p className="font-bold text-black">{res.customerName}</p>
-                          {res.customerPhone && <p className="text-[10px] text-gray-500">{res.customerPhone}</p>}
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <span className="bg-black text-white px-2 py-0.5 text-xs font-bold uppercase tracking-wide">{res.partySize} pax</span>
-                        </td>
-                        <td className="py-3 px-3 text-gray-600 text-xs">{res.notes || '-'}</td>
-                        <td className="py-3 px-4 text-right">
-                          {!isPast && (
-                            <button onClick={() => handleCancelReservation(res._id)} className="text-xs text-black hover:bg-black hover:text-white font-bold px-2 py-1 border border-black transition-all">CANCEL</button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Cancelled */}
-          {cancelledReservations.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-xs text-gray-600 font-bold mb-2 uppercase tracking-wide">Cancelled ({cancelledReservations.length})</h3>
-              <div className="bg-white border-2 border-gray-300 p-4 opacity-50">
-                {cancelledReservations.map((res) => (
-                  <div key={res._id} className="flex justify-between text-sm py-1 text-gray-700">
-                    <span>{res.startTime} - {res.table?.name} - {res.customerName}</span>
-                    <span className="text-black text-xs font-bold uppercase tracking-wide">CANCELLED</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+        <div className="bg-white border-2 border-gray-300 p-8 text-center">
+          <p className="text-lg font-semibold text-gray-600">Some work is going on...</p>
+        </div>
       )}
     </div>
   );

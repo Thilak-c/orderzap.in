@@ -11,8 +11,36 @@ export async function GET(request, { params }) {
     const projectRoot = path.join(process.cwd(), '..');
     const logoPath = path.join(projectRoot, 'restro_assets', restaurant, 'logo', filename);
 
-    // Read the file
-    const fileBuffer = await readFile(logoPath);
+    // Read the file (try primary path)
+    let fileBuffer;
+    try {
+      fileBuffer = await readFile(logoPath);
+    } catch (err) {
+      // fallback logic for renamed files and legacy names
+      const altPaths = [];
+      if (filename === 'favicon.webp') {
+        altPaths.push(path.join(projectRoot, 'restro_assets', restaurant, 'logo', 'logo.webp'));
+      }
+      if (filename === 'logo.webp') {
+        altPaths.push(path.join(projectRoot, 'restro_assets', restaurant, 'logo', 'favicon.webp'));
+      }
+      if (filename === 'full_logo.webp') {
+        // no fallback for full logo; maybe try full-logo.webp from older scheme
+        altPaths.push(path.join(projectRoot, 'restro_assets', restaurant, 'logo', 'full-logo.webp'));
+      }
+
+      for (const p of altPaths) {
+        try {
+          fileBuffer = await readFile(p);
+          break;
+        } catch (_) {
+          // continue
+        }
+      }
+      if (!fileBuffer) {
+        throw err;
+      }
+    }
 
     // Determine content type based on file extension
     const ext = filename.split('.').pop().toLowerCase();

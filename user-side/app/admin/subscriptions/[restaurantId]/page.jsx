@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useParams, useRouter } from 'next/navigation';
+import { useAdmin } from '@/lib/AdminContext';
 import { 
   ArrowLeft, Calendar, DollarSign, Clock, 
   Ban, CheckCircle, Plus, RefreshCw 
@@ -14,6 +15,7 @@ export default function RestaurantDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const restaurantId = params.restaurantId;
+  const { adminUser } = useAdmin();
 
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
@@ -33,7 +35,7 @@ export default function RestaurantDetailsPage() {
       await extendSubscription({
         restaurantId,
         days: parseInt(extendDays),
-        extendedBy: 'admin@orderzap.com', // TODO: Get from auth
+        extendedBy: adminUser?.email || 'admin@orderzap.com',
         reason: extendReason,
       });
       setShowExtendModal(false);
@@ -50,7 +52,7 @@ export default function RestaurantDetailsPage() {
         restaurantId,
         status: 'blocked',
         reason: blockReason,
-        adminEmail: 'admin@orderzap.com', // TODO: Get from auth
+        adminEmail: adminUser?.email || 'admin@orderzap.com',
       });
       setShowBlockModal(false);
       setBlockReason('');
@@ -64,7 +66,7 @@ export default function RestaurantDetailsPage() {
       await updateStatus({
         restaurantId,
         status: 'active',
-        adminEmail: 'admin@orderzap.com', // TODO: Get from auth
+        adminEmail: adminUser?.email || 'admin@orderzap.com',
       });
     } catch (error) {
       alert('Failed to unblock restaurant: ' + error.message);
@@ -80,7 +82,7 @@ export default function RestaurantDetailsPage() {
         paymentId,
         refundAmount: amount,
         refundReason: reason,
-        processedBy: 'admin@orderzap.com', // TODO: Get from auth
+        processedBy: adminUser?.email || 'admin@orderzap.com',
       });
       alert('Refund processed successfully');
     } catch (error) {

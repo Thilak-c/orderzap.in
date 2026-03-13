@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import MenuItemImage from "@/components/MenuItemImage";
 import BrandLogo from "@/components/BrandLogo";
+import CategoryIcon from "@/components/CategoryIcon";
 import { AnimatedBottomSheet, AnimatedToast, AnimatedPopup, AnimatedOverlay } from "@/components/AnimatedPopup";
 
 // Format 24h time to 12h format
@@ -531,7 +532,7 @@ export default function MenuPage() {
       menuItemId: item._id,
       name: item.name,
       price: item.price,
-      image: item.image
+      image: item.imageUrl || item.image,
     });
     triggerAddedGif();
   };
@@ -641,7 +642,7 @@ export default function MenuPage() {
             const isActive = activeCategory === cat.id;
             const categoryName = cat.id.toLowerCase();
             const iconState = isActive ? 'active' : 'inactive';
-            const iconPath = `/assets/icons/categories/v2/${categoryName}-${iconState}.png`;
+            const iconPath = `/assets/icons/categories/v3/${categoryName}-${iconState}.svg`;
 
             // Count cart items in this category
             const cartItemsInCategory = cat.id === "All"
@@ -662,11 +663,12 @@ export default function MenuPage() {
                 }}
                 className="relative flex flex-col items-center justify-center rounded-lg transition-all active:scale-95 bg-transparent"
               >
-                <img
+                <CategoryIcon
                   key={iconPath}
-                  src={iconPath}
-                  alt={cat.id}
-                  className="w-14 my-4 h-14 object-contain"
+                  categoryName={categoryName}
+                  iconState={iconState}
+                  ariaLabel={cat.id}
+                  className={`${isActive ? 'text-[--primary]' : 'text-gray-400'} my-3`}
                 />
                 {/* Cart count badge */}
                 {cartItemsInCategory > 0 && (
@@ -1055,7 +1057,7 @@ flex h-32 shadow-sm hover:shadow-lg transition-shadow ${isRestricted ? "opacity-
           }}
         >
           <MenuItemImage
-            storageId={item.image}
+            storageId={item.imageUrl || item.image}
             alt={item.name}
             className="w-full h-full object-cover transition-transform group-active:scale-95"
           />

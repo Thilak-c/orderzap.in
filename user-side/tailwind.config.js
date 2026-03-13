@@ -17,6 +17,14 @@ module.exports = {
   				'var(--font-bodoni)',
   				'Bodoni Moda',
   				'serif'
+  			],
+  			'jersey-25': [
+  				'var(--font-jersey-25)',
+  				'cursive'
+  			],
+  			'jersey-15': [
+  				'var(--font-jersey-15)',
+  				'cursive'
   			]
   		},
   		colors: {

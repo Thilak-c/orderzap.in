@@ -3,11 +3,45 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { squareLogoUrl } from "@/lib/logo-utils";
+import { useRouteProtection } from "@/lib/useRouteProtection";
+import { AlertCircle } from "lucide-react";
 
 export default function AdminDashboard() {
   const params = useParams();
   const restaurantId = params.restaurantId;
+  
+  // Route protection - only Owner and Manager can access Dashboard
+  const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
+  
+  // Show access denied if not authorized
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access the Dashboard. Only owners and managers can view this page.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
   
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
@@ -60,7 +94,37 @@ export default function AdminDashboard() {
   const hasTables = tables && tables.length > 0;
   const hasZones = zones && zones.length > 0;
   const hasStaff = staff && staff.length > 0;
-  const needsSetup = !hasMenuItems || !hasTables;
+  const coreSetupComplete = hasMenuItems && hasTables;
+
+  // Persistent "Get Started" banner visibility per restaurant
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
+
+  // Load dismissal state once on mount
+  useEffect(() => {
+    if (typeof window === "undefined" || !restaurantId) return;
+    const key = `admin_get_started_dismissed_${restaurantId}`;
+    const stored = window.localStorage.getItem(key);
+    if (stored === "1") {
+      setChecklistDismissed(true);
+    }
+  }, [restaurantId]);
+
+  // Auto‑dismiss forever when core setup is completed (menu + tables)
+  useEffect(() => {
+    if (typeof window === "undefined" || !restaurantId) return;
+    if (!coreSetupComplete) return;
+    const key = `admin_get_started_dismissed_${restaurantId}`;
+    window.localStorage.setItem(key, "1");
+    setChecklistDismissed(true);
+  }, [coreSetupComplete, restaurantId]);
+
+  const handleDismissChecklist = () => {
+    if (typeof window !== "undefined" && restaurantId) {
+      const key = `admin_get_started_dismissed_${restaurantId}`;
+      window.localStorage.setItem(key, "1");
+    }
+    setChecklistDismissed(true);
+  };
 
   const toggleRestaurantStatus = async () => {
     if (!restaurantDbId || isTogglingStatus) return;
@@ -168,6 +232,11 @@ export default function AdminDashboard() {
       let rotationSpeed = (Math.random() - 0.5) * 10;
 
       const animate = () => {
+        // Check if confetti element still exists in DOM before animating
+        if (!confetti || !document.body.contains(confetti)) {
+          return;
+        }
+        
         y += velY;
         x += velX;
         velY += 0.3; // gravity
@@ -181,7 +250,14 @@ export default function AdminDashboard() {
         if (y < window.innerHeight + 50) {
           requestAnimationFrame(animate);
         } else {
-          confetti.remove();
+          // Safe removal - check if element still exists and has a parent
+          try {
+            if (confetti && confetti.parentNode && document.body.contains(confetti)) {
+              confetti.parentNode.removeChild(confetti);
+            }
+          } catch (e) {
+            // Silently ignore removal errors
+          }
         }
       };
       
@@ -276,15 +352,13 @@ export default function AdminDashboard() {
           <div className="max-w-2xl mx-auto text-center">
             
             {/* Logo */}
-            {restaurant?.logo_url && (
-              <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
-                <img 
-                  src={restaurant.logo_url} 
-                  alt={restaurant.name}
-                  className="w-32 h-32 object-cover rounded-full border-4 border-black transition-transform hover:scale-105"
-                />
-              </div>
-            )}
+            <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <img 
+                src={squareLogoUrl(restaurant, restaurantId)} 
+                alt={restaurant?.name}
+                className="w-32 h-32 object-cover rounded-full border-4 border-black transition-transform hover:scale-105"
+              />
+            </div>
 
             {/* Welcome Message */}
             <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
@@ -315,15 +389,13 @@ export default function AdminDashboard() {
         <div className="max-w-2xl mx-auto">
           
           {/* Logo */}
-          {restaurant?.logo_url && (
-            <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+          <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
               <img 
-                src={restaurant.logo_url} 
-                alt={restaurant.name}
+                src={squareLogoUrl(restaurant, restaurantId)} 
+                alt={restaurant?.name}
                 className="w-32 h-32 object-cover transition-transform hover:scale-105"
               />
-            </div>
-          )}
+          </div>
 
           {/* Welcome Message */}
           <div className="text-center mb-12 opacity-0 animate-slide-up" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
@@ -971,15 +1043,13 @@ export default function AdminDashboard() {
           <div className="max-w-2xl mx-auto text-center">
             
             {/* Logo */}
-            {restaurant?.logo_url && (
-              <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
-                <img 
-                  src={restaurant.logo_url} 
-                  alt={restaurant.name}
-                  className="w-32 h-32 object-cover rounded-full border-4 border-black transition-transform hover:scale-105"
-                />
-              </div>
-            )}
+            <div className="flex justify-center mb-8 opacity-0 animate-fade-in" style={{animationDelay: '0.1s', animationFillMode: 'forwards'}}>
+              <img 
+                src={squareLogoUrl(restaurant, restaurantId)} 
+                alt={restaurant?.name}
+                className="w-32 h-32 object-cover rounded-full border-4 border-black transition-transform hover:scale-105"
+              />
+            </div>
 
             {/* Welcome Message */}
             <div className="opacity-0 animate-slide-up" style={{animationDelay: '0.3s', animationFillMode: 'forwards'}}>
@@ -1009,9 +1079,9 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4">
-              {restaurant?.logo_url && (
+              {restaurant && (
                 <img 
-                  src={restaurant.logo_url} 
+                  src={squareLogoUrl(restaurant, restaurantId)} 
                   alt={restaurant.name}
                   className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-full border-2 border-gray-200"
                 />
@@ -1071,12 +1141,25 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         
-        {/* Setup Checklist - Show if restaurant needs setup */}
-        {needsSetup && (
+        {/* Setup Checklist - Show until core setup done or user dismisses forever */}
+        {!coreSetupComplete && !checklistDismissed && (
           <div className="mb-8 sm:mb-12 opacity-0 animate-fade-in" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
-            <div className="border-2 border-black p-6 sm:p-8 bg-white">
-              <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">Get Started</h2>
-              <p className="text-sm sm:text-base text-gray-600 mb-6">Complete these steps to start accepting orders</p>
+            <div className="border-2 border-black p-6 sm:p-8 bg-white relative">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-black mb-1">Get Started</h2>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Complete these steps once. When menu & tables are set, this closes forever.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDismissChecklist}
+                  className="text-xs sm:text-sm text-gray-500 hover:text-black border border-gray-200 hover:border-black px-2 py-1 leading-none uppercase tracking-wide"
+                >
+                  Close
+                </button>
+              </div>
               
               <div className="space-y-3">
                 {/* Menu Items */}
@@ -1133,7 +1216,7 @@ export default function AdminDashboard() {
                   {!hasTables && <span className="text-black group-hover:text-white">→</span>}
                 </Link>
 
-                {/* Zones (Optional) */}
+                {/* Zones (Optional, but reflected live) */}
                 <Link 
                   href={`/r/${restaurantId}/admin/zones`}
                   className={`flex items-center justify-between p-4 border-2 transition-all duration-300 ${
@@ -1160,7 +1243,7 @@ export default function AdminDashboard() {
                   {!hasZones && <span className="text-gray-400 group-hover:text-black">→</span>}
                 </Link>
 
-                {/* Staff (Optional) */}
+                {/* Staff (Optional, but reflected live) */}
                 <Link 
                   href={`/r/${restaurantId}/admin/staff`}
                   className={`flex items-center justify-between p-4 border-2 transition-all duration-300 ${

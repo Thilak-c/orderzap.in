@@ -1,6 +1,79 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// Seed admin users
+export const seedAdminUsers = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Check if admin users already exist
+    const existingAdmin = await ctx.db
+      .query("adminUsers")
+      .withIndex("by_email", (q) => q.eq("email", "admin@orderzap.com"))
+      .first();
+
+    if (existingAdmin) {
+      return { success: false, message: "Admin users already exist" };
+    }
+
+    // Create super admin
+    const superAdminId = await ctx.db.insert("adminUsers", {
+      email: "admin@orderzap.com",
+      passwordHash: "hashed_password_123", // In production, use proper password hashing
+      name: "Super Admin",
+      role: "super_admin",
+      permissions: {
+        view: true,
+        edit: true,
+        delete: true,
+        refund: true,
+        manageAdmins: true,
+      },
+      active: true,
+      createdAt: Date.now(),
+    });
+
+    // Create regular admin
+    const adminId = await ctx.db.insert("adminUsers", {
+      email: "manager@orderzap.com",
+      passwordHash: "hashed_password_456",
+      name: "Admin Manager",
+      role: "admin",
+      permissions: {
+        view: true,
+        edit: true,
+        delete: false,
+        refund: true,
+        manageAdmins: false,
+      },
+      active: true,
+      createdAt: Date.now(),
+    });
+
+    // Create support user
+    const supportId = await ctx.db.insert("adminUsers", {
+      email: "support@orderzap.com",
+      passwordHash: "hashed_password_789",
+      name: "Support Agent",
+      role: "support",
+      permissions: {
+        view: true,
+        edit: false,
+        delete: false,
+        refund: false,
+        manageAdmins: false,
+      },
+      active: true,
+      createdAt: Date.now(),
+    });
+
+    return { 
+      success: true, 
+      message: "Admin users seeded successfully",
+      adminIds: { superAdminId, adminId, supportId }
+    };
+  },
+});
+
 // Seed initial restaurant
 export const seedRestaurant = mutation({
   args: {},
@@ -8,7 +81,7 @@ export const seedRestaurant = mutation({
     // Check if restaurant already exists
     const existing = await ctx.db
       .query("restaurants")
-      .withIndex("by_short_id", (q) => q.eq("id", "bts"))
+      .withIndex("by_shortid", (q) => q.eq("id", "bts"))
       .first();
 
     if (existing) {
@@ -46,7 +119,7 @@ export const linkExistingDataToRestaurant = mutation({
     // Get restaurant
     const restaurant = await ctx.db
       .query("restaurants")
-      .withIndex("by_short_id", (q) => q.eq("id", args.restaurantShortId))
+      .withIndex("by_shortid", (q) => q.eq("id", args.restaurantShortId))
       .first();
 
     if (!restaurant) {

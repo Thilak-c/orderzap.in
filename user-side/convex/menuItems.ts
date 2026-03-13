@@ -110,8 +110,19 @@ export const create = mutation({
     })),
   },
   handler: async (ctx, args) => {
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) {
+        rid = rest._id;
+      }
+    }
     return await ctx.db.insert("menuItems", {
       ...args,
+      restaurantId: rid,
       available: true,
     });
   },

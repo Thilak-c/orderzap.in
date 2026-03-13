@@ -7,7 +7,7 @@ export const getByShortId = query({
   handler: async (ctx, args) => {
     const restaurant = await ctx.db
       .query("restaurants")
-      .withIndex("by_short_id", (q) => q.eq("id", args.id))
+      .withIndex("by_shortid", (q) => q.eq("id", args.id))
       .first();
     return restaurant;
   },
@@ -38,12 +38,16 @@ export const create = mutation({
     id: v.string(),
     name: v.string(),
     logo: v.optional(v.string()),
+    favicon_url: v.optional(v.string()),
     logo_url: v.optional(v.string()),
     brandName: v.optional(v.string()),
     description: v.optional(v.string()),
     address: v.optional(v.string()),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
+    ownerName: v.optional(v.string()),
+    ownerPhone: v.optional(v.string()),
+    ownerPassword: v.optional(v.string()),
     themeColors: v.optional(v.union(
       v.object({
         dominant: v.string(),
@@ -58,21 +62,21 @@ export const create = mutation({
     // Check if ID already exists
     const existing = await ctx.db
       .query("restaurants")
-      .withIndex("by_short_id", (q) => q.eq("id", args.id))
+      .withIndex("by_shortid", (q) => q.eq("id", args.id))
       .first();
     
     if (existing) {
       throw new Error("Restaurant ID already exists");
     }
 
-    const { themeColors, ...restArgs } = args;
+    const { themeColors, ownerName, ownerPhone, ownerPassword, ...restArgs } = args;
     
     // Set up 7-day trial period
     const now = Date.now();
     const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
     const trialEndDate = now + sevenDaysInMs;
     
-    return await ctx.db.insert("restaurants", {
+    const restaurantId = await ctx.db.insert("restaurants", {
       ...restArgs,
       active: true,
       isOpen: true, // Default to open when created
@@ -84,7 +88,29 @@ export const create = mutation({
       trialEndDate: trialEndDate,
       // Onboarding starts at 0%
       onboardingStatus: 0,
+      ownerName,
+      ownerPhone,
     });
+
+    // Create owner staff account if credentials provided
+    if (ownerName && ownerPhone && ownerPassword) {
+      await ctx.db.insert("staff", {
+        restaurantId,
+        name: ownerName,
+        role: "Owner",
+        phone: ownerPhone,
+        email: args.email,
+        password: ownerPassword, // In production, this should be hashed
+        assignedTables: [], // Owner has access to all tables
+        active: true,
+        isOnline: false,
+        ordersServedToday: 0,
+        totalOrdersServed: 0,
+        joiningDate: now,
+      });
+    }
+
+    return restaurantId;
   },
 });
 
@@ -94,6 +120,7 @@ export const update = mutation({
     restaurantId: v.id("restaurants"),
     name: v.optional(v.string()),
     logo: v.optional(v.string()),
+    favicon_url: v.optional(v.string()),
     logo_url: v.optional(v.string()),
     brandName: v.optional(v.string()),
     primaryColor: v.optional(v.string()),
@@ -101,6 +128,10 @@ export const update = mutation({
     address: v.optional(v.string()),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
+    location: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+    })),
     active: v.optional(v.boolean()),
     isOpen: v.optional(v.boolean()),
     businessHours: v.optional(v.object({

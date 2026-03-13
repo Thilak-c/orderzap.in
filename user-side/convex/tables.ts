@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: { restaurantId: v.optional(v.id("restaurants")) },
+  args: { restaurantId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     let tables, zones;
     if (args.restaurantId) {
@@ -54,7 +54,7 @@ export const getByNumber = query({
 
 export const create = mutation({
   args: {
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.string()),
     name: v.string(),
     number: v.number(),
     capacity: v.optional(v.number()),

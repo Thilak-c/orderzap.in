@@ -7,7 +7,7 @@ import { useEffect, useState, createContext, useContext } from "react";
 import { mapColorsToTheme, applyTheme } from "@/lib/theme-utils";
 import { useThemePersistence } from "@/lib/useThemePersistence";
 import Head from "next/head";
-
+import { squareLogoUrl, fullLogoUrl, faviconUrl } from "@/lib/logo-utils";
 // Branding Context
 const BrandingContext = createContext();
 
@@ -25,6 +25,8 @@ function BrandingProvider({ children }) {
   const { restaurant, isLoading } = useRestaurant();
   
   // Generate branding from restaurant ID
+  
+
   const getBrandingFromId = (id) => {
     if (!id) return { brandName: "Restaurant", brandLogo: null };
     
@@ -32,7 +34,8 @@ function BrandingProvider({ children }) {
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
     
-    const brandLogo = `/api/logo/${id}/logo.webp`;
+    // default to favicon image
+    const brandLogo = `/api/logo/${id}/favicon.webp`;
     
     console.log("🎨 Generated branding from ID:", { id, brandName, brandLogo });
     return { brandName, brandLogo };
@@ -42,7 +45,7 @@ function BrandingProvider({ children }) {
   const branding = restaurant 
     ? {
         brandName: restaurant.name,
-        brandLogo: restaurant.logo_url || `/api/logo/${restaurantId}/logo.webp`,
+        brandLogo: squareLogoUrl(restaurant, restaurantId),
         isLoading: false,
       }
     : {
@@ -60,6 +63,8 @@ function BrandingProvider({ children }) {
 }
 
 function RestaurantClosedCheck({ children }) {
+  const params = useParams();
+  const restaurantId = params?.restaurantId;
   const { restaurant } = useRestaurant();
   const pathname = usePathname();
   
@@ -101,16 +106,16 @@ function RestaurantClosedCheck({ children }) {
           {restaurant.name && (
             <div className="flex items-center gap-3">
               {/* Restaurant Logo */}
-              {restaurant.logo_url && (
+              {restaurant && (
                 <img 
-                  src={restaurant.logo_url}
+                  src={squareLogoUrl(restaurant, restaurantId)}
                   alt={restaurant.name}
                   className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                 />
               )}
               {/* Restaurant Name */}
               <p className="text-gray-600 text-center text-lg">
-                {restaurant.name} is currently closed
+                <span className="font-jersey-25 text-2xl">{restaurant.brandName || restaurant.name}</span> is currently closed
               </p>
             </div>
           )}
@@ -125,17 +130,46 @@ function RestaurantClosedCheck({ children }) {
 }
 
 function ThemeLoader() {
+  const params = useParams();
+  const restaurantId = params?.restaurantId;
+
   const { restaurant } = useRestaurant();
   const [currentTheme, setCurrentTheme] = useState(null);
   
   // Load saved theme on mount and when restaurant changes
   useEffect(() => {
-    if (restaurant?.themeColors) {
+    if (restaurant?.primaryColor) {
+      // Use primaryColor directly for all theme elements
+      const primaryColor = restaurant.primaryColor;
+      
+      // Create a darker version for hover state (reduce brightness by ~10%)
+      const darkenColor = (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        
+        const darken = (val) => Math.max(0, Math.floor(val * 0.85));
+        
+        return `#${darken(r).toString(16).padStart(2, '0')}${darken(g).toString(16).padStart(2, '0')}${darken(b).toString(16).padStart(2, '0')}`;
+      };
+      
+      const theme = {
+        bg: '#ffffff',
+        primary: primaryColor,
+        'primary-hover': darkenColor(primaryColor),
+        secondary: primaryColor,
+        accent: primaryColor,
+        text: '#000000'
+      };
+      applyTheme(theme);
+      setCurrentTheme(theme);
+    } else if (restaurant?.themeColors) {
+      // Fallback to themeColors if primaryColor not available
       const theme = mapColorsToTheme(restaurant.themeColors);
       applyTheme(theme);
       setCurrentTheme(theme);
     }
-  }, [restaurant?.themeColors]);
+  }, [restaurant?.primaryColor, restaurant?.themeColors]);
   
   // Function to create circular favicon from logo
   const createCircularFavicon = (logoUrl) => {
@@ -184,32 +218,42 @@ function ThemeLoader() {
   
   // Update favicon and title when restaurant data is available
   useEffect(() => {
-    if (restaurant) {
-      // Update page title
-      document.title = `${restaurant.name} | OrderZap`;
-      
-      // Update favicon with circular crop
-      if (restaurant.logo_url) {
-        createCircularFavicon(restaurant.logo_url).then((circularLogoUrl) => {
-          // Remove existing favicons
-          const existingFavicons = document.querySelectorAll("link[rel*='icon']");
-          existingFavicons.forEach(favicon => favicon.remove());
-          
-          // Add new circular favicon
-          const favicon = document.createElement('link');
-          favicon.rel = 'icon';
-          favicon.href = circularLogoUrl;
-          document.head.appendChild(favicon);
-          
-          // Add apple touch icon
-          const appleTouchIcon = document.createElement('link');
-          appleTouchIcon.rel = 'apple-touch-icon';
-          appleTouchIcon.href = circularLogoUrl;
-          document.head.appendChild(appleTouchIcon);
+    if (!restaurant || !restaurantId) return;
+    
+    // Update page title
+    document.title = `${restaurant.name} | OrderZap`;
+    
+    // Update favicon with circular crop
+    const src = faviconUrl(restaurant, restaurantId);
+    createCircularFavicon(src).then((circularLogoUrl) => {
+      // Remove existing favicons safely - use a more defensive approach
+      try {
+        const existingFavicons = document.querySelectorAll("link[rel*='icon']");
+        const faviconsArray = Array.from(existingFavicons);
+        faviconsArray.forEach(favicon => {
+          if (favicon && favicon.parentNode && document.head.contains(favicon)) {
+            favicon.parentNode.removeChild(favicon);
+          }
         });
+      } catch (e) {
+        console.warn('Error removing favicons:', e);
       }
-    }
-  }, [restaurant]);
+      
+      // Add new circular favicon
+      const favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      favicon.href = circularLogoUrl;
+      document.head.appendChild(favicon);
+      
+      // Add apple touch icon
+      const appleTouchIcon = document.createElement('link');
+      appleTouchIcon.rel = 'apple-touch-icon';
+      appleTouchIcon.href = circularLogoUrl;
+      document.head.appendChild(appleTouchIcon);
+    }).catch(err => {
+      console.warn('Error updating favicon:', err);
+    });
+  }, [restaurant, restaurantId]);
   
   // Use theme persistence hook to maintain theme across navigation
   useThemePersistence(currentTheme);
@@ -220,6 +264,8 @@ function ThemeLoader() {
 export default function RestaurantLayout({ children }) {
   const params = useParams();
   const restaurantId = params?.restaurantId;
+  const pathname = usePathname();
+  const isMenuPage = pathname?.includes('/m/');
 
   return (
     <RestaurantProvider restaurantId={restaurantId}>
@@ -228,7 +274,7 @@ export default function RestaurantLayout({ children }) {
         <RestaurantClosedCheck>
           {children}
           <FloatingQuickMenu />
-          <Footer />
+          {!isMenuPage && <Footer />}
         </RestaurantClosedCheck>
       </BrandingProvider>
     </RestaurantProvider>

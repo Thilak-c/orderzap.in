@@ -6,13 +6,20 @@ export default defineSchema({
     id: v.string(), // Short ID (under 4 chars): "bts", "mgc", etc.
     name: v.string(),
     logo: v.optional(v.string()),
-    logo_url: v.optional(v.string()), // File system logo URL
+    // square favicon/logo stored in filesystem
+    favicon_url: v.optional(v.string()),
+    logo_url: v.optional(v.string()), // legacy file system logo URL (still read by helpers)
     brandName: v.optional(v.string()),
     primaryColor: v.optional(v.string()), // Brand primary color (hex)
     description: v.optional(v.string()),
     address: v.optional(v.string()),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
+    // Restaurant location for waiter proximity check
+    location: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+    })),
     active: v.boolean(),
     isOpen: v.optional(v.boolean()), // Restaurant open/closed status (toggle by owner)
     // Business hours for automatic open/close
@@ -53,12 +60,12 @@ export default defineSchema({
     trialEndDate: v.optional(v.number()),
     subscriptionEndDate: v.optional(v.number()),
     blockedReason: v.optional(v.string()),
-  }).index("by_short_id", ["id"])
+  }).index("by_shortid", ["id"])
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
 
   zones: defineTable({
-    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())), // Can be Convex ID or short ID
+    restaurantId: v.optional(v.string()), // Short restaurant ID
     name: v.string(), // "Smoking Zone", "Main Dining", "VIP", etc.
     description: v.string(),
   }).index("by_restaurant", ["restaurantId"]),
@@ -108,7 +115,7 @@ export default defineSchema({
     )),
     total: v.optional(v.number()),
     totalAmount: v.optional(v.number()), // Backend uses totalAmount instead of total
-    status: v.string(),
+    status: v.string(), // 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled'
     paymentMethod: v.string(),
     paymentStatus: v.string(),
     notes: v.optional(v.string()),
@@ -116,6 +123,12 @@ export default defineSchema({
     customerPhone: v.optional(v.string()),
     customerName: v.optional(v.string()), // Added for backend sync
     depositUsed: v.optional(v.number()),
+    // Waiter assignment
+    assignedWaiterId: v.optional(v.id("staff")), // Auto-assigned when order becomes ready
+    assignedAt: v.optional(v.number()), // Timestamp when waiter was assigned
+    assignmentStatus: v.optional(v.string()), // 'pending' | 'accepted' | 'rejected' | 'timeout'
+    assignmentAcceptedAt: v.optional(v.number()), // When waiter accepted the order
+    assignmentTimeoutAt: v.optional(v.number()), // When assignment will timeout (1 minute from assignedAt)
     // Backend sync fields
     postgresId: v.optional(v.string()), // PostgreSQL order ID
     subtotal: v.optional(v.number()),
@@ -137,10 +150,12 @@ export default defineSchema({
     .index("by_table", ["tableId"])
     .index("by_phone", ["customerPhone"])
     .index("by_postgres_id", ["postgresId"])
-    .index("by_sync_pending", ["syncPending"]),
+    .index("by_sync_pending", ["syncPending"])
+    .index("by_assigned_waiter", ["assignedWaiterId"]),
 
   tables: defineTable({
-    restaurantId: v.optional(v.id("restaurants")), // Link to restaurant
+    // during migration we allow either the actual document id or the short string
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())), // Link to restaurant
     name: v.string(),
     number: v.number(),
     capacity: v.optional(v.number()), // Max number of guests this table can seat
@@ -154,11 +169,90 @@ export default defineSchema({
     name: v.string(),
     role: v.string(), // "Waiter", "Manager", "Host", etc.
     phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    password: v.optional(v.string()), // Hashed password for login
     assignedTables: v.array(v.number()), // Array of table numbers [1, 2, 3, 4]
     active: v.boolean(),
     isOnline: v.optional(v.boolean()), // true when logged in, false when logged out
     lastSeen: v.optional(v.number()), // timestamp of last activity
-  }).index("by_restaurant", ["restaurantId"]),
+    currentLocation: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+      accuracy: v.optional(v.number()),
+      timestamp: v.number(),
+    })), // Current location of staff member
+    isInRestaurant: v.optional(v.boolean()), // true if within 100m of restaurant
+    // Performance tracking
+    ordersServedToday: v.optional(v.number()), // Count of orders served today (resets daily)
+    totalOrdersServed: v.optional(v.number()), // Lifetime count
+    lastOrderAssignedAt: v.optional(v.number()), // Timestamp of last order assignment
+    // Profile information
+    profilePhoto: v.optional(v.string()), // URL or storage ID
+    dateOfBirth: v.optional(v.string()), // YYYY-MM-DD
+    address: v.optional(v.string()),
+    emergencyContact: v.optional(v.string()),
+    emergencyContactPhone: v.optional(v.string()),
+    joiningDate: v.optional(v.number()), // Timestamp
+    // Payroll
+    salary: v.optional(v.number()), // Monthly salary
+    salaryType: v.optional(v.string()), // "monthly" | "hourly" | "daily"
+    hourlyRate: v.optional(v.number()),
+    bankAccount: v.optional(v.string()),
+    bankName: v.optional(v.string()),
+    ifscCode: v.optional(v.string()),
+  }).index("by_restaurant", ["restaurantId"])
+    .index("by_role", ["role"])
+    .index("by_active", ["active"])
+    .index("by_phone", ["phone"])
+    .index("by_email", ["email"]),
+
+  // Attendance tracking
+  attendance: defineTable({
+    restaurantId: v.id("restaurants"),
+    staffId: v.id("staff"),
+    date: v.string(), // YYYY-MM-DD
+    checkIn: v.optional(v.number()), // Timestamp
+    checkOut: v.optional(v.number()), // Timestamp
+    checkInLocation: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+      accuracy: v.optional(v.number()),
+    })),
+    checkOutLocation: v.optional(v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+      accuracy: v.optional(v.number()),
+    })),
+    status: v.string(), // "present" | "absent" | "half-day" | "leave"
+    workHours: v.optional(v.number()), // Total hours worked
+    notes: v.optional(v.string()),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_staff", ["staffId"])
+    .index("by_date", ["date"])
+    .index("by_staff_date", ["staffId", "date"]),
+
+  // Payroll records
+  payroll: defineTable({
+    restaurantId: v.id("restaurants"),
+    staffId: v.id("staff"),
+    month: v.string(), // YYYY-MM
+    baseSalary: v.number(),
+    bonus: v.optional(v.number()),
+    deductions: v.optional(v.number()),
+    totalAmount: v.number(),
+    daysWorked: v.number(),
+    totalDays: v.number(),
+    status: v.string(), // "pending" | "paid" | "cancelled"
+    paidOn: v.optional(v.number()), // Timestamp
+    paymentMethod: v.optional(v.string()), // "cash" | "bank_transfer" | "upi"
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_staff", ["staffId"])
+    .index("by_month", ["month"])
+    .index("by_status", ["status"]),
 
   // Notifications for managers
   staffNotifications: defineTable({
@@ -278,7 +372,7 @@ export default defineSchema({
 
   // Subscription Management
   subscriptions: defineTable({
-    restaurantId: v.id("restaurants"),
+    restaurantId: v.union(v.id("restaurants"), v.string()),
     planType: v.string(), // 'monthly' | 'custom' | 'trial_extension'
     days: v.number(),
     pricePerDay: v.number(),
@@ -299,7 +393,7 @@ export default defineSchema({
 
   // Payment Records
   payments: defineTable({
-    restaurantId: v.id("restaurants"),
+    restaurantId: v.union(v.id("restaurants"), v.string()),
     subscriptionId: v.optional(v.id("subscriptions")),
     amount: v.number(),
     currency: v.string(),
@@ -361,7 +455,7 @@ export default defineSchema({
 
   // Notifications
   notifications: defineTable({
-    restaurantId: v.id("restaurants"),
+    restaurantId: v.union(v.id("restaurants"), v.string()),
     type: v.string(), // 'trial_expiring' | 'trial_expired' | 'payment_due' | 'subscription_expired' | 'payment_success'
     title: v.string(),
     message: v.string(),
@@ -376,4 +470,18 @@ export default defineSchema({
     .index("by_restaurant", ["restaurantId"])
     .index("by_status", ["status"])
     .index("by_read", ["read"]),
+
+  // Customer Reviews/Feedback
+  reviews: defineTable({
+    restaurantId: v.union(v.id("restaurants"), v.string()),
+    tableId: v.string(),
+    tableNumber: v.number(),
+    enjoyed: v.boolean(), // true = yes, false = no
+    issueWith: v.optional(v.string()), // 'restaurant' | 'app' (only if enjoyed = false)
+    issueCategory: v.optional(v.string()), // 'food' | 'environment' | 'staff' | 'other' | 'looks' | 'animation' | 'lagging' | 'other_app'
+    feedback: v.optional(v.string()), // Additional details (optional)
+    createdAt: v.number(),
+  })
+    .index("by_restaurant", ["restaurantId"])
+    .index("by_enjoyed", ["enjoyed"]),
 });

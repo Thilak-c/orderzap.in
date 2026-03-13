@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Phone, Lock, ArrowRight } from "lucide-react";
+import { squareLogoUrl } from "@/lib/logo-utils";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function AdminLoginPage() {
   const themeColors = restaurant?.themeColors;
   const darkColor = themeColors?.darkVibrant || '#dc2626'; // Default red
   const lightColor = themeColors?.lightVibrant || '#ef4444'; // Default light red
-  const brandLogo = restaurant?.logo_url;
+  const brandLogo = restaurant ? squareLogoUrl(restaurant, restaurantId) : null;
   const brandName = restaurant?.name || "Restaurant";
 
   const handleRestaurantSubmit = (e) => {

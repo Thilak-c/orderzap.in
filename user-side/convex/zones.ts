@@ -21,7 +21,11 @@ export const create = mutation({
     description: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("zones", args);
+    const rid = args.restaurantId || null;
+    return await ctx.db.insert("zones", {
+      ...args,
+      restaurantId: rid,
+    });
   },
 });
 

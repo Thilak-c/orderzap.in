@@ -114,7 +114,7 @@ export default function RestaurantHome() {
   if (isLoading) {
     // Calculate character length for animation
     const nameLength = brandName?.length || 8;
-    const themeColor = restaurant?.themeColors?.darkVibrant || '#EF4444';
+    const themeColor = restaurant?.primaryColor || restaurant?.themeColors?.darkVibrant || '#000000';
     
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[--bg] gap-">

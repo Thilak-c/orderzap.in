@@ -4,11 +4,43 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { clearCache, CACHE_KEYS } from "@/lib/useCache";
-import { Upload, X, Image as ImageIcon, Search } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Search, AlertCircle } from "lucide-react";
+import { useRouteProtection } from "@/lib/useRouteProtection";
 
 export default function AdminMenuPage() {
   const params = useParams();
   const restaurantId = params.restaurantId; // Short ID like "changu-mangu"
+  
+  // Route protection - only Owner and Manager can access Menu
+  const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
+  
+  // Show access denied if not authorized
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access Menu Management. Only owners and managers can manage the menu.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
   
   // Get restaurant data for theme colors
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
@@ -243,8 +275,10 @@ export default function AdminMenuPage() {
         
         const result = await response.json();
         if (result.success) {
-          // Set API route URL
-          imageUrl = `/api/menu_item/${restaurantId}/${itemNameSlug}.webp`;
+          // Set API route URL with cache-busting version so every upload
+          // produces a fresh URL across all devices and avoids stale caches.
+          const version = Date.now();
+          imageUrl = `/api/menu_item/${restaurantId}/${itemNameSlug}.webp?v=${version}`;
         }
       } catch (error) {
         console.error('Failed to save image to file system:', error);
@@ -373,6 +407,75 @@ export default function AdminMenuPage() {
     
     return matchesCategory && matchesSearch;
   }) || [];
+
+  // Full-page loading state while data is fetching
+  const isLoading = items === undefined || categories === undefined || zones === undefined || restaurant === undefined;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <style jsx>{`
+          @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.1); transform: translateY(0); }
+            50% { box-shadow: 0 20px 60px rgba(0,0,0,0.16); transform: translateY(-4px); }
+            100% { box-shadow: 0 0 0 0 rgba(0,0,0,0.1); transform: translateY(0); }
+          }
+          @keyframes shimmerBar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+          .loader-card {
+            animation: pulseGlow 1.8s ease-in-out infinite;
+          }
+          .loader-bar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+            transform: translateX(-100%);
+            animation: shimmerBar 1.8s infinite;
+          }
+        `}</style>
+        <div className="w-full max-w-md px-8">
+          <div className="border-2 border-black bg-white px-6 py-5 mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Loading</p>
+              <h1 className="text-xl font-bold tracking-wide text-black">Menu Designer</h1>
+            </div>
+            <div className="w-8 h-8 rounded-full border-2 border-black flex items-center justify-center text-xs font-bold">
+              BTS
+            </div>
+          </div>
+          <div className="loader-card border-2 border-black bg-white px-5 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="h-2 w-24 bg-gray-200 relative overflow-hidden loader-bar" />
+                <div className="h-3 w-40 bg-gray-100 mt-2" />
+              </div>
+              <div className="h-7 w-20 border border-black flex items-center justify-center text-[10px] font-semibold tracking-wide">
+                MENU
+              </div>
+            </div>
+            <div className="space-y-3">
+              {[1,2].map((i) => (
+                <div key={i} className="flex border border-gray-200">
+                  <div className="w-20 h-16 bg-gray-100 relative overflow-hidden loader-bar" />
+                  <div className="flex-1 p-3 space-y-2">
+                    <div className="h-2.5 w-32 bg-gray-100" />
+                    <div className="h-2 w-44 bg-gray-100" />
+                    <div className="flex justify-between items-center pt-1">
+                      <div className="h-2.5 w-16 bg-gray-100" />
+                      <div className="h-6 w-16 border border-gray-300" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -994,9 +1097,7 @@ export default function AdminMenuPage() {
         <div className="p-3 sm:p-6">
 
       {/* Items Grid - Customer Menu Card Style */}
-      {!items ? (
-        <div className="bg-white border-2 border-gray-200 p-8 text-center text-gray-600 animate-fade-in">Loading...</div>
-      ) : filteredItems.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <div className="bg-white border-2 border-gray-200 p-8 text-center animate-fade-in">
           <p className="text-gray-600 mb-4">
             {categoryFilter === 'all' ? 'No menu items yet' : `No items in ${categoryFilter}`}
@@ -1033,8 +1134,11 @@ export default function AdminMenuPage() {
                       alt={item.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       onError={(e) => {
-                        console.error(`Failed to load image for ${item.name}:`, imgSrc);
-                        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-100"><svg width="32" height="32"><text y="24" font-size="24">🍽️</text></svg></div>';
+                        const parent = e.target.parentElement;
+                        if (parent) {
+                          parent.innerHTML =
+                            '<div class="w-full h-full flex items-center justify-center bg-gray-100"><svg width="32" height="32"><text y="24" font-size="24">🍽️</text></svg></div>';
+                        }
                       }}
                     />
                   );

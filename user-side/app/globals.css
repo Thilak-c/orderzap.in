@@ -902,9 +902,9 @@ input::placeholder, textarea::placeholder {
 @media (max-width: 769px) {
   /* Category sidebar icons - maintain size */
   aside img {
-    min-width: 56px !important;
-    min-height: 56px !important;
-    width: 56px !important;
+    /* min-width: 40px !important; */
+    /* min-height: 56px !important; */
+    width: 40px !important;
     height: 56px !important;
   }
   

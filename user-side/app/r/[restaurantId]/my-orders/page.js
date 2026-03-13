@@ -49,8 +49,16 @@ export default function MyOrdersPage() {
   const ordersBySession = useQuery(api.orders.getBySession, sessionId ? { sessionId } : "skip");
   const ordersByPhone = useQuery(api.orders.getByPhone, searchPhone ? { phone: searchPhone } : "skip");
   
-  // Combine orders (prefer phone-based if available)
-  const orders = searchPhone && ordersByPhone?.length > 0 ? ordersByPhone : ordersBySession;
+  // Combine orders (prefer phone-based if available, otherwise use session)
+  let orders = null;
+  if (searchPhone) {
+    // If user searched by phone, use phone results
+    orders = ordersByPhone;
+  } else {
+    // Otherwise use session results
+    orders = ordersBySession;
+  }
+  
   const lastTableId = orders && orders.length > 0 ? orders[0].tableId : null;
 
   // Get table info for context
@@ -93,7 +101,7 @@ export default function MyOrdersPage() {
   };
 
   // Loading state
-  if (ordersBySession === undefined && ordersByPhone === undefined) {
+  if (searchPhone ? ordersByPhone === undefined : ordersBySession === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="loader" />
@@ -102,41 +110,68 @@ export default function MyOrdersPage() {
   }
 
   // Check if user searched by phone but no orders found
-  const searchedButNoOrders = searchPhone && ordersByPhone !== undefined && ordersByPhone?.length === 0;
+  const searchedButNoOrders = searchPhone && ordersByPhone !== undefined && (!ordersByPhone || ordersByPhone.length === 0);
 
   // Empty state - ask for phone number or show no orders message
   if ((!orders || orders.length === 0) && !searchedButNoOrders) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6">
-        <div className="text-center animate-scale-in w-full max-w-sm">
-          <div className="w-24 h-24 border border-[--border] rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <HandPlatter size={36} className="text-[--primary]" />
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[--bg] relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-32 h-32 bg-[--primary]/5 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-40 right-10 w-40 h-40 bg-[--primary]/5 rounded-full blur-3xl animate-pulse delay-700" />
+        </div>
+
+        <div className="text-center animate-scale-in w-full max-w-sm relative z-10">
+          {/* Animated icon container */}
+          <div className="relative w-32 h-32 mx-auto mb-8">
+            {/* Pulsing rings */}
+            <div className="absolute inset-0 rounded-2xl bg-[--primary]/10 animate-ping" style={{ animationDuration: '2s' }} />
+            <div className="absolute inset-2 rounded-2xl bg-[--primary]/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+            
+            {/* Main icon */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[--primary]/20 to-[--primary]/10 backdrop-blur-sm border border-[--primary]/30 flex items-center justify-center">
+              <HandPlatter size={56} className="text-[--primary] animate-pulse" />
+            </div>
           </div>
-          <h1 className="font-luxury text-2xl font-semibold text-[--text-primary] mb-3">
+
+          <h1 className="font-luxury text-2xl font-bold text-[--text-primary] mb-3 tracking-tight">
             Wanna see your orders?
           </h1>
-          <p className="text-[--text-muted] text-sm mb-6">
-            Enter your phone number to view your orders
+          <p className="text-[--text-muted] text-sm leading-relaxed mb-8">
+            Enter your phone number to view all your orders and track them in real-time
           </p>
-          <div className="flex items-center bg-[--card] border border-[--border] rounded-xl overflow-hidden mb-4">
-            <span className="px-4 py-3 text-[--text-muted] text-sm border-r border-[--border]">+91</span>
+
+          {/* Phone input */}
+          <div className="flex items-center bg-[--card] border-2 border-[--border] rounded-xl overflow-hidden mb-2 focus-within:border-[--primary] transition-all">
+            <span className="px-4 py-4 text-[--text-muted] text-sm border-r-2 border-[--border] font-medium">+91</span>
             <input
               type="tel"
               value={phoneNumber}
               onChange={(e) => { setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
               placeholder="10 digit number"
               maxLength={10}
-              className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
+              className="flex-1 bg-transparent px-4 py-4 text-sm outline-none font-medium"
             />
           </div>
-          {phoneError && <p className="text-red-400 text-xs mb-4">{phoneError}</p>}
+          {phoneError && (
+            <p className="text-red-400 text-xs mb-4 text-left px-1 animate-shake">{phoneError}</p>
+          )}
+          
           <button 
             onClick={handleViewOrders}
-            className="w-full btn-primary px-8 py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+            className="w-full btn-primary px-8 py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 group mt-4"
           >
             View Orders
-            <ArrowRight size={16} />
+            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </button>
+
+          {/* Info card */}
+          <div className="mt-8 p-4 bg-[--card] border border-[--border] rounded-xl text-left">
+            <p className="text-xs text-[--text-dim] leading-relaxed">
+              💡 Your phone number helps us track your orders and apply any credits or rewards to your account.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -145,24 +180,62 @@ export default function MyOrdersPage() {
   // No orders found for this phone number
   if (searchedButNoOrders) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6">
-        <div className="text-center animate-scale-in w-full max-w-sm">
-          <div className="w-24 h-24 border border-[--border] rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <HandPlatter size={36} className="text-[--text-muted]" />
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[--bg] relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-40 right-10 w-40 h-40 bg-amber-500/5 rounded-full blur-3xl animate-pulse delay-700" />
+        </div>
+
+        <div className="text-center animate-scale-in w-full max-w-sm relative z-10">
+          {/* Animated icon container */}
+          <div className="relative w-32 h-32 mx-auto mb-8">
+            {/* Pulsing rings */}
+            <div className="absolute inset-0 rounded-2xl bg-amber-500/10 animate-ping" style={{ animationDuration: '2s' }} />
+            <div className="absolute inset-2 rounded-2xl bg-amber-500/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+            
+            {/* Main icon */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur-sm border border-amber-500/30 flex items-center justify-center">
+              <Package size={56} className="text-amber-400 animate-pulse" />
+            </div>
           </div>
-          <h1 className="font-luxury text-2xl font-semibold text-[--text-primary] mb-3">
+
+          <h1 className="font-luxury text-2xl font-bold text-[--text-primary] mb-3 tracking-tight">
             No orders found
           </h1>
-          <p className="text-[--text-muted] text-sm mb-6">
-            There are no orders with this phone number
+          <p className="text-[--text-muted] text-sm leading-relaxed mb-4">
+            We couldn't find any orders associated with this phone number
           </p>
-          <p className="text-[--text-dim] text-xs mb-6">{searchPhone}</p>
-          <button 
-            onClick={() => { setSearchPhone(''); setPhoneNumber(''); localStorage.removeItem('customerPhone'); }}
-            className="w-full btn-secondary px-8 py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-          >
-            Try another number
-          </button>
+          
+          {/* Phone number display */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[--card] border border-[--border] rounded-lg mb-8">
+            <span className="text-xs text-[--text-dim] font-mono">{searchPhone}</span>
+          </div>
+
+          {/* Action buttons */}
+          <div className="space-y-3">
+            <button 
+              onClick={() => { setSearchPhone(''); setPhoneNumber(''); localStorage.removeItem('customerPhone'); }}
+              className="w-full btn-primary px-8 py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+            >
+              Try another number
+            </button>
+            
+            <button 
+              onClick={() => setShowPopup(true)}
+              className="w-full btn-secondary px-8 py-4 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+            >
+              <Plus size={16} />
+              Place New Order
+            </button>
+          </div>
+
+          {/* Help text */}
+          <div className="mt-8 p-4 bg-[--card] border border-[--border] rounded-xl text-left">
+            <p className="text-xs text-[--text-dim] leading-relaxed">
+              💡 Make sure you're using the same phone number you provided when placing your order.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -262,7 +335,7 @@ export default function MyOrdersPage() {
                 return (
                   <Link 
                     key={order._id} 
-                    href={`/order-status/${order._id}`} 
+                    href={`/r/${restaurantId}/order-status/${order._id}`} 
                     className="block card card-glow rounded-xl overflow-hidden group"
                   >
                     {/* Progress bar */}
@@ -289,7 +362,7 @@ export default function MyOrdersPage() {
                             key={i} 
                             className="w-10 h-10 bg-[--bg-elevated] border border-[--border] rounded-lg flex items-center justify-center overflow-hidden"
                           >
-                            <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            <MenuItemImage storageId={item.imageUrl || item.image} alt={item.name} className="w-full h-full object-cover" />
                           </div>
                         ))}
                         {order.items.length > 4 && (
@@ -340,7 +413,7 @@ export default function MyOrdersPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
                       {order.items.slice(0, 3).map((item, i) => (
-                        <MenuItemImage key={i} storageId={item.image} alt={item.name} className="w-6 h-6 rounded object-cover" />
+                        <MenuItemImage key={i} storageId={item.imageUrl || item.image} alt={item.name} className="w-6 h-6 rounded object-cover" />
                       ))}
                       {order.items.length > 3 && (
                         <span className="text-xs text-[--text-dim] ml-1">+{order.items.length - 3}</span>

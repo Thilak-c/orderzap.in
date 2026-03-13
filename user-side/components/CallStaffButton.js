@@ -102,7 +102,7 @@ export default function CallStaffButton({ tableId, tableNumber, zoneName }) {
                 Water
               </button>
               <button
-                onClick={() => { router.push('/my-orders'); setIsOpen(false); }}
+                onClick={() => { router.push(`/r/${restaurantId}/my-orders`); setIsOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[--text-secondary] hover:bg-[--bg-elevated] hover:text-[--text-primary] transition-all text-[11px]"
               >
                 <ClipboardList size={14} className="text-[--primary]" />

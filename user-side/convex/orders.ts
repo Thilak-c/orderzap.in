@@ -3,16 +3,43 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
 export const list = query({
-  args: { restaurantId: v.optional(v.id("restaurants")) },
+  args: { restaurantId: v.optional(v.union(v.id("restaurants"), v.string())) },
   handler: async (ctx, args) => {
-    if (args.restaurantId) {
-      return await ctx.db
+    let rid: any = args.restaurantId;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
+    
+    let orders;
+    if (rid) {
+      orders = await ctx.db
         .query("orders")
-        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
         .order("desc")
         .collect();
+    } else {
+      orders = await ctx.db.query("orders").order("desc").collect();
     }
-    return await ctx.db.query("orders").order("desc").collect();
+    
+    // Enrich orders with waiter information
+    const enrichedOrders = await Promise.all(
+      orders.map(async (order) => {
+        if (order.assignedWaiterId) {
+          const waiter = await ctx.db.get(order.assignedWaiterId);
+          return {
+            ...order,
+            assignedWaiter: waiter ? { name: waiter.name, phone: waiter.phone } : null,
+          };
+        }
+        return order;
+      })
+    );
+    
+    return enrichedOrders;
   },
 });
 
@@ -94,7 +121,7 @@ export const getById = query({
 
 export const create = mutation({
   args: {
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())),
     tableId: v.string(),
     items: v.array(
       v.object({
@@ -113,6 +140,16 @@ export const create = mutation({
     depositUsed: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) {
+        rid = rest._id;
+      }
+    }
     // Count existing orders for this table to generate order number
     const tableOrders = await ctx.db
       .query("orders")
@@ -170,7 +207,26 @@ export const updateStatus = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.id);
+    const oldStatus = order?.status;
+    
+    // Update order status
     await ctx.db.patch(args.id, { status: args.status });
+    
+    // Auto-assign waiter when order becomes ready
+    if (args.status === "ready" && oldStatus !== "ready") {
+      // Schedule waiter assignment (async, non-blocking)
+      await ctx.scheduler.runAfter(0, internal.waiterAssignment.autoAssignWaiter, {
+        orderId: args.id,
+      });
+    }
+    
+    // Increment waiter's served count when order is completed
+    if (args.status === "completed" && oldStatus !== "completed" && order?.assignedWaiterId) {
+      await ctx.scheduler.runAfter(0, internal.waiterAssignment.incrementWaiterServedCount, {
+        waiterId: order.assignedWaiterId,
+      });
+    }
   },
 });
 

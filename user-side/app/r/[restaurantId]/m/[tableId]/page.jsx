@@ -10,8 +10,11 @@ import { useCachedQuery, CACHE_KEYS, CACHE_DURATIONS } from "@/lib/useCache";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import {
   ChevronRight, Plus, Minus, ArrowLeft, Armchair,
-  UtensilsCrossed, Search, X, Phone, Lock, GlassWater
+  UtensilsCrossed, Search, X, Phone, Lock, GlassWater,
+  Sparkles, Smile, Frown, HelpCircle, Store, Smartphone,
+  ChefHat, Home, Users, Zap, Palette, Wand2, Gauge, MessageSquare
 } from "lucide-react";
+import MenuItemImage from "@/components/MenuItemImage";
 import BrandLogo from "@/components/BrandLogo";
 import { AnimatedBottomSheet, AnimatedToast, AnimatedPopup, AnimatedOverlay } from "@/components/AnimatedPopup";
 
@@ -24,30 +27,29 @@ const formatTime = (time) => {
   return minutes === 0 ? `${hour12} ${period}` : `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
 };
 
+const categories = [
+  { id: "All", icon: "◉" },
+  { id: "Starters", icon: "◈" },
+  { id: "Mains", icon: "◆" },
+  { id: "Sides", icon: "◇" },
+  { id: "Drinks", icon: "○" },
+  { id: "Desserts", icon: "●" },
+  { id: "Hookah", icon: "◎" },
+];
+
 export default function MenuPage() {
-  const { tableId, restaurantId } = useParams();
-  const params = useParams();
+  const { restaurantId, tableId } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionKey = searchParams.get('key');
   const { setTable } = useTable();
-
-  // Get restaurant data
-  const restaurant = useQuery(api.restaurants.getByShortId,
-    restaurantId ? { id: restaurantId } : "skip"
-  );
-  const restaurantDbId = restaurant?._id;
-  const brandName = restaurant?.name || "Restaurant";
-  const brandLogo = restaurant?.logo_url;
-  const brandingLoading = restaurant === undefined;
-
-  // Get theme colors - create gradient from light to dark
-  const themeColors = restaurant?.themeColors;
-  const baseColor = themeColors?.lightVibrant || '#ff2530'; // Lightest - for background
-  const sidebarColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for sidebar
-  const headerColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for header
-  const buttonColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for buttons
-  const cartBarColor = themeColors?.darkVibrant || '#b01820'; // Darkest - for cart bar
+  
+  // Fetch restaurant data for branding
+  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
+  const brandName = restaurant?.brandName || restaurant?.name || "Restaurant";
+  
+  const brandLogo = null;
+  const brandingLoading = false;
   const [activeCategory, setActiveCategory] = useState("All");
   const [dismissedReservation, setDismissedReservation] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -88,61 +90,80 @@ export default function MenuPage() {
   const [welcomeName, setWelcomeName] = useState('');
   const [showWaterPopup, setShowWaterPopup] = useState(false);
 
-  const table = useQuery(api.tables.getByNumber,
-    restaurantDbId ? {
-      number: parseInt(tableId),
-      restaurantId: restaurantDbId
-    } : "skip"
-  );
+  // Feedback states
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackStep, setFeedbackStep] = useState('ask'); // 'ask' | 'issue' | 'category' | 'reason' | 'thanks'
+  const [feedbackText, setFeedbackText] = useState('');
+  const [issueWith, setIssueWith] = useState(''); // 'restaurant' | 'app'
+  const [issueCategory, setIssueCategory] = useState(''); // specific category
+  const [currentReviewId, setCurrentReviewId] = useState(null);
 
-  // Use cached query for menu items with restaurant and zone filtering
+  const table = useQuery(api.tables.getByNumber, { number: parseInt(tableId) });
+
+  // Use cached query for menu items with image preloading
   const { data: menuItems, isLoading: menuLoading } = useCachedQuery(
     api.menuItems.listForZone,
-    table !== undefined && restaurantId ? {
-      restaurantId: restaurantId, // Use short ID directly
-      zoneId: table?.zoneId
-    } : "skip",
-    table?.zoneId && restaurantId ? `${CACHE_KEYS.MENU_ITEMS}_${restaurantId}_${table.zoneId}` : null,
+    table !== undefined ? { zoneId: table?.zoneId } : "skip",
+    table?.zoneId ? `${CACHE_KEYS.MENU_ITEMS}_${table.zoneId}` : null,
     {
       cacheDuration: CACHE_DURATIONS.LONG, // 1 hour cache for menu items
       preloadImageKey: 'image',
     }
   );
 
-  const reservation = useQuery(api.reservations.getCurrentForTable,
-    restaurantDbId ? {
-      tableNumber: parseInt(tableId),
-      restaurantId: restaurantDbId
-    } : "skip"
-  );
+  // State to track if all images are loaded
+  const [imagesLoaded, setImagesLoaded] = useState(false);
 
-  // Get categories from database - use short restaurantId directly
-  const dbCategories = useQuery(api.categories.list,
-    restaurantId ? { restaurantId: restaurantId } : "skip"
-  );
+  // Preload all menu item images before showing the page
+  useEffect(() => {
+    if (!menuItems || menuItems.length === 0) {
+      setImagesLoaded(true);
+      return;
+    }
 
+    const imageUrls = menuItems
+      .map(item => item.image)
+      .filter(Boolean);
+
+    if (imageUrls.length === 0) {
+      setImagesLoaded(true);
+      return;
+    }
+
+    let loadedCount = 0;
+    const totalImages = imageUrls.length;
+
+    const checkAllLoaded = () => {
+      loadedCount++;
+      if (loadedCount === totalImages) {
+        setImagesLoaded(true);
+      }
+    };
+
+    imageUrls.forEach(url => {
+      const img = new Image();
+      img.onload = checkAllLoaded;
+      img.onerror = checkAllLoaded; // Count errors as loaded to prevent infinite loading
+      img.src = url;
+    });
+
+    // Fallback: if images take too long (>5 seconds), show page anyway
+    const timeout = setTimeout(() => {
+      setImagesLoaded(true);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [menuItems]);
+
+  const reservation = useQuery(api.reservations.getCurrentForTable, { tableNumber: parseInt(tableId) });
   const createNotification = useMutation(api.staffNotifications.create);
   const createStaffCall = useMutation(api.staffCalls.create);
   const markArrived = useMutation(api.reservations.markArrived);
+  const createReview = useMutation(api.reviews.create);
+  const updateReviewFeedback = useMutation(api.reviews.updateFeedback);
 
   // Set table context for call staff button
   useEffect(() => {
-    // Scroll to top when page loads
-    window.scrollTo(0, 0);
-    
-    // Ensure cart bar is visible
-    setHideCartBar(false);
-
-    // Set QR session for cart page validation
-    if (tableId && restaurantId) {
-      const qrSession = {
-        tableId: String(tableId),
-        restaurantId: restaurantId,
-        timestamp: Date.now()
-      };
-      sessionStorage.setItem('qr_scan_session', JSON.stringify(qrSession));
-    }
-
     // Check QR session with key validation
     // if (!sessionKey || !isQRSessionValid(tableId, sessionKey)) {
     //   // No valid QR session - redirect to home
@@ -158,7 +179,7 @@ export default function MenuPage() {
       setDismissedReservation(true);
     }
     setIsHydrated(true);
-  }, [tableId, sessionKey, router]); // Removed setHideCartBar from dependencies
+  }, [tableId, sessionKey, router]);
 
   // Show water popup for all customers after 10 seconds (if not already shown this session)
   useEffect(() => {
@@ -186,9 +207,9 @@ export default function MenuPage() {
   // Prefetch cart page when cart has items
   useEffect(() => {
     if (cartCount > 0) {
-      router.prefetch(`/r/${params.restaurantId}/m/${tableId}/c/${tableId}`);
+      router.prefetch(`demo/cart/${tableId}`);
     }
-  }, [cartCount, tableId, router, params.restaurantId]);
+  }, [cartCount, tableId, router]);
 
   // Preload cart bar video
   useEffect(() => {
@@ -241,7 +262,7 @@ export default function MenuPage() {
   }, [activeCategory, searchQuery]);
 
   // Don't show popups until hydrated (sessionStorage checked)
-  if (!isHydrated || checkingSession || menuLoading || !videoLoaded) {
+  if (!isHydrated || checkingSession || menuLoading || !videoLoaded || !imagesLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="loader-4">Table {tableId}</div>
@@ -389,8 +410,8 @@ export default function MenuPage() {
           {/* Status Badge */}
           <div
             className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] mb-8 opacity-0 animate-bounce-in ${reservation.isCurrent
-              ? 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20'
-              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                ? 'bg-[--primary]/10 text-[--primary] border border-[--primary]/20'
+                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
               }`}
             style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}
           >
@@ -541,35 +562,13 @@ export default function MenuPage() {
     );
   }
 
-  // Build dynamic categories from database
-  const categories = [
-    { id: "All", icon: "◉", iconType: "default" },
-    ...(dbCategories?.map(cat => {
-      // Determine icon source
-      let iconSrc = null;
-      let iconType = "default";
-
-      if (cat.iconUrl || cat.iconFileUrl) {
-        // Custom uploaded icon
-        iconSrc = cat.iconUrl || cat.iconFileUrl;
-        iconType = "custom";
-      } else if (cat.icon) {
-        // Default icon from assets
-        iconSrc = `/assets/icons/categories/v2/${cat.icon.toLowerCase()}-active.png`;
-        iconType = "image";
-      }
-
-      return {
-        id: cat.name,
-        icon: cat.icon || "◈",
-        iconSrc: iconSrc,
-        iconType: iconType
-      };
-    }) || [])
-  ];
-
-  // For "All" category, show all items (no need to reorder)
-  // Items are already filtered above
+  // For "All" category, prioritize Starters and Mains first
+  if (activeCategory === "All") {
+    const starters = filteredItems.filter(item => item.category === "Starters");
+    const mains = filteredItems.filter(item => item.category === "Mains");
+    const others = filteredItems.filter(item => item.category !== "Starters" && item.category !== "Mains");
+    filteredItems = [...starters, ...mains, ...others];
+  }
 
   // Limit displayed items for performance
   const displayedItems = filteredItems.slice(0, displayCount);
@@ -582,8 +581,8 @@ export default function MenuPage() {
     // Vibrate if supported
     navigator.vibrate(50);
 
-    // Show GIF for 1.5 seconds to let it play fully
-    setTimeout(() => setShowAddedGif(false), 1500);
+    // Show GIF for 2 seconds to let it play fully
+    setTimeout(() => setShowAddedGif(false), 2000);
   };
 
   const handleAddToCart = (item) => {
@@ -591,7 +590,7 @@ export default function MenuPage() {
       menuItemId: item._id,
       name: item.name,
       price: item.price,
-      image: item.imageUrl || item.image // Use imageUrl (API route) with fallback
+      image: item.imageUrl || item.image,
     });
     triggerAddedGif();
   };
@@ -614,26 +613,24 @@ export default function MenuPage() {
     : null;
 
   return (
-    <div className="min-h-screen pb-20" style={{ 
-      backgroundColor: baseColor,
-      '--theme-bg': baseColor,
-      '--theme-header': headerColor,
-      '--theme-button': buttonColor
-    }}>
+    <div className="min-h-screen pb-20">
       {/* Header - Full width */}
-      <header className="sticky top-0 z-30">
+      <header className="sticky top-0 z-30 glass">
         {/* Top row */}
-        <div className="pr-2 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: headerColor }}>
+        <div className="px- bg-[--primary] py-1 flex items-center justify-between gap-3">
           <div className="flex-1 px-2 min-w-0 flex items-center gap-3">
-            {brandLogo ? (
-              <img src={brandLogo} className="h-12 w-12 rounded-full object-cover" alt={brandName} />
-            ) : (
-              <img src="/assets/logos/orderzap-logo.png" className="h-8 w-18" alt="" />
-            )}
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-white font-bold text-base truncate">{brandName}</h1>
-              <p className="text-white/80 text-xs">Table {tableId}</p>
-            </div>
+            <img
+              src={
+                restaurantId
+                  ? `/api/logo/${restaurantId}/full_logo.webp`
+                  : '/assets/logos/bts/full-bg.png'
+              }
+              className="h-12 rounded-full"
+              alt="Brand Logo"
+            />
+            <span className="text-white font-jersey-25 text-2xl tracking-wide truncate">
+              {brandName}
+            </span>
           </div>
 
           <button
@@ -657,12 +654,12 @@ export default function MenuPage() {
         </div>
 
         {/* Search bar - Enhanced design */}
-        <div
-          className={`px-4 overflow-hidden transition-all duration-300 ${showSearch
-              ? 'max-h-32 opacity-100 pb-3 pt-2'
+        <div 
+          className={`px-4  bg-[--primary] overflow-hidden transition-all duration-300 ${
+            showSearch 
+              ? 'max-h-32 opacity-100 pb-3 pt-2' 
               : 'max-h-0 opacity-0'
-            }`}
-          style={{ backgroundColor: headerColor }}
+          }`}
         >
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -688,7 +685,7 @@ export default function MenuPage() {
               </button>
             )}
           </div>
-
+          
           {/* Search suggestions/quick filters */}
           {searchQuery && (
             <div className="mt-2 flex items-center gap-2 text-xs text-white/80">
@@ -702,14 +699,15 @@ export default function MenuPage() {
       </header>
 
       {/* Left Sidebar - Quick Access */}
-      <aside
-        className={`fixed left-0 top-16 bottom-0 w-16 border-r border-white/10 z-20 overflow-y-auto scrollbar-hide transition-transform duration-300 ${showSearch ? '-translate-x-full' : 'translate-x-0'
-          }`}
-        style={{ backgroundColor: headerColor }}
-      >
-        <div className="flex flex-col gap-1.5 p-1.5">
+      <aside className={`fixed left-0 top-16 bottom-0 w-16 bg-[--bg-elevated] border-r border-[--border] z-20 overflow-y-auto scrollbar-hide transition-transform duration-300 ${
+        showSearch ? '-translate-x-full' : 'translate-x-0'
+      }`}>
+        <div className="flex flex-col  gap-1.5 p-1.5">
           {categories.map((cat) => {
             const isActive = activeCategory === cat.id;
+            const categoryName = cat.id.toLowerCase();
+            const iconState = isActive ? 'active' : 'inactive';
+            const iconPath = `/assets/icons/categories/v3/${categoryName}-${iconState}.svg`;
 
             // Count cart items in this category
             const cartItemsInCategory = cat.id === "All"
@@ -724,33 +722,40 @@ export default function MenuPage() {
                 key={cat.id}
                 onClick={() => {
                   navigator.vibrate(50);
+
                   setActiveCategory(cat.id);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="relative flex flex-col items-center justify-center rounded-lg transition-all active:scale-95 bg-transparent py-2"
+                className="relative flex flex-col items-center justify-center rounded-lg transition-all active:scale-95 bg-transparent"
               >
-                {/* Display icon based on type */}
-                {cat.iconType === "image" || cat.iconType === "custom" ? (
+                <div className="w-12 my-3 h-12 relative">
+                  {/* Inactive icon - always rendered */}
                   <img
-                    src={cat.iconSrc}
+                    src={`/assets/icons/categories/v3/${categoryName}-inactive.svg`}
                     alt={cat.id}
-                    className="w-12 h-12 object-contain mb-1"
+                    className="w-full h-full object-contain absolute inset-0 transition-opacity duration-300"
+                    style={{ opacity: isActive ? 0 : 1 }}
                   />
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center text-xl mb-1">
-                    {cat.icon}
-                  </div>
-                )}
-
-                {/* Category name */}
-                <span className="text-white text-[9px] font-medium text-center leading-tight px-1">
-                  {cat.id}
-                </span>
-
+                  {/* Active icon with primary color - always rendered */}
+                  <div 
+                    className="w-full h-full absolute inset-0 transition-opacity duration-300"
+                    style={{
+                      opacity: isActive ? 1 : 0,
+                      WebkitMaskImage: `url(/assets/icons/categories/v3/${categoryName}-active.svg)`,
+                      maskImage: `url(/assets/icons/categories/v3/${categoryName}-active.svg)`,
+                      WebkitMaskSize: 'contain',
+                      maskSize: 'contain',
+                      WebkitMaskRepeat: 'no-repeat',
+                      maskRepeat: 'no-repeat',
+                      WebkitMaskPosition: 'center',
+                      maskPosition: 'center',
+                      backgroundColor: restaurant?.primaryColor || '#000',
+                    }}
+                  />
+                </div>
                 {/* Cart count badge */}
                 {cartItemsInCategory > 0 && (
-                  <div
-                    style={{ Color: buttonColor }} className="absolute top-1 right-1 w-5 h-5 rounded-full   text-[9px] font-bold flex items-center justify-center">
+                  <div className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[] text-[--primary] text-[9px] font-bold flex items-center justify-center">
                     <OdometerNumber value={cartItemsInCategory} />
                   </div>
                 )}
@@ -817,7 +822,6 @@ export default function MenuPage() {
                         onAdd={() => handleAddToCart(item)}
                         onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
                         onUnavailable={() => setUnavailablePopup(item)}
-                        buttonColor={buttonColor}
                       />
                     </div>
                   ))}
@@ -840,7 +844,6 @@ export default function MenuPage() {
                   onAdd={() => handleAddToCart(item)}
                   onUpdate={(newQty) => handleUpdateQuantity(item._id, newQty)}
                   onUnavailable={() => setUnavailablePopup(item)}
-                  buttonColor={buttonColor}
                 />
               </div>
             ))}
@@ -857,9 +860,9 @@ export default function MenuPage() {
         {/* Empty state */}
         {filteredItems.length === 0 && (
           <div className="text-center py-12 animate-fade-in">
-            <img
-              src="/assets/icons/no-results.png"
-              alt="No results"
+            <img 
+              src="/assets/icons/no-results.png" 
+              alt="No results" 
               className="w-32 h-32 mx-auto mb-4 object-contain"
             />
             <p className="text-[--text-muted] text-sm mb-2">No items found</p>
@@ -878,9 +881,9 @@ export default function MenuPage() {
       {/* Cart Bar - Redesigned with gradient and better styling */}
       {cartCount > 0 && !hideCartBar && (
         <div className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
-          <div className="px-4 py-3 text-white" style={{ backgroundColor: cartBarColor }}>
+          <div className="bg-white px-4 py-4">
             <button
-              onClick={() => router.push(`/r/${params.restaurantId}/m/${tableId}/c/${tableId}`)}
+              onClick={() => router.push(`/r/${restaurantId}/m/${tableId}/c/${tableId}`)}
               className="flex items-center justify-between w-full active:scale-[0.98] transition-transform"
             >
               {/* Left */}
@@ -888,21 +891,24 @@ export default function MenuPage() {
                 {/* Video overlay that appears when item is added */}
                 {showAddedGif && (
                   <div className="absolute left-0 z-10 animate-scale-bounce">
-                    <img
-                     src="/assets/gifs/added.gif"
+                    <video
+                      src="/assets/videos/added-animation.mp4"
+                      autoPlay
+                      muted
+                      playsInline
                       className="w-12 h-12 object-cover rounded-lg"
                     />
                   </div>
                 )}
 
-                <div  style={{ Color: buttonColor }} className={`leading-none transition-transform duration-400 ${showAddedGif ? 'translate-x-14' : 'translate-x-0'}`}>
+                <div className={`leading-tight transition-transform duration-300 ${showAddedGif ? 'translate-x-14' : 'translate-x-0'}`}>
                   <div className="flex items-baseline gap-1">
-                    <OdometerNumber value={cartCount} className=" text-base font-bold" />
-                    <span className="text- text-base font-bold ml-1">
+                    <OdometerNumber value={cartCount} className="text-black text-base font-bold" />
+                    <span className="text-black text-base font-bold ml-1">
                       {cartCount === 1 ? 'Item' : 'Items'}
                     </span>
                   </div>
-                  <p className=" text-xs">
+                  <p className="text-black/90 text-xs">
                     View Cart
                   </p>
                 </div>
@@ -911,10 +917,10 @@ export default function MenuPage() {
               {/* Right */}
               <div className="flex items-center gap-3">
                 <div className="flex items-baseline gap-0.5">
-                  <span className=" text-lg font-bold font-['Montserrat']">₹</span>
-                  <OdometerNumber value={cartTotal.toFixed(0)} className=" text-lg font-bold font-['Montserrat']" />/-
+                  <span className="text-black text-lg font-bold font-['Montserrat']">₹</span>
+                  <OdometerNumber value={cartTotal.toFixed(0)} className="text-black text-lg font-bold font-['Montserrat']" />/-
                 </div>
-                <ChevronRight size={20} className="text-" />
+                <ChevronRight size={20} className="text-black" />
               </div>
             </button>
           </div>
@@ -992,7 +998,7 @@ export default function MenuPage() {
       {/* Water Popup - slides up from bottom */}
       <AnimatedBottomSheet show={showWaterPopup} onClose={() => setShowWaterPopup(false)}>
         <div className="text-center">
-          <img src="/assets/gifs/water-loading.gif" alt="Loading" className="w-[70]  flex justify-center mx-auto rounded-lg" />
+          <img src="/assets/icons/want-water.svg" alt="Loading" className="w-[70]  flex justify-center mx-auto rounded-lg" />
           <h3 className="text-[--text-primary] font-luxury text-lg mb-2">Want some water?</h3>
           <p className="text-[--text-muted] text-sm mb-5">We'll bring it right over</p>
           <div className="flex gap-3">
@@ -1004,15 +1010,12 @@ export default function MenuPage() {
             </button>
             <button
               onClick={async () => {
-                if (restaurantDbId) {
-                  await createStaffCall({
-                    restaurantId: restaurantDbId,
-                    tableId: String(tableId),
-                    tableNumber: parseInt(tableId),
-                    zoneName: table?.zone?.name,
-                    reason: 'Asking for water',
-                  });
-                }
+                await createStaffCall({
+                  tableId: String(tableId),
+                  tableNumber: parseInt(tableId),
+                  zoneName: table?.zone?.name,
+                  reason: 'Asking for water',
+                });
                 setShowWaterPopup(false);
               }}
               className="flex-1 btn-primary py-3 rounded-xl text-sm font-medium"
@@ -1022,6 +1025,421 @@ export default function MenuPage() {
           </div>
         </div>
       </AnimatedBottomSheet>
+
+      {/* Footer - Aligned with menu content */}
+      <footer className="mt-12 pb-24 relative">
+        {/* Left decorative space - matches sidebar */}
+        <div className={`absolute left-0 top-0 bottom-0 w-16 flex flex-col items-center justify-center gap-2 transition-all duration-300 ${showSearch ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="w-8 h-8 rounded-full bg-[--primary]/10 flex items-center justify-center">
+            <img
+              src={`/api/logo/${restaurantId}/favicon.webp`}
+              alt={brandName}
+              className="w-6 h-6 rounded-full object-cover"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="w-1 h-1 rounded-full bg-[--primary]/30"></div>
+            <div className="w-1 h-1 rounded-full bg-[--primary]/20"></div>
+            <div className="w-1 h-1 rounded-full bg-[--primary]/10"></div>
+          </div>
+        </div>
+
+        {/* Main footer content */}
+        <div className={`px-4 transition-all duration-300 ${showSearch ? 'pl-2 pr-2' : 'pl-16'}`}>
+          {/* Quick Feedback Section - Clean & Minimal */}
+          {!showFeedback && feedbackStep === 'ask' && (
+            <div className="mb-8 card p-6 animate-slide-up">
+        
+              <h3 className="text-[--text-primary] text-lg font-semibold mb-2 text-center">
+                How was your experience?
+              </h3>
+              <p className="text-[--text-muted] text-xs text-center mb-6">
+                Your feedback helps us improve
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    navigator.vibrate && navigator.vibrate([50, 30, 50]);
+                    await createReview({
+                      restaurantId,
+                      tableId: String(tableId),
+                      tableNumber: parseInt(tableId),
+                      enjoyed: true,
+                    });
+                    setFeedbackStep('thanks');
+                    setTimeout(() => setShowFeedback(false), 3000);
+                  }}
+                  className="flex-1 py-4 rounded-xl bg-[--primary] text-white font-semibold text-sm active:scale-95 transition-all shadow-sm hover:shadow-md"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Smile size={28} strokeWidth={2.5} />
+                    <span>Loved it!</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    navigator.vibrate && navigator.vibrate(50);
+                    // Save immediately with enjoyed: false
+                    const reviewId = await createReview({
+                      restaurantId,
+                      tableId: String(tableId),
+                      tableNumber: parseInt(tableId),
+                      enjoyed: false,
+                    });
+                    setCurrentReviewId(reviewId);
+                    // Then ask if issue is with restaurant or app
+                    setFeedbackStep('issue');
+                  }}
+                  className="flex-1 py-4 rounded-xl border-2 border-[--border] text-[--text-primary] font-semibold text-sm active:scale-95 transition-all hover:border-[--primary]"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Frown size={28} strokeWidth={2.5} />
+                    <span>Not great</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Issue selection step - Restaurant or App? */}
+          {feedbackStep === 'issue' && (
+            <div className="mb-8 card p-6 animate-slide-up">
+             
+
+              <h3 className="text-[--text-primary] text-base font-semibold mb-2 text-center">
+                Was the issue with...
+              </h3>
+              <p className="text-[--text-muted] text-xs text-center mb-6">
+                Help us understand better
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    navigator.vibrate && navigator.vibrate(50);
+                    setIssueWith('restaurant');
+                    // Save immediately
+                    if (currentReviewId) {
+                      await updateReviewFeedback({
+                        reviewId: currentReviewId,
+                        issueWith: 'restaurant',
+                      });
+                    }
+                    setFeedbackStep('category');
+                  }}
+                  className="flex-1 py-4 rounded-xl border-2 border-[--border] text-[--text-primary] font-semibold text-sm active:scale-95 transition-all hover:border-[--primary]"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Store size={28} strokeWidth={2.5} />
+                    <span>Restaurant</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    navigator.vibrate && navigator.vibrate(50);
+                    setIssueWith('app');
+                    // Save immediately
+                    if (currentReviewId) {
+                      await updateReviewFeedback({
+                        reviewId: currentReviewId,
+                        issueWith: 'app',
+                      });
+                    }
+                    setFeedbackStep('category');
+                  }}
+                  className="flex-1 py-4 rounded-xl border-2 border-[--border] text-[--text-primary] font-semibold text-sm active:scale-95 transition-all hover:border-[--primary]"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Smartphone size={28} strokeWidth={2.5} />
+                    <span>App</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Category selection step - Specific issue */}
+          {feedbackStep === 'category' && (
+            <div className="mb-8 card p-6 animate-slide-up">
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[--primary]/10">
+                  {issueWith === 'restaurant' ? <Store size={20} className="text-[--primary]" /> : <Smartphone size={20} className="text-[--primary]" />}
+                </div>
+              </div>
+
+              <h3 className="text-[--text-primary] text-base font-semibold mb-2 text-center">
+                What was the issue?
+              </h3>
+              <p className="text-[--text-muted] text-xs text-center mb-4">
+                Select one that fits best
+              </p>
+
+              {issueWith === 'restaurant' ? (
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('food');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'restaurant',
+                          issueCategory: 'food',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <ChefHat size={18} />
+                    <span>Food Quality</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('environment');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'restaurant',
+                          issueCategory: 'environment',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <Home size={18} />
+                    <span>Environment</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('staff');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'restaurant',
+                          issueCategory: 'staff',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <Users size={18} />
+                    <span>Staff/Service</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('other');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'restaurant',
+                          issueCategory: 'other',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <Zap size={18} />
+                    <span>Something else</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('looks');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'app',
+                          issueCategory: 'looks',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <Palette size={18} />
+                    <span>Design/Looks</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('animation');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'app',
+                          issueCategory: 'animation',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <Wand2 size={18} />
+                    <span>Animations</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('lagging');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'app',
+                          issueCategory: 'lagging',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <Gauge size={18} />
+                    <span>Slow/Lagging</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      navigator.vibrate && navigator.vibrate(50);
+                      setIssueCategory('other_app');
+                      if (currentReviewId) {
+                        await updateReviewFeedback({
+                          reviewId: currentReviewId,
+                          issueWith: 'app',
+                          issueCategory: 'other_app',
+                        });
+                      }
+                      setFeedbackStep('reason');
+                    }}
+                    className="py-3 px-2 rounded-xl border-2 border-[--border] text-[--text-primary] font-medium text-xs active:scale-95 transition-all hover:border-[--primary] flex items-center justify-center gap-2"
+                  >
+                    <Zap size={18} />
+                    <span>Something else</span>
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setFeedbackStep('issue');
+                  setIssueWith('');
+                }}
+                className="w-full py-2 rounded-xl border border-[--border] text-[--text-muted] text-xs font-medium active:scale-95 transition-all"
+              >
+                ← Back
+              </button>
+            </div>
+          )}
+
+          {/* Feedback reason step - Optional follow-up */}
+          {feedbackStep === 'reason' && (
+            <div className="mb-8 card p-6 animate-slide-up">
+              <div className="text-center mb-4">
+                <MessageSquare size={32} className="text-[--primary] mx-auto" />
+              </div>
+
+              <h3 className="text-[--text-primary] text-base font-semibold mb-2 text-center">
+                Want to add more details?
+              </h3>
+              <p className="text-[--text-muted] text-xs text-center mb-4">
+                You selected: {issueCategory === 'food' ? 'Food Quality' : 
+                              issueCategory === 'environment' ? 'Environment' :
+                              issueCategory === 'staff' ? 'Staff/Service' :
+                              issueCategory === 'looks' ? 'Design/Looks' :
+                              issueCategory === 'animation' ? 'Animations' :
+                              issueCategory === 'lagging' ? 'Slow/Lagging' :
+                              'Something else'}
+              </p>
+
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Add more details... (optional)"
+                className="w-full px-4 py-3 border border-[--border] rounded-xl bg-[--bg-elevated] text-[--text-primary] text-sm resize-none focus:outline-none focus:border-[--primary] mb-4 transition-all"
+                rows={4}
+                autoFocus
+              />
+
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    // If they added feedback, update the review
+                    if (feedbackText && currentReviewId) {
+                      await updateReviewFeedback({
+                        reviewId: currentReviewId,
+                        feedback: feedbackText,
+                      });
+                    }
+                    setFeedbackStep('thanks');
+                    setTimeout(() => {
+                      setShowFeedback(false);
+                      setFeedbackText('');
+                      setIssueWith('');
+                      setIssueCategory('');
+                      setCurrentReviewId(null);
+                    }, 3000);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-[--primary] text-white text-sm font-semibold active:scale-95 transition-all shadow-sm"
+                >
+                  {feedbackText ? 'Submit' : 'Skip'}
+                </button>
+                <button
+                  onClick={() => {
+                    setFeedbackStep('category');
+                    setIssueCategory('');
+                  }}
+                  className="px-4 py-3 rounded-xl border border-[--border] text-[--text-muted] text-sm font-medium active:scale-95 transition-all"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Thank you message - Clean & Minimal */}
+          {feedbackStep === 'thanks' && (
+            <div className="mb-8 card p-8 text-center animate-scale-in">
+              <div className="w-16 h-16 rounded-full bg-[--primary]/10 flex items-center justify-center mx-auto mb-4">
+                <Sparkles size={32} className="text-[--primary]" />
+              </div>
+              <h3 className="text-[--primary] text-xl font-bold mb-2">
+                Thank you!
+              </h3>
+              <p className="text-[--text-muted] text-sm">
+                Your feedback means the world to us
+              </p>
+            </div>
+          )}
+
+          {/* Brand logos */}
+          <div className="flex items-center justify-center gap-3 py-6 border-t border-[--border]">
+            <img
+              src={`/api/logo/${restaurantId}/logo.webp`}
+              alt={brandName}
+              className="h-8 w-8 rounded-full object-cover"
+            />
+            <span className="text-[--text-muted] text-sm font-medium">×</span>
+            <img
+              src="/assets/logos/s-logo-sq.webp"
+              alt="OrderZap"
+              className="h-8 w-8 rounded-full object-cover"
+            />
+          </div>
+          <p className="text-center text-[--text-dim] font-bold text-xs">
+            Where Flavors Meet Technology
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -1053,7 +1471,7 @@ function OdometerNumber({ value, className = "" }) {
 }
 
 // Menu Item Component - Memoized to prevent unnecessary re-renders
-const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable, buttonColor }) {
+const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavailable }) {
   const isRestricted = !item.isAvailableInZone;
   const imageRef = useRef(null);
   const buttonRef = useRef(null);
@@ -1115,15 +1533,16 @@ const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavaila
 
   return (
     <div
-      onClick={handleAdd}
-      className={`menu-card-item overflow-hidden flex h-36 shadow-md hover:shadow-xl transition-all duration-300 ${isRestricted ? "opacity-70" : ""
+      className={`menu-card-item  overflow-hidden bg-[--card] 
+flex h-32 shadow-sm hover:shadow-lg transition-shadow ${isRestricted ? "opacity-70" : ""
         }`}
+
     >
       {/* IMAGE - Left side, fixed width */}
       <div
         ref={imageRef}
         onClick={handleAdd}
-        className="relative w-24 h-24 flex-shrink-0 cursor-pointer overflow-hidden group"
+        className="relative w-32 h-32 flex-shrink-0 cursor-pointer overflow-hidden group"
         role="button"
         aria-disabled={isRestricted}
       >
@@ -1135,8 +1554,8 @@ const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavaila
             height: '100%'
           }}
         >
-          <img
-            src={item.imageUrl}
+          <MenuItemImage
+            storageId={item.imageUrl || item.image}
             alt={item.name}
             className="w-full h-full object-cover transition-transform group-active:scale-95"
           />
@@ -1144,75 +1563,69 @@ const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavaila
 
         {/* Restricted Overlay */}
         {isRestricted && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-[10px] text-white font-medium gap-1">
-            <Lock size={16} />
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-[10px] text-white font-medium gap-1">
+            <Lock size={14} />
             <span>Unavailable</span>
           </div>
         )}
 
         {/* Quantity Badge */}
-
+        {qty > 0 && !isRestricted && (
+          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[--primary] text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
+            <OdometerNumber value={qty} />
+          </div>
+        )}
       </div>
 
       {/* INFO - Right side, takes remaining space */}
-      <div className="flex-1 p-2 flex flex-col justify-between min-w-0 g-gradient-to-br ">
+      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
         <div className="flex-1 min-h-0">
-          <h3 className="text-xs font-bold text-gray-900 line-clamp-2 mb-0.5 leading-tight">
+          <h3 className="text-sm font-semibold text-[--text-primary] line-clamp-2 mb-1 leading-tight">
             {item.name}
           </h3>
 
-          <p className="text-[9px] text-gray-600 line-clamp-1 leading-snug">
+          <p className="text-[10px] text-[--text-muted] line-clamp-2 leading-snug">
             {item.description}
           </p>
         </div>
 
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-sm font-bold text-gray-900 font-['Montserrat']">₹{item.price.toFixed(0)}/-</span>
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-base font-bold text-[--text-primary] font-['Montserrat']">₹{item.price.toFixed(0)}/-</span>
 
           {/* ACTIONS */}
           {isRestricted ? (
-            <span className="text-[8px] text-red-500 font-semibold bg-red-50 px-1.5 py-0.5 rounded-full">Unavailable</span>
+            <span className="text-[9px] text-red-400 font-medium">Unavailable</span>
           ) : qty > 0 ? (
             <div
-              className="flex items-center  shadow-sm overflow-hidden"
+              className="flex items-center rounded-lg border border-[--border] bg-[--bg-elevated] shadow-sm"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={handleDecrement}
-                className="w-6 h-6 flex items-center justify-center active:scale-90 text-white transition-all"
-                style={{ backgroundColor: buttonColor }}
+                className="w-8 h-8 flex items-center justify-center active:scale-90 text-[--text-primary]"
                 aria-label="Decrease quantity"
               >
                 <Minus size={14} />
               </button>
 
-              <div
-                style={{ backgroundColor: buttonColor }}
-                className="min-w-[28px] h-6 flex items-center justify-center"
-              >
-                <OdometerNumber
-                  value={qty}
-                  className="text-sm font-bold text-gray-200"
-                />
+              <div className="w-6 flex justify-center">
+                <OdometerNumber value={qty} className="text-xs font-semibold text-[--text-primary]" />
               </div>
 
               <button
                 onClick={handleIncrement}
-                className="w-6 h-6 flex items-center justify-center active:scale-90 text-white transition-all"
-                style={{ backgroundColor: buttonColor }}
+                className="w-8 h-8 flex items-center justify-center text-[--primary] active:scale-90"
                 aria-label="Increase quantity"
               >
                 <Plus size={14} />
               </button>
             </div>
-
           ) : (
             <button
               ref={buttonRef}
               onClick={handleAdd}
-              className="w-[74px] py-1  text-white text-[10px] font-bold active:scale-95 transition-all shadow-sm"
+              className="px-4 py-2 rounded-lg bg-[--primary] text-white text-xs font-semibold active:scale-95 transition-transform shadow-sm"
               style={{
-                backgroundColor: buttonColor,
                 transform: `translateY(${buttonParallaxY}px)`,
                 transition: 'transform 0.1s ease-out'
               }}
@@ -1231,4 +1644,4 @@ const MenuItem = memo(function MenuItem({ item, qty, onAdd, onUpdate, onUnavaila
     prevProps.qty === nextProps.qty &&
     prevProps.item.isAvailableInZone === nextProps.item.isAvailableInZone
   );
-});
+})

@@ -4,15 +4,23 @@ import { query, mutation } from "./_generated/server";
 // List all reservations (optionally filter by date)
 export const list = query({
   args: { 
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())),
     date: v.optional(v.string()) 
   },
   handler: async (ctx, args) => {
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
     let reservations;
-    if (args.restaurantId) {
+    if (rid) {
       const allReservations = await ctx.db
         .query("reservations")
-        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
         .collect();
       reservations = args.date 
         ? allReservations.filter(r => r.date === args.date)
@@ -63,9 +71,17 @@ export const getByTable = query({
 export const getCurrentForTable = query({
   args: { 
     tableNumber: v.number(),
-    restaurantId: v.optional(v.id("restaurants"))
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string()))
   },
   handler: async (ctx, args) => {
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
     // Find the table by number (optionally filtered by restaurant)
     let tables;
     if (args.restaurantId) {
@@ -138,7 +154,7 @@ export const getCurrentForTable = query({
 // Create a reservation
 export const create = mutation({
   args: {
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())),
     tableId: v.id("tables"),
     customerName: v.string(),
     customerPhone: v.optional(v.string()),
@@ -150,6 +166,17 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // normalize restaurantId if provided
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) {
+        rid = rest._id;
+      }
+    }
     const table = await ctx.db.get(args.tableId);
     if (!table) throw new Error("Table not found");
 

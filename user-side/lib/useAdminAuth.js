@@ -1,29 +1,36 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAdmin } from "./AdminContext";
 
 export function useAdminAuth() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = checking, true/false = result
-  const [loading, setLoading] = useState(true);
+  const { adminUser, loading } = useAdmin();
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
   useEffect(() => {
-    // Check immediately on mount
-    const auth = sessionStorage.getItem("admin-auth");
-    if (auth === "true") {
-      setIsAuthenticated(true);
-      setLoading(false);
-    } else {
-      setIsAuthenticated(false);
-      setLoading(false);
-      router.replace("/admin/login");
+    if (!loading) {
+      const auth = sessionStorage.getItem("admin-auth");
+      const hasValidAuth = auth === "true" && adminUser;
+      
+      setIsAuthenticated(hasValidAuth);
+      
+      if (!hasValidAuth) {
+        router.replace("/admin/login");
+      }
     }
-  }, [router]);
+  }, [adminUser, loading, router]);
 
   const logout = () => {
     sessionStorage.removeItem("admin-auth");
+    sessionStorage.removeItem("admin-email");
     router.push("/admin/login");
   };
 
-  return { isAuthenticated, loading, logout };
+  return { 
+    isAuthenticated, 
+    loading: loading || isAuthenticated === null, 
+    logout,
+    adminUser 
+  };
 }

@@ -286,7 +286,13 @@ const createConfetti = () => {
       if (y < window.innerHeight + 100) {
         requestAnimationFrame(animate);
       } else {
-        confetti.remove();
+        try {
+          if (confetti.parentNode) {
+            confetti.parentNode.removeChild(confetti);
+          }
+        } catch (e) {
+          // Silently ignore
+        }
       }
     };
     animate();

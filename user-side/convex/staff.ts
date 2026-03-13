@@ -2,12 +2,20 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-  args: { restaurantId: v.optional(v.id("restaurants")) },
+  args: { restaurantId: v.optional(v.union(v.id("restaurants"), v.string())) },
   handler: async (ctx, args) => {
-    if (args.restaurantId) {
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
+    if (rid) {
       return await ctx.db
         .query("staff")
-        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
         .collect();
     }
     return await ctx.db.query("staff").collect();
@@ -15,13 +23,21 @@ export const list = query({
 });
 
 export const listActive = query({
-  args: { restaurantId: v.optional(v.id("restaurants")) },
+  args: { restaurantId: v.optional(v.union(v.id("restaurants"), v.string())) },
   handler: async (ctx, args) => {
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
     let staff;
-    if (args.restaurantId) {
+    if (rid) {
       staff = await ctx.db
         .query("staff")
-        .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+        .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
         .collect();
     } else {
       staff = await ctx.db.query("staff").collect();
@@ -62,15 +78,26 @@ export const getOnlineByTable = query({
 
 export const create = mutation({
   args: {
-    restaurantId: v.optional(v.id("restaurants")),
+    restaurantId: v.optional(v.union(v.id("restaurants"), v.string())),
     name: v.string(),
     role: v.string(),
     phone: v.optional(v.string()),
     assignedTables: v.array(v.number()),
   },
   handler: async (ctx, args) => {
+    let rid = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) {
+        rid = rest._id;
+      }
+    }
     return await ctx.db.insert("staff", {
       ...args,
+      restaurantId: rid,
       active: true,
       isOnline: false,
       lastSeen: Date.now(),

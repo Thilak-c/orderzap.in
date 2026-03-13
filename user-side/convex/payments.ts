@@ -4,7 +4,7 @@ import { mutation, query } from "./_generated/server";
 // Create payment record
 export const create = mutation({
   args: {
-    restaurantId: v.id("restaurants"),
+    restaurantId: v.union(v.id("restaurants"), v.string()),
     subscriptionId: v.optional(v.id("subscriptions")),
     amount: v.number(),
     currency: v.string(),
@@ -13,8 +13,18 @@ export const create = mutation({
     gatewayOrderId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    let rid: string | undefined = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) {
+        rid = rest._id;
+      }
+    }
     const paymentId = await ctx.db.insert("payments", {
-      restaurantId: args.restaurantId,
+      restaurantId: rid,
       subscriptionId: args.subscriptionId,
       amount: args.amount,
       currency: args.currency,
@@ -84,11 +94,19 @@ export const updateStatus = mutation({
 
 // Get payments by restaurant
 export const getByRestaurant = query({
-  args: { restaurantId: v.id("restaurants") },
+  args: { restaurantId: v.union(v.id("restaurants"), v.string()) },
   handler: async (ctx, args) => {
+    let rid: any = args.restaurantId;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
     return await ctx.db
       .query("payments")
-      .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+      .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
       .order("desc")
       .collect();
   },

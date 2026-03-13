@@ -7,13 +7,23 @@ const TRIAL_DAYS = 7;
 // Create subscription
 export const create = mutation({
   args: {
-    restaurantId: v.id("restaurants"),
+    restaurantId: v.union(v.id("restaurants"), v.string()),
     planType: v.string(),
     days: v.number(),
     paymentMethod: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    let rid: string | undefined = args.restaurantId as any;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) {
+        rid = rest._id;
+      }
+    }
     const totalPrice = args.days * PRICE_PER_DAY;
     const startDate = Date.now();
     const endDate = startDate + args.days * 24 * 60 * 60 * 1000;
@@ -97,11 +107,19 @@ export const activate = mutation({
 
 // Get subscriptions by restaurant
 export const getByRestaurant = query({
-  args: { restaurantId: v.id("restaurants") },
+  args: { restaurantId: v.union(v.id("restaurants"), v.string()) },
   handler: async (ctx, args) => {
+    let rid: any = args.restaurantId;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
     return await ctx.db
       .query("subscriptions")
-      .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+      .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
       .order("desc")
       .collect();
   },
@@ -109,11 +127,19 @@ export const getByRestaurant = query({
 
 // Get active subscription
 export const getActive = query({
-  args: { restaurantId: v.id("restaurants") },
+  args: { restaurantId: v.union(v.id("restaurants"), v.string()) },
   handler: async (ctx, args) => {
+    let rid: any = args.restaurantId;
+    if (rid && typeof rid === 'string' && !rid.match(/^[0-9a-fA-F]{24}$/)) {
+      const rest = await ctx.db
+        .query("restaurants")
+        .withIndex("by_shortid", (q) => q.eq("id", rid))
+        .first();
+      if (rest) rid = rest._id;
+    }
     const subscriptions = await ctx.db
       .query("subscriptions")
-      .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+      .withIndex("by_restaurant", (q) => q.eq("restaurantId", rid))
       .filter((q) => 
         q.and(
           q.eq(q.field("status"), "active"),

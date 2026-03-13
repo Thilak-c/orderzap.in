@@ -1,6 +1,43 @@
 "use client";
+import { useParams } from "next/navigation";
+import { useRouteProtection } from "@/lib/useRouteProtection";
+import { AlertCircle } from "lucide-react";
 
 export default function RawItemsPage() {
+  const params = useParams();
+  const restaurantId = params.restaurantId;
+  
+  // Route protection - only Owner and Manager can access Raw Items
+  const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
+  
+  // Show access denied if not authorized
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access Raw Items Management. Only owners and managers can manage inventory.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
       <div className="max-w-4xl w-full">

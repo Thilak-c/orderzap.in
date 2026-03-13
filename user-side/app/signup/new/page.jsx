@@ -160,13 +160,17 @@ export default function RestaurantForm() {
       setError("");
 
       try {
+        // Generate ID from restaurant name up front so the logo folder matches
+        let restaurantId = generateRestaurantId(formData.name);
+        
         // Upload logo to file system during loading animation
         let uploadedLogoUrl = "";
         if (logoFile) {
           console.log("Uploading logo to file system...");
           const uploadFormData = new FormData();
-          uploadFormData.append('file', logoFile);
-          uploadFormData.append('restaurantName', formData.name);
+          uploadFormData.append('favicon', logoFile);
+          // pass the short id so the folder path is deterministic
+          uploadFormData.append('restaurant', restaurantId);
 
           const uploadResponse = await fetch('/api/upload-logo', {
             method: 'POST',
@@ -183,9 +187,6 @@ export default function RestaurantForm() {
             // Continue without file system URL - not critical
           }
         }
-
-        // Generate ID from restaurant name
-        let restaurantId = generateRestaurantId(formData.name);
         
         // Validate ID is not empty
         if (!restaurantId) {
@@ -207,7 +208,8 @@ export default function RestaurantForm() {
           name: formData.name,
           phone: `+91${formData.phone}`,
           logo: logoStorageId || "", // Keep for backward compatibility
-          logo_url: uploadedLogoUrl || "", // New: file system URL
+          favicon_url: uploadedLogoUrl || "",
+          logo_url: uploadedLogoUrl || "",
           brandName: formData.name,
           themeColors: themeColors || null,
         };

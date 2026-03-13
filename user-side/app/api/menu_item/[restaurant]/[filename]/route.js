@@ -5,44 +5,53 @@ import { existsSync } from 'fs';
 
 export async function GET(request, context) {
   try {
-    // In Next.js 15+, params might need to be awaited
     const params = await context.params;
     const { restaurant, filename } = params;
 
-    console.log('Params:', { restaurant, filename });
-
     // Construct path: PROJECT_ROOT/restro_assets/[restaurant]/menu_img/[filename]
     const cwd = process.cwd();
-    console.log('Current working directory:', cwd);
-    
-    // Go up one level from user-side to project root
-    const projectRoot = join(cwd, '..');
-    console.log('Project root:', projectRoot);
-    
-    const imagePath = join(projectRoot, 'restro_assets', restaurant, 'menu_img', filename);
 
-    console.log('Looking for image at:', imagePath);
-    console.log('File exists:', existsSync(imagePath));
+    // Walk up a few levels from the current working directory until we
+    // find a matching restro_assets/... path. This makes the API work
+    // whether Next is running from the repo root, user-side, or .next.
+    let imagePath = null;
+    const tried = [];
 
-    // Check if file exists
-    if (!existsSync(imagePath)) {
-      console.log('File not found at:', imagePath);
+    let currentDir = cwd;
+    for (let i = 0; i < 6; i++) {
+      const candidate = join(
+        currentDir,
+        'restro_assets',
+        restaurant,
+        'menu_img',
+        filename
+      );
+      tried.push(candidate);
+      if (existsSync(candidate)) {
+        imagePath = candidate;
+        break;
+      }
+      currentDir = join(currentDir, '..');
+    }
+
+    if (!imagePath) {
+      console.error('Menu image not found. Tried paths:', tried);
       return new NextResponse('File not found', { status: 404 });
     }
 
-    // Read the file
     const fileBuffer = await readFile(imagePath);
 
-    // Return image with proper content type
     return new NextResponse(fileBuffer, {
       headers: {
         'Content-Type': 'image/webp',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        // Disable caching so every device always fetches the latest image
+        'Cache-Control': 'no-store, max-age=0',
       },
     });
   } catch (error) {
-    console.error('Error serving menu image:', error);
-    console.error('Error details:', error.message);
-    return new NextResponse(`Error loading image: ${error.message}`, { status: 500 });
+    return new NextResponse(
+      `Error loading image: ${error.message}`,
+      { status: 500 }
+    );
   }
 }

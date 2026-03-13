@@ -4,7 +4,7 @@ import { ConvexClientProvider } from "@/lib/convex";
 import { SessionProvider } from "@/lib/session";
 import { CartProvider } from "@/lib/cart";
 import { TableProvider, useTable } from "@/lib/table";
-import { Manrope } from "next/font/google";
+import { Manrope, Jersey_25, Jersey_15 } from "next/font/google";
 import { usePathname } from "next/navigation";
 import CallStaffButton from "@/components/CallStaffButton";
 import Footer from "@/components/Footer";
@@ -13,6 +13,20 @@ const manrope = Manrope({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-manrope",
+  display: "swap",
+});
+
+const jersey25 = Jersey_25({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-jersey-25",
+  display: "swap",
+});
+
+const jersey15 = Jersey_15({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-jersey-15",
   display: "swap",
 });
 
@@ -35,7 +49,7 @@ function LayoutContent({ children }) {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={manrope.variable}>
+    <html lang="en" className={`${manrope.variable} ${jersey25.variable} ${jersey15.variable}`}>
       <head>
         <title>OrderZap | How Patna Orders</title>
         <meta name="description" content="Scan, Select, Order - dining experience" />

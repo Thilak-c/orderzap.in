@@ -26,6 +26,7 @@ export default function AdminOrdersPage() {
       if (e.key === '2') setFilter('preparing');
       if (e.key === '3') setFilter('ready');
       if (e.key === '4') setFilter('completed');
+      if (e.key === '5') setFilter('cancelled');
       if (e.key === '0') setFilter('all');
     };
     window.addEventListener('keydown', handleKeyPress);
@@ -39,7 +40,15 @@ export default function AdminOrdersPage() {
     setTimeout(() => setShowToast(false), 2000);
   };
 
-  const handlePrintKOT = (order) => {
+  const handlePrintKOT = async (order) => {
+    // Auto-update status from pending to preparing
+    if (order.status === 'pending') {
+      await updateStatus({ id: order._id, status: 'preparing' });
+      setToastMessage('✓ Order sent to kitchen');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    }
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
@@ -107,7 +116,7 @@ export default function AdminOrdersPage() {
         </head>
         <body>
           <div class="header">
-            <h1>🍽️ KOT</h1>
+            <h1>KOT ${order.orderNumber || order._id.slice(-4)}</h1>
             <div class="info-row">
               <strong>Order #:</strong>
               <span>${order.orderNumber || order._id.slice(-4)}</span>
@@ -138,13 +147,13 @@ export default function AdminOrdersPage() {
           </div>
           ${order.notes ? `
             <div class="notes">
-              <strong>⚠️ SPECIAL INSTRUCTIONS:</strong><br/>
+              <strong>SPECIAL INSTRUCTIONS:</strong><br/>
               ${order.notes}
             </div>
           ` : ''}
           <div class="footer">
             <p>Kitchen Order Ticket</p>
-            <p>${restaurant?.name || 'Restaurant'}</p>
+            <p>${restaurant?.brandName || 'Restaurant'} X OrderZap</p>
           </div>
         </body>
       </html>
@@ -332,6 +341,7 @@ export default function AdminOrdersPage() {
   const preparingCount = orders?.filter(o => o.status === 'preparing').length || 0;
   const readyCount = orders?.filter(o => o.status === 'ready').length || 0;
   const completedCount = orders?.filter(o => o.status === 'completed').length || 0;
+  const cancelledCount = orders?.filter(o => o.status === 'cancelled').length || 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -345,7 +355,7 @@ export default function AdminOrdersPage() {
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white border-b-2 border-gray-300">
+      <div className="sticky top-0 z-30 bg-white border-b-2 border-gray-300">
         <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div>
@@ -408,6 +418,16 @@ export default function AdminOrdersPage() {
             >
               Done ({completedCount})
             </button>
+            <button
+              onClick={() => setFilter('cancelled')}
+              className={`px-3 md:px-6 py-2 md:py-2.5 font-bold text-xs md:text-sm whitespace-nowrap uppercase tracking-wider border-2 transition-all ${
+                filter === 'cancelled'
+                  ? 'bg-red-500 text-white border-red-600'
+                  : 'bg-white text-black border-gray-300 hover:border-red-500'
+              }`}
+            >
+              Cancelled ({cancelledCount})
+            </button>
           </div>
         </div>
       </div>
@@ -446,7 +466,7 @@ export default function AdminOrdersPage() {
                     {order.items.map((item, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-white border-2 border-gray-300">
                         <MenuItemImage 
-                          storageId={item.image} 
+                          storageId={item.imageUrl || item.image} 
                           alt={item.name} 
                           className="w-12 h-12 md:w-14 md:h-14 object-cover border-2 border-black" 
                         />
@@ -466,44 +486,121 @@ export default function AdminOrdersPage() {
                     </div>
                   )}
 
+                  {/* Waiter Assignment Status */}
+                  {order.status === 'ready' && (
+                    <div className={`p-4 border-2 mb-5 ${
+                      order.assignmentStatus === 'accepted' ? 'bg-green-50 border-green-600' :
+                      order.assignmentStatus === 'pending' ? 'bg-yellow-50 border-yellow-600 animate-pulse' :
+                      order.assignmentStatus === 'timeout' || order.assignmentStatus === 'rejected' ? 'bg-red-50 border-red-600' :
+                      !order.assignedWaiterId ? 'bg-red-50 border-red-600' :
+                      'bg-gray-50 border-gray-300'
+                    }`}>
+                      <p className="text-sm font-bold text-black uppercase tracking-wide mb-2">Waiter Assignment:</p>
+                      {order.assignmentStatus === 'accepted' && order.assignedWaiter && (
+                        <p className="text-sm text-green-700">
+                          ✓ Accepted by {order.assignedWaiter.name}
+                        </p>
+                      )}
+                      {order.assignmentStatus === 'pending' && order.assignedWaiter && (
+                        <p className="text-sm text-yellow-700">
+                          ⏳ Waiting for {order.assignedWaiter.name} to accept...
+                        </p>
+                      )}
+                      {order.assignmentStatus === 'timeout' && (
+                        <p className="text-sm text-red-700">
+                          ⚠ Assignment timed out - Reassigning...
+                        </p>
+                      )}
+                      {order.assignmentStatus === 'rejected' && (
+                        <p className="text-sm text-red-700">
+                          ✗ Waiter rejected - Reassigning...
+                        </p>
+                      )}
+                      {!order.assignedWaiterId && !order.assignmentStatus && (
+                        <div>
+                          <p className="text-sm text-red-700 font-bold mb-2">
+                            ⚠ Unable to assign waiter
+                          </p>
+                          <p className="text-xs text-red-600">
+                            No waiters are currently online and inside the restaurant. 
+                            Waiters must be online and within 100m to receive orders.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="flex items-center gap-3 flex-wrap">
-                    {order.status === 'pending' && (
+                    {/* Status Change Buttons */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => handleStatusUpdate(order._id, 'pending')}
+                        className={`px-3 md:px-4 py-2 md:py-3 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
+                          order.status === 'pending'
+                            ? 'bg-yellow-500 text-white border-yellow-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-yellow-500'
+                        }`}
+                      >
+                        Pending
+                      </button>
                       <button
                         onClick={() => handleStatusUpdate(order._id, 'preparing')}
-                        className="flex-1 min-w-[200px] px-4 md:px-6 py-3 md:py-4 bg-black text-white font-bold text-sm md:text-lg uppercase tracking-wider border-2 border-black hover:bg-white hover:text-black transition-all"
+                        className={`px-3 md:px-4 py-2 md:py-3 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
+                          order.status === 'preparing'
+                            ? 'bg-blue-500 text-white border-blue-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-blue-500'
+                        }`}
                       >
-                        Start Cooking
+                        Preparing
                       </button>
-                    )}
-                    {order.status === 'preparing' && (
                       <button
                         onClick={() => handleStatusUpdate(order._id, 'ready')}
-                        className="flex-1 min-w-[200px] px-4 md:px-6 py-3 md:py-4 bg-black text-white font-bold text-sm md:text-lg uppercase tracking-wider border-2 border-black hover:bg-white hover:text-black transition-all"
+                        className={`px-3 md:px-4 py-2 md:py-3 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
+                          order.status === 'ready'
+                            ? 'bg-green-500 text-white border-green-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-green-500'
+                        }`}
                       >
-                        Mark Ready
+                        Ready
                       </button>
-                    )}
-                    {order.status === 'ready' && (
                       <button
                         onClick={() => handleStatusUpdate(order._id, 'completed')}
-                        className="flex-1 min-w-[200px] px-4 md:px-6 py-3 md:py-4 bg-black text-white font-bold text-sm md:text-lg uppercase tracking-wider border-2 border-black hover:bg-white hover:text-black transition-all"
+                        className={`px-3 md:px-4 py-2 md:py-3 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
+                          order.status === 'completed'
+                            ? 'bg-gray-700 text-white border-gray-800'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-gray-700'
+                        }`}
                       >
-                        Complete Order
+                        Completed
                       </button>
-                    )}
-                    <button
-                      onClick={() => handlePrintKOT(order)}
-                      className="px-4 md:px-6 py-3 md:py-4 bg-orange-500 text-white font-bold uppercase tracking-wider border-2 border-orange-600 hover:bg-orange-600 transition-all"
-                    >
-                      Print KOT
-                    </button>
-                    <button
-                      onClick={() => handlePrintBill(order)}
-                      className="px-4 md:px-6 py-3 md:py-4 bg-white text-black font-bold uppercase tracking-wider border-2 border-gray-300 hover:border-black transition-all"
-                    >
-                      Print Bill
-                    </button>
+                      <button
+                        onClick={() => handleStatusUpdate(order._id, 'cancelled')}
+                        className={`px-3 md:px-4 py-2 md:py-3 font-bold text-xs md:text-sm uppercase tracking-wider border-2 transition-all ${
+                          order.status === 'cancelled'
+                            ? 'bg-red-500 text-white border-red-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-red-500'
+                        }`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    {/* Print Buttons */}
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button
+                        onClick={() => handlePrintKOT(order)}
+                        className="px-4 md:px-6 py-2 md:py-3 bg-orange-500 text-white font-bold uppercase tracking-wider border-2 border-orange-600 hover:bg-orange-600 transition-all text-xs md:text-sm"
+                      >
+                        Print KOT
+                      </button>
+                      <button
+                        onClick={() => handlePrintBill(order)}
+                        className="px-4 md:px-6 py-2 md:py-3 bg-white text-black font-bold uppercase tracking-wider border-2 border-gray-300 hover:border-black transition-all text-xs md:text-sm"
+                      >
+                        Print Bill
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -512,17 +609,7 @@ export default function AdminOrdersPage() {
         )}
       </div>
 
-      {/* Keyboard Shortcuts Help */}
-      <div className="fixed bottom-6 right-6 p-4 bg-black text-white border-2 border-black text-sm">
-        <p className="font-bold mb-2 uppercase tracking-wider">Quick Filters</p>
-        <div className="space-y-1 text-xs">
-          <div><kbd className="px-2 py-1 bg-white text-black border border-black font-bold">0</kbd> All</div>
-          <div><kbd className="px-2 py-1 bg-white text-black border border-black font-bold">1</kbd> Pending</div>
-          <div><kbd className="px-2 py-1 bg-white text-black border border-black font-bold">2</kbd> Cooking</div>
-          <div><kbd className="px-2 py-1 bg-white text-black border border-black font-bold">3</kbd> Ready</div>
-          <div><kbd className="px-2 py-1 bg-white text-black border border-black font-bold">4</kbd> Done</div>
-        </div>
-      </div>
+          
     </div>
   );
 }

@@ -3,13 +3,18 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Upload, Save, Palette, Image as ImageIcon } from "lucide-react";
+import { Upload, Save, Palette, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { squareLogoUrl, fullLogoUrl } from "@/lib/logo-utils";
+import { useRouteProtection } from "@/lib/useRouteProtection";
 
 export default function SettingsPage() {
   const params = useParams();
   const restaurantId = params.restaurantId;
   
-  // Get restaurant database ID
+  // Route protection - only Owner and Manager can access Settings
+  const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
+  
+  // Get restaurant database ID - MUST be called before any conditional returns
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
   
@@ -22,19 +27,24 @@ export default function SettingsPage() {
     description: "",
     phone: "",
     address: "",
+    latitude: "",
+    longitude: "",
   });
   
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [fullLogoFile, setFullLogoFile] = useState(null);
+  const [fullLogoPreview, setFullLogoPreview] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [logoTimestamp, setLogoTimestamp] = useState(Date.now());
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // Load restaurant data
   useEffect(() => {
     if (restaurant) {
       console.log("Restaurant data from database:", restaurant);
-      console.log("Logo URL:", restaurant.logo_url);
       console.log("Theme Colors:", restaurant.themeColors);
       
       setFormData({
@@ -44,11 +54,41 @@ export default function SettingsPage() {
         description: restaurant.description || "",
         phone: restaurant.phone || "",
         address: restaurant.address || "",
+        latitude: restaurant.location?.latitude?.toString() || "",
+        longitude: restaurant.location?.longitude?.toString() || "",
       });
     }
   }, [restaurant]);
+  
+  // Show access denied if not authorized
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access Settings. Only owners and managers can modify restaurant settings.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleLogoChange = (e) => {
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  const handleFaviconChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setLogoFile(file);
@@ -58,6 +98,20 @@ export default function SettingsPage() {
       };
       reader.readAsDataURL(file);
     }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleFullLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFullLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setFullLogoPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
   };
 
   const handleSave = async () => {
@@ -65,26 +119,53 @@ export default function SettingsPage() {
     
     setIsSaving(true);
     try {
-      let logoUrl = restaurant.logo;
-      
-      // Upload logo if changed
+      // prepare URLs for DB update (start with existing values)
+      let newFaviconUrl = restaurant.favicon_url || restaurant.logo_url || null;
+
+      // Upload favicon if changed (backend filesystem only)
       if (logoFile) {
         const formDataToSend = new FormData();
-        formDataToSend.append('logo', logoFile);
+        formDataToSend.append('favicon', logoFile);
         formDataToSend.append('restaurant', restaurantId);
-        
-        const response = await fetch('/api/upload-logo', {
+
+        const resp = await fetch('/api/upload-logo', {
           method: 'POST',
           body: formDataToSend,
         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          logoUrl = data.logoUrl;
+        if (resp.ok) {
+          const d = await resp.json();
+          newFaviconUrl = d.logoUrl;
+        }
+      }
+
+      // Upload full-width logo if provided
+      if (fullLogoFile) {
+        const fd = new FormData();
+        fd.append('full_logo', fullLogoFile);
+        fd.append('restaurant', restaurantId);
+        const resp = await fetch('/api/upload-logo', {
+          method: 'POST',
+          body: fd,
+        });
+        // Logo uploaded to filesystem, no need to store URL in Convex
+        if (resp.ok) {
+          // Clear the preview and file to show the newly uploaded logo
+          setFullLogoFile(null);
+          setFullLogoPreview(null);
         }
       }
       
-      // Update restaurant
+      // Prepare location object if coordinates are provided
+      let location = undefined;
+      if (formData.latitude && formData.longitude) {
+        const lat = parseFloat(formData.latitude);
+        const lng = parseFloat(formData.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          location = { latitude: lat, longitude: lng };
+        }
+      }
+      
+      // Update restaurant details
       await updateRestaurant({
         restaurantId: restaurantDbId,
         name: formData.name,
@@ -93,8 +174,18 @@ export default function SettingsPage() {
         description: formData.description,
         phone: formData.phone,
         address: formData.address,
-        logo_url: logoUrl,
+        favicon_url: newFaviconUrl,
+        location: location,
       });
+      
+      // Clear logo preview after successful save to show the uploaded version
+      if (logoFile) {
+        setLogoFile(null);
+        setLogoPreview(null);
+      }
+      
+      // Update timestamp to bust cache for current logo display
+      setLogoTimestamp(Date.now());
       
       setToastMessage("✓ Settings saved successfully");
       setShowToast(true);
@@ -106,6 +197,37 @@ export default function SettingsPage() {
       setTimeout(() => setShowToast(false), 3000);
     }
     setIsSaving(false);
+  };
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({
+          ...formData,
+          latitude: position.coords.latitude.toFixed(6),
+          longitude: position.coords.longitude.toFixed(6),
+        });
+        setDetectingLocation(false);
+        setToastMessage("✓ Location detected successfully");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2000);
+      },
+      (error) => {
+        setDetectingLocation(false);
+        alert(`Error detecting location: ${error.message}`);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   };
 
   if (!restaurant) {
@@ -138,70 +260,83 @@ export default function SettingsPage() {
       <div className="max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column - Settings Forms */}
         <div className="lg:col-span-3 space-y-6">
-        {/* Logo Section */}
-        <div className="bg-white border-2 border-gray-300 p-4 md:p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <ImageIcon size={20} className="text-black" />
-            <h2 className="text-sm md:text-base font-bold text-black uppercase tracking-wide">Restaurant Logo</h2>
-          </div>
-          
-          <div className="flex flex-col md:flex-row gap-6 items-start">
-            {/* Current Logo */}
-            <div className="flex-shrink-0">
-              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
-                Current Logo
-              </label>
-              <div className="w-32 h-32 border-2 border-black bg-white flex items-center justify-center overflow-hidden">
-                {restaurant.logo_url ? (
-                  <img 
-                    src={restaurant.logo_url} 
-                    alt="Current Logo" 
-                    className="w-full h-full object-contain" 
-                  />
-                ) : (
-                  <span className="text-4xl">🍽️</span>
-                )}
-              </div>
+        {/* Logo Section - improved layout */}
+        <section className="bg-white border-2 border-gray-300 p-4 md:p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ImageIcon size={20} className="text-black" />
+              <h2 className="text-sm md:text-base font-bold text-black uppercase tracking-wide">Branding & Logos</h2>
             </div>
-            
-            {/* New Logo Preview */}
-            {logoPreview && (
-              <div className="flex-shrink-0">
-                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
-                  New Logo Preview
-                </label>
-                <div className="w-32 h-32 border-2 border-black bg-white flex items-center justify-center overflow-hidden">
-                  <img src={logoPreview} alt="New Logo" className="w-full h-full object-contain" />
+            <p className="text-xs text-gray-600">Manage favicon and full-width logo</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            {/* Current Logos Column */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">Current Square Logo</label>
+                <div className="w-32 h-32 border-2 border-gray-200 bg-white flex items-center justify-center overflow-hidden rounded-lg">
+                  <img src={`${squareLogoUrl(restaurant, restaurantId)}?t=${logoTimestamp}`} alt="Current Logo" className="w-full h-full object-contain p-2" />
                 </div>
               </div>
-            )}
-            
-            {/* Upload Button */}
-            <div className="flex-1">
-              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
-                Upload New Logo
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                className="hidden"
-                id="logo-upload"
-              />
-              <label
-                htmlFor="logo-upload"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black border-2 border-gray-300 hover:border-black font-bold text-xs uppercase tracking-wide cursor-pointer transition-all"
-              >
-                <Upload size={16} />
-                Choose File
-              </label>
-              <p className="text-xs text-gray-500 mt-2">Recommended: Square image, at least 200x200px</p>
-              {logoFile && (
-                <p className="text-xs text-black font-bold mt-2">✓ {logoFile.name}</p>
-              )}
+
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">Current Full Logo</label>
+                <div className="w-full h-20 border-2 border-gray-200 bg-white flex items-center justify-center overflow-hidden rounded-md">
+                  <img src={`${fullLogoUrl(restaurant, restaurantId)}?t=${logoTimestamp}`} alt="Full Logo" className="w-full h-full object-contain" />
+                </div>
+              </div>
+            </div>
+
+            {/* New Previews Column */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">New Square Logo Preview</label>
+                <div className="w-32 h-32 border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden rounded-lg">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="New Logo" className="w-full h-full object-contain p-2" />
+                  ) : (
+                    <span className="text-xs text-gray-400">No new square logo selected</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">New Full Logo Preview</label>
+                <div className="w-full h-20 border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden rounded-md">
+                  {fullLogoPreview ? (
+                    <img src={fullLogoPreview} alt="New Full Logo" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-xs text-gray-400">No new full logo selected</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Upload Controls Column */}
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">Upload Favicon</label>
+                <input id="favicon-upload" type="file" accept="image/*" onChange={handleFaviconChange} className="hidden" />
+                <label htmlFor="favicon-upload" className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black border border-gray-300 rounded-md cursor-pointer">
+                  <Upload size={14} /> Choose Favicon
+                </label>
+                {logoFile && <p className="text-xs mt-2">✓ {logoFile.name}</p>}
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">Upload Full Logo</label>
+                <input id="full-logo-upload" type="file" accept="image/*" onChange={handleFullLogoChange} className="hidden" />
+                <label htmlFor="full-logo-upload" className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black border border-gray-300 rounded-md cursor-pointer">
+                  <Upload size={14} /> Choose Full Logo
+                </label>
+                {fullLogoFile && <p className="text-xs mt-2">✓ {fullLogoFile.name}</p>}
+              </div>
+
+              <p className="text-xs text-gray-500 mt-2">Tips: Square logo for app chrome; full logo for banners. Recommended: PNG/WebP with transparent background.</p>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Brand Color */}
         <div className="bg-white border-2 border-gray-300 p-4 md:p-6 mb-6">
@@ -268,9 +403,9 @@ export default function SettingsPage() {
                   style={{ backgroundColor: formData.primaryColor }}
                 >
                   <div className="flex items-center gap-2">
-                    {(logoPreview || restaurant.logo_url) ? (
+                    {(logoPreview || squareLogoUrl(restaurant, restaurantId)) ? (
                       <img 
-                        src={logoPreview || restaurant.logo_url} 
+                        src={logoPreview || squareLogoUrl(restaurant, restaurantId)} 
                         alt="Logo" 
                         className="w-8 h-8 object-contain bg-white rounded-full p-1" 
                       />
@@ -391,6 +526,76 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Restaurant Location */}
+        <div className="bg-white border-2 border-gray-300 p-4 md:p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm md:text-base font-bold text-black uppercase tracking-wide">Restaurant Location</h2>
+            <button
+              onClick={handleDetectLocation}
+              disabled={detectingLocation}
+              className="flex items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold uppercase border-2 border-black hover:bg-white hover:text-black transition-all disabled:opacity-50"
+            >
+              {detectingLocation ? "Detecting..." : "Auto-Detect"}
+            </button>
+          </div>
+          
+          <p className="text-xs text-gray-600 mb-4">
+            Set your restaurant's GPS coordinates for waiter proximity tracking. Waiters must be within 100m to go online.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                Latitude
+              </label>
+              <input
+                type="text"
+                value={formData.latitude}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none font-mono"
+                placeholder="28.6139"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-[10px] text-gray-600 font-bold mb-2 uppercase tracking-wide">
+                Longitude
+              </label>
+              <input
+                type="text"
+                value={formData.longitude}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                className="w-full bg-white border-2 border-gray-300 px-3 py-2 text-sm text-black focus:border-black outline-none font-mono"
+                placeholder="77.2090"
+              />
+            </div>
+          </div>
+          
+          {formData.latitude && formData.longitude && (
+            <div className="mt-4 p-3 bg-green-50 border-2 border-green-600">
+              <p className="text-xs text-green-700">
+                ✓ Location set: {formData.latitude}, {formData.longitude}
+              </p>
+              <a
+                href={`https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-green-700 underline mt-1 inline-block"
+              >
+                View on Google Maps →
+              </a>
+            </div>
+          )}
+          
+          {!formData.latitude && !formData.longitude && (
+            <div className="mt-4 p-3 bg-yellow-50 border-2 border-yellow-600">
+              <p className="text-xs text-yellow-700">
+                ⚠ No location set. Waiter proximity tracking will not work until you set coordinates.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Save Button */}

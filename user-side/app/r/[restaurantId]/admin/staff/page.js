@@ -1,318 +1,318 @@
-'use client';
+"use client";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Plus, User, Phone, Mail, DollarSign, Calendar, MapPin, X, AlertCircle } from "lucide-react";
+import { useRouteProtection } from "@/lib/useRouteProtection";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-
-const roles = ['Waiter', 'Manager', 'Host', 'Bartender', 'Runner'];
-
-export default function StaffPage() {
+export default function StaffManagementPage() {
   const params = useParams();
+  const router = useRouter();
   const restaurantId = params.restaurantId;
   
-  // Get restaurant database ID
+  // Route protection - only Owner can access Staff Management
+  const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner']);
+
+  // If not owner, show access denied message
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access Staff Management. Only owners can manage staff members.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+  
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
   
-  const staff = useQuery(api.staff.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
-  const tables = useQuery(api.tables.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
-  const createStaff = useMutation(api.staff.create);
-  const updateStaff = useMutation(api.staff.update);
-  const toggleActive = useMutation(api.staff.toggleActive);
-  const removeStaff = useMutation(api.staff.remove);
-
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: '', role: 'Waiter', phone: '', assignedTables: [] });
+  const staff = useQuery(api.staffManagement.listStaff, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const createStaff = useMutation(api.staffManagement.createStaff);
+  
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    role: "Waiter",
+    phone: "",
+    email: "",
+    password: "",
+    assignedTables: [],
+    salary: "",
+    salaryType: "monthly",
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !restaurantDbId) return;
+    if (!restaurantDbId) return;
 
-    if (editingId) {
-      await updateStaff({ id: editingId, ...form });
-    } else {
-      await createStaff({ restaurantId: restaurantDbId, ...form });
+    try {
+      await createStaff({
+        restaurantId: restaurantDbId,
+        name: formData.name,
+        role: formData.role,
+        phone: formData.phone,
+        email: formData.email || undefined,
+        password: formData.password, // In production, hash this
+        assignedTables: formData.assignedTables,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        salaryType: formData.salaryType,
+      });
+
+      setShowAddModal(false);
+      setFormData({
+        name: "",
+        role: "Waiter",
+        phone: "",
+        email: "",
+        password: "",
+        assignedTables: [],
+        salary: "",
+        salaryType: "monthly",
+      });
+    } catch (error) {
+      alert("Error creating staff: " + error.message);
     }
-    resetForm();
   };
 
-  const resetForm = () => {
-    setForm({ name: '', role: 'Waiter', phone: '', assignedTables: [] });
-    setEditingId(null);
-    setShowForm(false);
-  };
-
-  const handleEdit = (s) => {
-    setForm({ name: s.name, role: s.role, phone: s.phone || '', assignedTables: s.assignedTables });
-    setEditingId(s._id);
-    setShowForm(true);
-  };
-
-  const toggleTable = (num) => {
-    setForm(prev => ({
-      ...prev,
-      assignedTables: prev.assignedTables.includes(num)
-        ? prev.assignedTables.filter(t => t !== num)
-        : [...prev.assignedTables, num].sort((a, b) => a - b)
-    }));
-  };
-
-  // Get all assigned tables to show conflicts
-  const assignedTablesMap = {};
-  staff?.forEach(s => {
-    s.assignedTables.forEach(t => {
-      if (!assignedTablesMap[t]) assignedTablesMap[t] = [];
-      assignedTablesMap[t].push(s.name);
-    });
-  });
-
-  if (!staff || !tables) {
-    return <div className="p-6 text-slate-500">LOADING...</div>;
+  if (!staff) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Loading...</div>
+      </div>
+    );
   }
 
-  const activeStaff = staff.filter(s => s.active);
-  const inactiveStaff = staff.filter(s => !s.active);
-
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Staff</h1>
-          <p className="text-slate-600 text-xs uppercase tracking-widest">Manage staff & table assignments</p>
+    <div className="min-h-screen bg-white p-6">
+      {/* Header */}
+      <div className="max-w-6xl mx-auto mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-black uppercase tracking-wide">Staff Management</h1>
+            <p className="text-sm text-gray-600 mt-1">{staff.length} team members</p>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white text-sm font-bold uppercase border-2 border-black hover:bg-white hover:text-black transition-all"
+          >
+            <Plus size={16} />
+            Add Staff
+          </button>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-slate-900 text-white text-xs font-bold uppercase tracking-wide hover:bg-slate-800 transition-colors rounded-xl"
-        >
-          + Add Staff
-        </button>
       </div>
 
-      {/* Add/Edit Form */}
-      {showForm && (
-        <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide">
-            {editingId ? 'Edit Staff' : 'Add New Staff'}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-[10px] text-slate-500 uppercase tracking-wide mb-1">Name</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-900 rounded-xl"
-                  placeholder="Staff name"
-                  required
-                />
+      {/* Staff Grid */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {staff.map((member) => (
+          <div
+            key={member._id}
+            className="border-2 border-gray-200 p-4 hover:border-black transition-all"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-black text-white flex items-center justify-center text-lg font-bold">
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-bold text-black">{member.name}</h3>
+                  <p className="text-xs text-gray-600 uppercase">{member.role}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-[10px] text-slate-500 uppercase tracking-wide mb-1">Role</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-900 rounded-xl"
-                >
-                  {roles.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] text-slate-500 uppercase tracking-wide mb-1">Phone</label>
-                <input
-                  type="text"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-900 rounded-xl"
-                  placeholder="Optional"
-                />
-              </div>
+              <div className={`w-2 h-2 rounded-full ${member.isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
             </div>
 
-            <div>
-              <label className="block text-[10px] text-slate-500 uppercase tracking-wide mb-2">
-                Assigned Tables ({form.assignedTables.length} selected)
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {tables.map(t => {
-                  const isSelected = form.assignedTables.includes(t.number);
-                  const assignedTo = assignedTablesMap[t.number]?.filter(n => editingId ? !staff.find(s => s._id === editingId && s.name === n) : true);
-                  const hasConflict = assignedTo?.length > 0 && !isSelected;
-                  
-                  return (
-                    <button
-                      key={t._id}
-                      type="button"
-                      onClick={() => toggleTable(t.number)}
-                      className={`px-3 py-1.5 text-xs font-mono rounded-lg transition-colors ${
-                        isSelected
-                          ? 'bg-slate-900 text-white'
-                          : hasConflict
-                          ? 'bg-amber-50 border border-amber-300 text-amber-700'
-                          : 'bg-slate-100 border border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
-                      title={hasConflict ? `Assigned to: ${assignedTo.join(', ')}` : ''}
-                    >
-                      {t.number}
-                    </button>
-                  );
-                })}
-              </div>
-              {form.assignedTables.length > 0 && (
-                <p className="text-slate-500 text-xs mt-2">
-                  Tables: {form.assignedTables.join(', ')}
-                </p>
+            <div className="space-y-2 text-sm">
+              {member.phone && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Phone size={14} />
+                  <span>{member.phone}</span>
+                </div>
+              )}
+              {member.email && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Mail size={14} />
+                  <span className="truncate">{member.email}</span>
+                </div>
+              )}
+              {member.salary && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <DollarSign size={14} />
+                  <span>₹{member.salary}/{member.salaryType}</span>
+                </div>
+              )}
+              {member.assignedTables.length > 0 && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin size={14} />
+                  <span>Tables: {member.assignedTables.join(", ")}</span>
+                </div>
               )}
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold uppercase tracking-wide hover:bg-slate-800 rounded-xl"
-              >
-                {editingId ? 'Update' : 'Add Staff'}
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wide hover:bg-slate-200 rounded-xl"
-              >
-                Cancel
-              </button>
+            <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs">
+              <span className="text-gray-500">
+                {member.totalOrdersServed || 0} orders served
+              </span>
+              <span className={`px-2 py-1 ${member.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                {member.active ? 'Active' : 'Inactive'}
+              </span>
             </div>
-          </form>
+          </div>
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {staff.length === 0 && (
+        <div className="max-w-6xl mx-auto text-center py-20">
+          <User size={48} className="mx-auto text-gray-300 mb-4" />
+          <h3 className="text-lg font-bold text-gray-400 mb-2">No staff members yet</h3>
+          <p className="text-sm text-gray-500 mb-6">Add your first team member to get started</p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-6 py-3 bg-black text-white text-sm font-bold uppercase"
+          >
+            Add Staff Member
+          </button>
         </div>
       )}
 
-      {/* Active Staff */}
-      <div className="mb-8">
-        <h2 className="text-xs text-slate-500 uppercase tracking-widest mb-3">Active Staff ({activeStaff.length})</h2>
-        {activeStaff.length === 0 ? (
-          <p className="text-slate-600 text-sm">No active staff members</p>
-        ) : (
-          <div className="grid gap-3">
-            {activeStaff.map(s => (
-              <div key={s._id} className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-slate-100 flex items-center justify-center text-lg font-bold text-slate-700 rounded-xl relative">
-                    {s.name.charAt(0).toUpperCase()}
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${s.isOnline === true ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-slate-900 font-medium">{s.name}</p>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded ${s.isOnline === true ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-                        {s.isOnline === true ? 'ONLINE' : 'OFFLINE'}
-                      </span>
-                    </div>
-                    <p className="text-slate-500 text-xs">{s.role} {s.phone && `• ${s.phone}`}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide">Tables</p>
-                    <p className="text-slate-900 text-sm font-mono">
-                      {s.assignedTables.length > 0 ? s.assignedTables.join(', ') : '—'}
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Link
-                      href={`/r/${restaurantId}/admin/staff/${s._id}`}
-                      className="px-2 py-1 text-[10px] bg-slate-900 text-white font-bold uppercase tracking-wide hover:bg-slate-800 rounded-lg"
-                    >
-                      Portal
-                    </Link>
-                    <button
-                      onClick={() => handleEdit(s)}
-                      className="px-2 py-1 text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-200 uppercase tracking-wide rounded-lg"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => toggleActive({ id: s._id })}
-                      className="px-2 py-1 text-[10px] bg-amber-50 text-amber-700 hover:bg-amber-100 uppercase tracking-wide rounded-lg"
-                    >
-                      Deactivate
-                    </button>
-                    <button
-                      onClick={() => removeStaff({ id: s._id })}
-                      className="px-2 py-1 text-[10px] bg-red-50 text-red-600 hover:bg-red-100 uppercase tracking-wide rounded-lg"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
+      {/* Add Staff Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border-2 border-black w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold uppercase">Add Staff Member</h2>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-2 hover:bg-gray-100"
+                >
+                  <X size={20} />
+                </button>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Inactive Staff */}
-      {inactiveStaff.length > 0 && (
-        <div>
-          <h2 className="text-xs text-slate-500 uppercase tracking-widest mb-3">Inactive ({inactiveStaff.length})</h2>
-          <div className="grid gap-2">
-            {inactiveStaff.map(s => (
-              <div key={s._id} className="bg-slate-50 border border-slate-200 p-3 flex items-center justify-between rounded-xl opacity-80">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-600 rounded-lg">
-                    {s.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-slate-600 text-sm">{s.name}</p>
-                    <p className="text-slate-500 text-xs">{s.role}</p>
-                  </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 focus:border-black outline-none"
+                  />
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => toggleActive({ id: s._id })}
-                    className="px-2 py-1 text-[10px] bg-emerald-100 text-emerald-700 hover:bg-emerald-200 uppercase tracking-wide rounded-lg"
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+                    Role *
+                  </label>
+                  <select
+                    required
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 focus:border-black outline-none"
                   >
-                    Activate
+                    <option value="Waiter">Waiter</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Chef">Chef</option>
+                    <option value="Host">Host</option>
+                    <option value="Cleaner">Cleaner</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+                    Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 focus:border-black outline-none"
+                    placeholder="+91XXXXXXXXXX"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 focus:border-black outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 focus:border-black outline-none"
+                    placeholder="Login password"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+                    Monthly Salary (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.salary}
+                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-gray-200 focus:border-black outline-none"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 text-sm font-bold uppercase hover:border-black"
+                  >
+                    Cancel
                   </button>
                   <button
-                    onClick={() => removeStaff({ id: s._id })}
-                    className="px-2 py-1 text-[10px] bg-red-50 text-red-600 hover:bg-red-100 uppercase tracking-wide rounded-lg"
+                    type="submit"
+                    className="flex-1 px-4 py-3 bg-black text-white text-sm font-bold uppercase hover:bg-gray-800"
                   >
-                    Delete
+                    Add Staff
                   </button>
                 </div>
-              </div>
-            ))}
+              </form>
+            </div>
           </div>
         </div>
       )}
-
-      {/* Table Assignment Overview */}
-      <div className="mt-8 pt-6 border-t border-slate-200">
-        <h2 className="text-xs text-slate-500 uppercase tracking-widest mb-3">Table Assignment Overview</h2>
-        <div className="grid grid-cols-6 gap-2">
-          {tables.map(t => {
-            const assigned = staff.filter(s => s.active && s.assignedTables.includes(t.number));
-            return (
-              <div 
-                key={t._id} 
-                className={`p-2 text-center border rounded-xl ${
-                  assigned.length === 0 
-                    ? 'bg-slate-50 border-slate-200 text-slate-500' 
-                    : assigned.length > 1
-                    ? 'bg-amber-50 border-amber-200 text-amber-700'
-                    : 'bg-white border-slate-200 text-slate-900 shadow-sm'
-                }`}
-              >
-                <p className="text-lg font-mono font-bold">{t.number}</p>
-                <p className="text-[9px] truncate">
-                  {assigned.length === 0 ? 'Unassigned' : assigned.map(s => s.name).join(', ')}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }

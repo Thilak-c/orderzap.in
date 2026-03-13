@@ -283,7 +283,7 @@ export default function MyOrdersPage() {
                             key={i} 
                             className="w-10 h-10 bg-[--bg-elevated] border border-[--border] rounded-lg flex items-center justify-center overflow-hidden"
                           >
-                            <MenuItemImage storageId={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            <MenuItemImage storageId={item.imageUrl || item.image} alt={item.name} className="w-full h-full object-cover" />
                           </div>
                         ))}
                         {order.items.length > 4 && (
@@ -334,7 +334,7 @@ export default function MyOrdersPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
                       {order.items.slice(0, 3).map((item, i) => (
-                        <MenuItemImage key={i} storageId={item.image} alt={item.name} className="w-6 h-6 rounded object-cover" />
+                        <MenuItemImage key={i} storageId={item.imageUrl || item.image} alt={item.name} className="w-6 h-6 rounded object-cover" />
                       ))}
                       {order.items.length > 3 && (
                         <span className="text-xs text-[--text-dim] ml-1">+{order.items.length - 3}</span>

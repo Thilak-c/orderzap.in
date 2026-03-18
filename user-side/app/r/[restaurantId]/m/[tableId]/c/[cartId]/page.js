@@ -9,7 +9,7 @@ import { useSession } from "@/lib/session";
 import { useCart } from "@/lib/cart";
 import { useTable } from "@/lib/table";
 import { useBranding } from "@/app/r/[restaurantId]/layout";
-import { checkLocationPermission, RESTAURANT_LOCATION } from "@/lib/location";
+import { checkLocationPermission } from "@/lib/location";
 import { isQRSessionValid } from "@/lib/qrAuth";
 import {
   Trash2, Plus, Minus, CreditCard, Banknote,
@@ -736,7 +736,29 @@ export default function CartPage() {
     setLocationError('');
 
     try {
-      const result = await checkLocationPermission();
+      // Get restaurant location from database
+      console.log('Restaurant data:', restaurant);
+      console.log('Restaurant location:', restaurant?.location);
+      
+      if (!restaurant?.location) {
+        setLocationStatus('denied');
+        setLocationError('Restaurant location not configured. Please contact the restaurant staff.');
+        return false;
+      }
+
+      // Use a larger radius for now (500m) - can be made configurable later
+      const restaurantLocation = {
+        lat: restaurant.location.latitude,
+        lng: restaurant.location.longitude,
+        radius: 100, // 500 meters radius (increased from 100m)
+        name: restaurant.name
+      };
+
+      console.log('Checking location with:', restaurantLocation);
+
+      const result = await checkLocationPermission(restaurantLocation);
+      console.log('Location check result:', result);
+      
       setUserDistance(result.distance);
 
       if (result.allowed) {
@@ -744,13 +766,16 @@ export default function CartPage() {
         return true;
       } else {
         setLocationStatus('too_far');
-        setLocationError(`You're ${result.distance}m away. Please be within ${RESTAURANT_LOCATION.radius}m of the restaurant to order.`);
+        setLocationError(`You're ${result.distance}m away. Please be within ${result.requiredRadius}m of the restaurant to order.`);
         return false;
       }
     } catch (error) {
+      console.error('Location verification error:', error);
       setLocationStatus('denied');
       if (error.code === 1) { // PERMISSION_DENIED
         setLocationError('Please allow location access to place your order. This ensures you are at the restaurant.');
+      } else if (error.code === 'NO_RESTAURANT_LOCATION') {
+        setLocationError(error.message);
       } else {
         setLocationError(error.message || 'Could not verify your location. Please try again.');
       }

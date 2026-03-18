@@ -47,7 +47,7 @@ export default function RawItemsPage() {
             Raw Items Management
           </h1>
           <p className="text-lg md:text-xl text-gray-600 uppercase tracking-wide">
-            Under Construction
+            Available After 3 Days of Usage
           </p>
         </div>
 
@@ -69,8 +69,17 @@ export default function RawItemsPage() {
 
         {/* Description */}
         <div className="mt-8 text-center">
+          <div className="bg-yellow-50 border-2 border-yellow-600 p-6 mb-6">
+            <p className="text-yellow-800 font-bold text-lg mb-2">
+              🔒 Feature Locked
+            </p>
+            <p className="text-yellow-700 text-sm md:text-base">
+              This feature will be unlocked after you've used the system for 3 days. 
+              This helps us ensure you're familiar with the basic features before accessing advanced inventory management.
+            </p>
+          </div>
           <p className="text-gray-600 text-sm md:text-base">
-            This feature is currently being developed. It will allow you to manage raw ingredients, 
+            Once unlocked, you'll be able to manage raw ingredients, 
             track inventory, set reorder points, and monitor stock levels.
           </p>
         </div>

@@ -14,6 +14,51 @@ export default function AdminMenuPage() {
   // Route protection - only Owner and Manager can access Menu
   const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
   
+  // Call all hooks BEFORE any conditional returns
+  // Get restaurant data for theme colors
+  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
+  
+  // Get theme colors
+  const themeColor = restaurant?.themeColors?.primary || '#000000';
+  
+  // Use short restaurantId for all queries
+  const items = useQuery(api.menuItems.list, restaurantId ? { restaurantId } : "skip");
+  const zones = useQuery(api.zones.list, restaurantId ? { restaurantId } : "skip");
+  const categories = useQuery(api.categories.list, restaurantId ? { restaurantId } : "skip");
+  const createItem = useMutation(api.menuItems.create);
+  const updateItem = useMutation(api.menuItems.update);
+  const removeItem = useMutation(api.menuItems.remove);
+  const createCategory = useMutation(api.categories.create);
+  const removeCategory = useMutation(api.categories.remove);
+  const createZone = useMutation(api.zones.create);
+  const removeZone = useMutation(api.zones.remove);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+
+  // All useState hooks must be called before any conditional returns
+  const [editingItem, setEditingItem] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showZoneManager, setShowZoneManager] = useState(false);
+  const [returnToForm, setReturnToForm] = useState(false); // Track if we should return to form
+  const [isClosing, setIsClosing] = useState(false); // Track closing animation
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [formData, setFormData] = useState({ name: "", price: "", category: "", image: "", description: "", allowedZones: [] });
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryIcon, setNewCategoryIcon] = useState(""); // Default icon name
+  const [newCategoryIconFile, setNewCategoryIconFile] = useState(null); // Custom icon file
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneDescription, setNewZoneDescription] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [addingZone, setAddingZone] = useState(false);
+  const [extractedColors, setExtractedColors] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Get all category names
+  const allCategories = categories?.map(c => c.name) || [];
+  
   // Show access denied if not authorized
   if (!isChecking && !isAuthorized) {
     return (
@@ -41,49 +86,6 @@ export default function AdminMenuPage() {
       </div>
     );
   }
-  
-  // Get restaurant data for theme colors
-  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
-  
-  // Get theme colors
-  const themeColor = restaurant?.themeColors?.primary || '#000000';
-  
-  // Use short restaurantId for all queries
-  const items = useQuery(api.menuItems.list, restaurantId ? { restaurantId } : "skip");
-  const zones = useQuery(api.zones.list, restaurantId ? { restaurantId } : "skip");
-  const categories = useQuery(api.categories.list, restaurantId ? { restaurantId } : "skip");
-  const createItem = useMutation(api.menuItems.create);
-  const updateItem = useMutation(api.menuItems.update);
-  const removeItem = useMutation(api.menuItems.remove);
-  const createCategory = useMutation(api.categories.create);
-  const removeCategory = useMutation(api.categories.remove);
-  const createZone = useMutation(api.zones.create);
-  const removeZone = useMutation(api.zones.remove);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-
-  const [editingItem, setEditingItem] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [showCategoryManager, setShowCategoryManager] = useState(false);
-  const [showZoneManager, setShowZoneManager] = useState(false);
-  const [returnToForm, setReturnToForm] = useState(false); // Track if we should return to form
-  const [isClosing, setIsClosing] = useState(false); // Track closing animation
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [formData, setFormData] = useState({ name: "", price: "", category: "", image: "", description: "", allowedZones: [] });
-  const [uploading, setUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryIcon, setNewCategoryIcon] = useState(""); // Default icon name
-  const [newCategoryIconFile, setNewCategoryIconFile] = useState(null); // Custom icon file
-  const [newZoneName, setNewZoneName] = useState("");
-  const [newZoneDescription, setNewZoneDescription] = useState("");
-  const [addingCategory, setAddingCategory] = useState(false);
-  const [addingZone, setAddingZone] = useState(false);
-  const [extractedColors, setExtractedColors] = useState(null);
-  const fileInputRef = useRef(null);
-
-  // Get all category names
-  const allCategories = categories?.map(c => c.name) || [];
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim() || !restaurantId) return;

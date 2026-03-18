@@ -1,11 +1,3 @@
-// Restaurant location config - reads from environment variables
-export const RESTAURANT_LOCATION = {
-  name: "BTS DISC CAFE & RESTAURANT PVT.LTD",
-  lat: parseFloat(process.env.NEXT_PUBLIC_RESTAURANT_LAT),
-  lng: parseFloat(process.env.NEXT_PUBLIC_RESTAURANT_LNG),
-  radius: parseInt(process.env.NEXT_PUBLIC_RESTAURANT_RADIUS), // meters
-};
-
 // Calculate distance between two GPS points using Haversine formula
 export function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // Earth's radius in meters
@@ -23,21 +15,18 @@ export function getDistance(lat1, lon1, lat2, lon2) {
 }
 
 // Check if user is within restaurant radius
-export function checkLocationPermission() {
-  // LOCATION VERIFICATION DISABLED
-  return new Promise((resolve) => {
-    resolve({
-      allowed: true,
-      distance: 0,
-      accuracy: 0,
-      userLat: RESTAURANT_LOCATION.lat,
-      userLng: RESTAURANT_LOCATION.lng,
-      requiredRadius: RESTAURANT_LOCATION.radius,
-    });
-  });
-
-  /* ORIGINAL CODE - COMMENTED OUT
+// restaurantLocation should be an object with { lat, lng, radius, name }
+export function checkLocationPermission(restaurantLocation) {
   return new Promise((resolve, reject) => {
+    // Validate restaurant location data
+    if (!restaurantLocation || !restaurantLocation.lat || !restaurantLocation.lng) {
+      reject({ 
+        code: "NO_RESTAURANT_LOCATION", 
+        message: "Restaurant location not configured. Please contact the restaurant." 
+      });
+      return;
+    }
+
     if (!navigator.geolocation) {
       reject({ code: "NOT_SUPPORTED", message: "Geolocation not supported" });
       return;
@@ -49,17 +38,19 @@ export function checkLocationPermission() {
         const distance = getDistance(
           latitude,
           longitude,
-          RESTAURANT_LOCATION.lat,
-          RESTAURANT_LOCATION.lng
+          restaurantLocation.lat,
+          restaurantLocation.lng
         );
 
+        const radius = restaurantLocation.radius || 100; // Default 100m if not specified
+
         resolve({
-          allowed: distance <= RESTAURANT_LOCATION.radius,
+          allowed: distance <= radius,
           distance: Math.round(distance),
           accuracy: Math.round(accuracy),
           userLat: latitude,
           userLng: longitude,
-          requiredRadius: RESTAURANT_LOCATION.radius,
+          requiredRadius: radius,
         });
       },
       (error) => {
@@ -84,5 +75,4 @@ export function checkLocationPermission() {
       }
     );
   });
-  */
 }

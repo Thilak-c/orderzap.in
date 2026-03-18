@@ -14,34 +14,7 @@ export default function AdminTablesPage() {
   // Route protection - only Owner and Manager can access Tables
   const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
   
-  // Show access denied if not authorized
-  if (!isChecking && !isAuthorized) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
-            <AlertCircle size={40} className="text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
-          <p className="text-gray-600 mb-6">
-            You don't have permission to access Tables & Zones. Only owners and managers can manage tables.
-          </p>
-          <p className="text-sm text-gray-500">
-            Redirecting to Orders page...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-gray-500">Checking permissions...</div>
-      </div>
-    );
-  }
-  
+  // Call all hooks BEFORE any conditional returns
   // Get restaurant database ID (for operations that need it)
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
@@ -62,6 +35,7 @@ export default function AdminTablesPage() {
   const createReservation = useMutation(api.reservations.create);
   const cancelReservation = useMutation(api.reservations.cancel);
 
+  // All useState hooks must be called before any conditional returns
   const [activeTab, setActiveTab] = useState("tables");
   const [editingTable, setEditingTable] = useState(null);
   const [editingZone, setEditingZone] = useState(null);
@@ -99,6 +73,34 @@ export default function AdminTablesPage() {
       setBaseUrl(`${origin}/`);
     }
   }, [settings]);
+  
+  // Show access denied if not authorized
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access Tables & Zones. Only owners and managers can manage tables.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
 
   // Table handlers
   const handleSaveTable = async () => {

@@ -14,6 +14,26 @@ export default function StaffManagementPage() {
   // Route protection - only Owner can access Staff Management
   const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner']);
 
+  // Call all hooks BEFORE any conditional returns
+  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
+  const restaurantDbId = restaurant?._id;
+  
+  const staff = useQuery(api.staffManagement.listStaff, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
+  const createStaff = useMutation(api.staffManagement.createStaff);
+
+  // All useState hooks must be called before any conditional returns
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    role: "Waiter",
+    phone: "",
+    email: "",
+    password: "",
+    assignedTables: [],
+    salary: "",
+    salaryType: "monthly",
+  });
+
   // If not owner, show access denied message
   if (!isChecking && !isAuthorized) {
     return (
@@ -41,24 +61,6 @@ export default function StaffManagementPage() {
       </div>
     );
   }
-  
-  const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
-  const restaurantDbId = restaurant?._id;
-  
-  const staff = useQuery(api.staffManagement.listStaff, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
-  const createStaff = useMutation(api.staffManagement.createStaff);
-  
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    role: "Waiter",
-    phone: "",
-    email: "",
-    password: "",
-    assignedTables: [],
-    salary: "",
-    salaryType: "monthly",
-  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();

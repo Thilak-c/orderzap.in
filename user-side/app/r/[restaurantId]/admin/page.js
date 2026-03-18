@@ -15,34 +15,7 @@ export default function AdminDashboard() {
   // Route protection - only Owner and Manager can access Dashboard
   const { authUser, isAuthorized, isChecking } = useRouteProtection(restaurantId, ['Owner', 'Manager']);
   
-  // Show access denied if not authorized
-  if (!isChecking && !isAuthorized) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
-            <AlertCircle size={40} className="text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
-          <p className="text-gray-600 mb-6">
-            You don't have permission to access the Dashboard. Only owners and managers can view this page.
-          </p>
-          <p className="text-sm text-gray-500">
-            Redirecting to Orders page...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-gray-500">Checking permissions...</div>
-      </div>
-    );
-  }
-  
+  // Call all hooks BEFORE any conditional returns
   const restaurant = useQuery(api.restaurants.getByShortId, { id: restaurantId });
   const restaurantDbId = restaurant?._id;
   const stats = useQuery(api.orders.getStats, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
@@ -55,6 +28,7 @@ export default function AdminDashboard() {
   const zones = useQuery(api.zones.list, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
   const staff = useQuery(api.staff.listActive, restaurantDbId ? { restaurantId: restaurantDbId } : "skip");
 
+  // All useState hooks must be called before any conditional returns
   const [formData, setFormData] = useState({
     userRole: "", // "owner" or "manager"
     ownerName: "", // Owner's name
@@ -83,6 +57,7 @@ export default function AdminDashboard() {
   const [step, setStep] = useState(1); // 1: Who are you, 2: Names & Phones, 3: Social Links, 4: Address, 5: Business Hours
   const [socialStep, setSocialStep] = useState(1); // 1: Do you have social media?, 2: Which platforms?, 3: Enter links
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
 
   const pendingOrders = stats?.pendingOrders ?? 0;
   const todayRevenue = stats?.todayRevenue ?? 0;
@@ -95,9 +70,6 @@ export default function AdminDashboard() {
   const hasZones = zones && zones.length > 0;
   const hasStaff = staff && staff.length > 0;
   const coreSetupComplete = hasMenuItems && hasTables;
-
-  // Persistent "Get Started" banner visibility per restaurant
-  const [checklistDismissed, setChecklistDismissed] = useState(false);
 
   // Load dismissal state once on mount
   useEffect(() => {
@@ -117,6 +89,34 @@ export default function AdminDashboard() {
     window.localStorage.setItem(key, "1");
     setChecklistDismissed(true);
   }, [coreSetupComplete, restaurantId]);
+  
+  // Show access denied if not authorized
+  if (!isChecking && !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertCircle size={40} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-black mb-3 uppercase">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access the Dashboard. Only owners and managers can view this page.
+          </p>
+          <p className="text-sm text-gray-500">
+            Redirecting to Orders page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
 
   const handleDismissChecklist = () => {
     if (typeof window !== "undefined" && restaurantId) {

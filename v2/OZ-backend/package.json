@@ -2,30 +2,32 @@
   "name": "oz-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "OrderZap v2 — Self-hosted Convex backend with PostgreSQL",
+  "description": "OrderZap v2 — Express API Gateway + Self-hosted Convex + PostgreSQL",
   "scripts": {
+    "dev": "npx nodemon --watch express/src -e ts --exec npx tsx express/src/server.ts",
+    "start": "npx tsx express/src/server.ts",
+    "start:all": "powershell -ExecutionPolicy Bypass -File ./start.ps1",
+    "build": "tsc",
+    "test:pg": "npx tsx test-postgres-crud.ts",
     "convex:dev": "npx convex dev",
     "convex:deploy": "npx convex deploy",
     "convex:dashboard": "npx convex dashboard"
   },
   "dependencies": {
     "convex": "^1.21.0",
-    "pg": "^8.13.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.0",
+    "pg": "^8.13.0",
+    "socket.io": "^4.8.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.0",
-    "@types/express": "^4.17.21",
     "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/node": "^20.10.0",
-    "typescript": "^5.7.0",
-    "ts-node": "^10.9.2"
-  },
-  "scripts": {
-    "dev": "ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "convex:dev": "npx convex dev",
-    "convex:deploy": "npx convex deploy",
-    "convex:dashboard": "npx convex dashboard"
+    "@types/pg": "^8.11.0",
+    "nodemon": "^3.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
   }
 }

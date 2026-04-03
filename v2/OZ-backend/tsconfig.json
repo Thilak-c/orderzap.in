@@ -10,8 +10,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "outDir": "./dist"
   },
-  "include": ["convex/**/*.ts"],
+  "include": ["convex/**/*.ts", "src/**/*.ts"],
   "exclude": ["node_modules"]
 }

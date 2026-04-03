@@ -1,6 +1,6 @@
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -- OrderZap — Core Tables
--- Database: OZ-T (PostgreSQL 16)
+-- Database: OZ-T (PostgreSQL 18)
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 -- Menu Items: the restaurant's catalog
@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS menu_items (
     name        VARCHAR(255)    NOT NULL,
     price       NUMERIC(10, 2)  NOT NULL,
     category    VARCHAR(100)    NOT NULL,
+    description TEXT,
+    photo_url   VARCHAR(1000),
     in_stock    BOOLEAN         NOT NULL DEFAULT true,
     created_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP       NOT NULL DEFAULT NOW()

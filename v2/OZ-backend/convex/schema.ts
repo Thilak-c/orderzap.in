@@ -16,6 +16,8 @@ export default defineSchema({
     name: v.string(),
     price: v.number(),
     category: v.string(),
+    description: v.optional(v.string()),
+    photo_url: v.optional(v.string()),
     in_stock: v.boolean(),
   }).index("by_pg_id", ["pg_id"]),
 
@@ -32,4 +34,10 @@ export default defineSchema({
   })
     .index("by_pg_id", ["pg_id"])
     .index("by_status", ["status"]),
+
+  sync_logs: defineTable({
+    event: v.string(),
+    details: v.string(),
+    timestamp: v.number(),
+  }).index("by_timestamp", ["timestamp"]),
 });

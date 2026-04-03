@@ -1,0 +1,89 @@
+.connection-banner {
+  padding: 1rem 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.connection-banner.checking {
+  background: #FEF3C7;
+  color: #92400E;
+  border-bottom: 1px solid #FCD34D;
+}
+
+.connection-banner.error {
+  background: #FEE2E2;
+  color: #991B1B;
+  border-bottom: 1px solid var(--brand-red);
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.status-icon {
+  font-size: 1.25rem;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-text strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.banner-text p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+}
+
+.help-text {
+  opacity: 0.8;
+  font-size: 0.8rem !important;
+}
+
+.help-text code {
+  background: rgba(0,0,0,0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.75rem;
+}
+
+.btn-retry {
+  padding: 0.5rem 1.25rem;
+  background: var(--brand-red);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-retry:hover {
+  background: var(--brand-red-hover);
+  transform: translateY(-1px);
+}

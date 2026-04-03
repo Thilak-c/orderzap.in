@@ -54,6 +54,8 @@ export const upsertMenuItemMirror = internalMutation({
     name: v.string(),
     price: v.number(),
     category: v.string(),
+    description: v.optional(v.string()),
+    photo_url: v.optional(v.string()),
     in_stock: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -67,6 +69,8 @@ export const upsertMenuItemMirror = internalMutation({
         name: args.name,
         price: args.price,
         category: args.category,
+        description: args.description,
+        photo_url: args.photo_url,
         in_stock: args.in_stock,
       });
     } else {
@@ -75,6 +79,8 @@ export const upsertMenuItemMirror = internalMutation({
         name: args.name,
         price: args.price,
         category: args.category,
+        description: args.description,
+        photo_url: args.photo_url,
         in_stock: args.in_stock,
       });
     }

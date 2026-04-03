@@ -1,0 +1,19 @@
+{
+  "name": "oz-monitor",
+  "version": "1.0.0",
+  "description": "OrderZap real-time monitoring CLI for MySQL and Convex",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node monitor.js"
+  },
+  "dependencies": {
+    "asciichart": "^1.5.25",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "dotenv": "^16.4.7",
+    "log-update": "^4.0.0",
+    "nodemailer": "^8.0.4",
+    "ora": "^5.4.1",
+    "pg": "^8.20.0"
+  }
+}

@@ -1,0 +1,76 @@
+.menu-manager {
+  width: 100%;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+}
+
+.menu-header h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+  letter-spacing: -0.5px;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  font-size: 1rem;
+  color: var(--medium-gray);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: var(--brand-red);
+  color: var(--white);
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.2);
+}
+
+.btn-primary:hover {
+  background: var(--brand-red-hover);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--dark-gray);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--light-gray);
+  border-color: var(--medium-gray);
+}

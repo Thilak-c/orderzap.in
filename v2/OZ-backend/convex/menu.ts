@@ -1,88 +1,166 @@
 import { v } from "convex/values";
-import { query, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 
 /**
- * menu.ts — Queries & Internal Mutations (Standard Convex Runtime)
- * ────────────────────────────────────────────────────────────────
- * Read menu data from the Convex mirror for real-time reactivity.
- * Internal mutations are called by menuActions.ts after Postgres writes.
+ * menu.ts — Mirroring Mutations & Queries
+ * ───────────────────────────────────────
+ * These internal mutations are called by the Express backend 
+ * immediately after successful writes to PostgreSQL. 
+ * Indices on 'by_pg_id' ensure no duplicates and easy updates.
  */
+
+// ── Generic Upsert Helper ──────────────────────────────────────────
+
+const updateOrInsert = async (ctx: any, table: string, pgId: string, data: any) => {
+  console.log(`[SYNC] Upserting to ${table} for pgId: ${pgId}`);
+  
+  const existing = await ctx.db
+    .query(table)
+    .withIndex("by_pg_id", (q: any) => q.eq("pgId", pgId))
+    .unique();
+
+  const record = { ...data, updatedAt: Date.now() };
+
+  if (existing) {
+    console.log(`[SYNC] Updating existing record ${existing._id}`);
+    await ctx.db.patch(existing._id, record);
+    return existing._id;
+  } else {
+    console.log(`[SYNC] Inserting new record`);
+    const id = await ctx.db.insert(table, record);
+    return id;
+  }
+};
+
+const deleteByPgId = async (ctx: any, table: string, pgId: string) => {
+  console.log(`[SYNC] Deleting from ${table} for pgId: ${pgId}`);
+  const existing = await ctx.db
+    .query(table)
+    .withIndex("by_pg_id", (q: any) => q.eq("pgId", pgId))
+    .unique();
+
+  if (existing) {
+    console.log(`[SYNC] Deleting record ${existing._id}`);
+    await ctx.db.delete(existing._id);
+    return true;
+  }
+  console.log(`[SYNC] Record not found for deletion`);
+  return false;
+};
+
+// ── Mirroring Mutations ───────────────────────────────────────────
+
+export const upsertRestaurantMirror = mutation({
+  args: { pgId: v.string(), shortId: v.string(), name: v.string(), active: v.boolean() },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "restaurants", args.pgId, args),
+});
+
+export const upsertMenuMirror = mutation({
+  args: { pgId: v.string(), restaurantId: v.string(), name: v.string(), isActive: v.boolean() },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "menus", args.pgId, args),
+});
+
+export const upsertCategoryMirror = mutation({
+  args: { 
+    pgId: v.string(), restaurantId: v.string(), menuId: v.optional(v.string()), 
+    name: v.string(), isActive: v.boolean(), displayOrder: v.optional(v.number()) 
+  },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "categories", args.pgId, args),
+});
+
+export const upsertItemMirror = mutation({
+  args: {
+    pgId: v.string(), restaurantId: v.string(), categoryId: v.string(),
+    name: v.string(), price: v.number(), description: v.optional(v.string()),
+    isAvailable: v.boolean(), isHidden: v.boolean(), shortcode: v.optional(v.string())
+  },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "menu_items", args.pgId, args),
+});
+
+export const upsertVariantMirror = mutation({
+  args: { pgId: v.string(), menuItemId: v.string(), name: v.string(), extraPrice: v.number() },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "item_variants", args.pgId, args),
+});
+
+export const upsertAddOnMirror = mutation({
+  args: { pgId: v.string(), menuItemId: v.string(), name: v.string(), price: v.number(), isAvailable: v.boolean() },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "add_ons", args.pgId, args),
+});
+
+export const upsertZoneMirror = mutation({
+  args: { pgId: v.string(), restaurantId: v.string(), name: v.string(), shortcode: v.optional(v.string()), isActive: v.boolean() },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "zones", args.pgId, args),
+});
+
+export const upsertShortcodeMirror = mutation({
+  args: { 
+    pgId: v.string(), restaurantId: v.string(), code: v.string(), 
+    type: v.string(), referenceId: v.string(), isActive: v.boolean() 
+  },
+  handler: async (ctx, args) => await updateOrInsert(ctx, "shortcodes", args.pgId, args),
+});
+
+// ── Deletion Sync ──────────────────────────────────────────────────
+
+export const deleteMirrorRecord = mutation({
+  args: { table: v.string(), pgId: v.string() },
+  handler: async (ctx, args) => await deleteByPgId(ctx, args.table, args.pgId),
+});
+
+// ── Maintenance ────────────────────────────────────────────────────
+
+export const wipeAllMirrors = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const tables = ["restaurants", "staff", "menus", "categories", "menu_items", "item_variants", "add_ons", "zones", "shortcodes"];
+    for (const table of tables) {
+      const records = await ctx.db.query(table as any).collect();
+      for (const record of records) {
+        await ctx.db.delete(record._id);
+      }
+    }
+    return { success: true, message: "All mirror tables wiped" };
+  },
+});
 
 // ── Queries ───────────────────────────────────────────────────────
 
-/**
- * getMenu — Read all menu items from the Convex mirror.
- * Used by the React Native ordering screen.
- */
-export const getMenu = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("menu_items").collect();
+export const getRestaurantByPgId = query({
+  args: { pgId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("restaurants")
+      .withIndex("by_pg_id", (q) => q.eq("pgId", args.pgId))
+      .unique();
   },
 });
 
-// ── Internal Mutations ────────────────────────────────────────────
-
-/**
- * updateStockMirror — Update in_stock flag in the Convex mirror.
- * Called by menuActions.toggleStock AFTER successful Postgres UPDATE.
- */
-export const updateStockMirror = internalMutation({
-  args: {
-    pg_id: v.number(),
-    in_stock: v.boolean(),
-  },
+export const getCategoryByPgId = query({
+  args: { pgId: v.string() },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("menu_items")
-      .withIndex("by_pg_id", (q) => q.eq("pg_id", args.pg_id))
+    return await ctx.db
+      .query("categories")
+      .withIndex("by_pg_id", (q) => q.eq("pgId", args.pgId))
       .unique();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, { in_stock: args.in_stock });
-    }
   },
 });
 
-/**
- * upsertMenuItemMirror — Insert or update a menu item in the Convex mirror.
- * Useful for initial sync from Postgres → Convex.
- */
-export const upsertMenuItemMirror = internalMutation({
-  args: {
-    pg_id: v.number(),
-    name: v.string(),
-    price: v.number(),
-    category: v.string(),
-    description: v.optional(v.string()),
-    photo_url: v.optional(v.string()),
-    in_stock: v.boolean(),
-  },
+export const getItemByPgId = query({
+  args: { pgId: v.string() },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    return await ctx.db
       .query("menu_items")
-      .withIndex("by_pg_id", (q) => q.eq("pg_id", args.pg_id))
+      .withIndex("by_pg_id", (q) => q.eq("pgId", args.pgId))
       .unique();
+  },
+});
 
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        name: args.name,
-        price: args.price,
-        category: args.category,
-        description: args.description,
-        photo_url: args.photo_url,
-        in_stock: args.in_stock,
-      });
-    } else {
-      await ctx.db.insert("menu_items", {
-        pg_id: args.pg_id,
-        name: args.name,
-        price: args.price,
-        category: args.category,
-        description: args.description,
-        photo_url: args.photo_url,
-        in_stock: args.in_stock,
-      });
-    }
+export const getRestaurantMenu = query({
+  args: { restaurantId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("menu_items")
+      .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+      .collect();
   },
 });

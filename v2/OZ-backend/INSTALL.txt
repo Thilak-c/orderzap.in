@@ -1,0 +1,40 @@
+========================================================================
+                      ORDERZAP V2 — QUICK START
+========================================================================
+
+Welcome to OrderZap! This repository contains a "Zero-to-Hero" 
+automated installation system. You do NOT need to manually install 
+databases, set up .env files, or configure ports.
+
+HOW TO INSTALL & RUN (BRAND NEW COMPUTER)
+------------------------------------------------------------------------
+
+WINDOWS USERS:
+1. Open PowerShell exactly in this folder.
+2. Run the automated bootstrapper:
+   .\bootstrap.ps1
+3. Wait. The script will automatically install Node.js, install Docker, 
+   download all dependencies, and spin up PostgreSQL natively.
+
+LINUX / MAC USERS:
+1. Open your terminal in this folder.
+2. Run the bootstrapper:
+   bash bootstrap.sh
+3. Wait for the installation to finish.
+
+HOW TO MANUALLY RUN (IF ALREADY INSTALLED)
+------------------------------------------------------------------------
+If you already ran the bootstrapper once and just want to start the API:
+
+1. Ensure Docker Desktop is running.
+2. Open terminal here and type:
+   npm start
+   
+That's it! The system includes a self-healing monitor that will ensure 
+your Express API, Convex real-time layer, and PostgreSQL databases stay 
+online automatically.
+
+========================================================================
+API Configuration is kept in:  .env
+Live Database details are located inside the docker-compose.yml
+========================================================================

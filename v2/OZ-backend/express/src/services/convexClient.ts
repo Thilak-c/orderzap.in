@@ -19,6 +19,25 @@ interface ConvexResponse<T = unknown> {
 }
 
 /**
+ * Sanitizes arguments for Convex HTTP API.
+ * Converts 'null' values to 'undefined' since Convex v.optional(...) 
+ * doesn't accept null.
+ */
+function sanitizeArgs(args: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(args)) {
+    if (value === null) {
+      sanitized[key] = undefined;
+    } else if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+      sanitized[key] = sanitizeArgs(value as Record<string, unknown>);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
+/**
  * Call a Convex query function via HTTP.
  * Returns null if Convex is unreachable.
  */
@@ -36,7 +55,7 @@ export async function queryConvex<T = unknown>(
       },
       body: JSON.stringify({
         path: functionPath,
-        args,
+        args: sanitizeArgs(args),
         format: "json",
       }),
       signal: AbortSignal.timeout(5_000),
@@ -70,6 +89,9 @@ export async function mutationConvex<T = unknown>(
   functionPath: string,
   args: Record<string, unknown> = {}
 ): Promise<T | null> {
+  const sanitized = sanitizeArgs(args);
+  console.log(`[CONVEX] Calling mutation: ${functionPath}`, JSON.stringify(sanitized, null, 2));
+  
   try {
     const url = `${CONVEX_URL}/api/mutation`;
     const response = await fetch(url, {
@@ -80,7 +102,7 @@ export async function mutationConvex<T = unknown>(
       },
       body: JSON.stringify({
         path: functionPath,
-        args,
+        args: sanitized,
         format: "json",
       }),
       signal: AbortSignal.timeout(5_000),
@@ -124,7 +146,7 @@ export async function actionConvex<T = unknown>(
       },
       body: JSON.stringify({
         path: functionPath,
-        args,
+        args: sanitizeArgs(args),
         format: "json",
       }),
       signal: AbortSignal.timeout(10_000), // Actions may take longer

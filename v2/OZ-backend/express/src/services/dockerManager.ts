@@ -12,11 +12,7 @@ import path from "path";
 
 const execAsync = promisify(exec);
 
-// Project root where docker-compose.yml lives
-const PROJECT_ROOT = path.resolve(
-  import.meta.dirname || process.cwd(),
-  "../../"
-);
+const PROJECT_ROOT = path.resolve(__dirname || process.cwd(), "../../");
 
 interface ContainerStatus {
   name: string;

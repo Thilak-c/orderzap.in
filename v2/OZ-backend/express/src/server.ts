@@ -9,8 +9,8 @@ import { apiKeyAuth } from "./middleware/apiKeyAuth.js";
 import { initSocketServer, emitConvexStatus } from "./services/realtimeRelay.js";
 import { convexMonitor } from "./services/convexMonitor.js";
 import healthRoutes from "./routes/health.js";
-import orderRoutes from "./routes/orders.js";
-import menuRoutes from "./routes/menu.js";
+import mainRouter from "./routes/index.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 /**
  * server.ts — OrderZap Express API Gateway
@@ -93,34 +93,115 @@ app.use("/api", apiKeyAuth);
 // ── Routes ────────────────────────────────────────
 
 app.use("/api/health", healthRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/menu", menuRoutes);
+app.use("/api", mainRouter);
 
-// Root route
+// Root route — HTML API explorer
 app.get("/", (_req, res) => {
-  res.json({
-    name: "OrderZap API",
-    version: "2.0.0",
-    docs: {
-      health: "GET /api/health",
-      orders: {
-        live: "GET /api/orders/live",
-        place: "POST /api/orders",
-        updateStatus: "PATCH /api/orders/:pgId/status",
-      },
-      menu: {
-        list: "GET /api/menu",
-        toggleStock: "PATCH /api/menu/:pgId/stock",
-        sync: "POST /api/menu/sync",
-      },
-    },
-  });
+  const docsPath = path.join(process.cwd(), "express", "API_DOCS.md");
+  let mdContent = "API Documentation not found.";
+  try {
+    mdContent = fs.readFileSync(docsPath, "utf-8");
+  } catch(e) {
+    console.error("Could not read API_DOCS.md", e);
+  }
+  
+  res.setHeader("Content-Type", "text/html");
+  const safeMd = mdContent.replace(/<\/script>/gi, '<\\/script>');
+  
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrderZap API Explorer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-dark.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+      background-color: #0d1117;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    }
+    .markdown-body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    @media (max-width: 767px) {
+      body { padding: 15px; }
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #30363d;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #f97316, #fb923c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-family: system-ui, sans-serif;
+    }
+    .badge {
+      background: #1f2937;
+      color: #9ca3af;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-family: sans-serif;
+      border: 1px solid #374151;
+    }
+    .live-status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #4ade80;
+      font-family: sans-serif;
+    }
+    .dot {
+      width: 8px; height: 8px; background: #4ade80; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">API</div>
+    <div class="badge">v2.0.0</div>
+    <div class="live-status"><div class="dot"></div> Live :4000</div>
+  </div>
+  <script type="text/markdown" id="md-content">
+` + safeMd + `
+  </script>
+  <article class="markdown-body" id="content-area"></article>
+
+  <script>
+    const markdownText = document.getElementById('md-content').textContent;
+    document.getElementById('content-area').innerHTML = marked.parse(markdownText);
+  </script>
+</body>
+</html>`);
 });
 
 // 404 handler
 app.use((_req, res) => {
   res.status(404).json({ error: "NOT_FOUND", message: "Endpoint not found" });
 });
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 // ── HTTP + WebSocket Server ───────────────────────
 
@@ -161,7 +242,7 @@ httpServer.listen(PORT, () => {
   console.log(`  📡 HTTP + WebSocket: http://localhost:${PORT}`);
   console.log(`  🔑 API Key: ${process.env.API_KEY ? "configured" : "⚠️  NOT SET"}`);
   console.log(`  🐘 PostgreSQL: ${process.env.PG_URL ? "configured" : "⚠️  NOT SET"}`);
-  console.log(`  ⚡ Convex: ${process.env.CONVEX_URL || "http://127.0.0.1:3210"}`);
+  console.log(`   Convex: ${process.env.CONVEX_URL || "http://127.0.0.1:3210"}`);
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("");
 

@@ -21,7 +21,7 @@ pool.on("error", (err) => {
 /**
  * Execute a parameterized query and return typed rows.
  */
-export async function query<T extends Record<string, unknown>>(
+export async function query<T extends object>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {

@@ -69,10 +69,71 @@ async function tick() {
   render();                // Redraw all 3 panels
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function playBootAnimation() {
+  const logo = `
+   ____          _          _____             
+  / __ \\        | |        |___  /            
+ | |  | |  _ __ | |  _ __     / /   __ _|  _ \\ 
+ | |  | | | '__|| | / _\` |   / /   / _\` | |_) |
+ | |__| | | |   | || (_| |  / /__ | (_| |  __/
+  \\____/  |_|   |_| \\__,_| /_____| \\__,_|_|   
+`;
+  const spin = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  
+  for (let i = 0; i < 25; i++) {
+    process.stdout.write('\x1B[2J\x1B[H');
+    const color = `\x1b[3${(i%6)+1}m`; // rotate colors
+    console.log(`${color}${logo}\x1b[0m`);
+    console.log(`\n\x1b[36m   ${spin[i % spin.length]} Initializing OZ Monitor\x1b[0m\n`);
+    await sleep(80);
+  }
+
+  process.stdout.write('\x1B[2J\x1B[H');
+  console.log(`\x1b[32m${logo}\x1b[0m`);
+  console.log(`\n\x1b[32m   ✔ SYSTEM ONLINE. Launching Dashboard...\x1b[0m\n`);
+  await sleep(1000);
+}
+
+const { spawn } = require('child_process');
+const path = require('path');
+
 // ── Boot ───────────────────────────────────────────────────────────────────
-function boot() {
+async function boot() {
   process.stdout.write('\x1B[?25l');  // Hide cursor
-  process.stdout.write('\x1B[2J\x1B[H'); // Clear screen
+  await playBootAnimation();
+
+  console.log(`\n\x1b[36m   Waiting for Local Infrastructure (Express, PostgreSQL) to initialize...\x1b[0m\n`);
+  
+  // Wait up to 30s for the self-healer to boot everything automatically
+  let attempts = 0;
+  while(attempts < 30) {
+    await checkAll();
+    if (state.services.express.status === 'UP' && state.services.postgres.status === 'UP') {
+      break;
+    }
+    await sleep(1000);
+    attempts++;
+  }
+
+  console.log(`\n\x1b[36m   Infrastructure is ONLINE. Engaging Full Route & Sync Validation...\x1b[0m\n`);
+  
+  // Run the test suite natively
+  await new Promise(resolve => {
+    const testDir = path.resolve(__dirname, '../../express');
+    const child = spawn('npx tsx src/tests/fullRouteTest.ts --max-retries=2', {
+      cwd: testDir,
+      stdio: 'inherit',
+      shell: true
+    });
+    child.on('exit', () => resolve());
+  });
+
+  console.log(`\n\x1b[32m   Validation check completed. Launching live dashboard...\x1b[0m\n`);
+  await sleep(2000);
+
+  process.stdout.write('\x1B[2J\x1B[H'); // Clear screen for dashboard
 
   startTailing();           // Panel 2: start tailing access.log
   setupKeyboard();
@@ -91,10 +152,10 @@ function boot() {
 // ── Cleanup ────────────────────────────────────────────────────────────────
 function cleanup() {
   process.stdout.write('\x1B[?25h');   // Show cursor
-  logUpdate.clear();
+  logUpdateClear();
   try { require('./panel1/selfHealer').cleanup(); } catch (_) {}
   process.stdout.write('\x1B[2J\x1B[H');
-  console.log('\n  ⚡ OZ Monitor closed. Goodbye!\n');
+  console.log('\n  OZ Monitor closed. Goodbye!\n');
   process.exit(0);
 }
 

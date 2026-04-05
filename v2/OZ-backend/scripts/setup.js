@@ -73,11 +73,11 @@ success('Database and Backend infrastructure is up');
 // ── 4. Verify Convex & Database ────────────────────────────────────
 log('Waiting for infrastructure health...');
 // Give it a moment to boot
-runCmd('node', ['-e', 'setTimeout(()=>{}, 5000)']);
+runCmd('node', ['-e', '"setTimeout(String,5000)"']);
 
 console.log('\n\x1b[32m===================================================\x1b[0m');
 console.log('\x1b[32m✔ OrderZap installation complete!\x1b[0m');
 console.log('\x1b[32m===================================================\x1b[0m\n');
-console.log('To start the API Gateway and Monitoring Dashboard:');
-console.log('  npm start');
-console.log('');
+log('Booting OrderZap Monitor automatically...');
+const monitorPath = path.join(ROOT, 'oz-monitor');
+runCmd('npm', ['start'], monitorPath);

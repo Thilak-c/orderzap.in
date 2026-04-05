@@ -149,7 +149,7 @@ function render() {
   const height = Math.max(p1.length, p2.length, p3.length);
 
   // Header bar
-  const hText  = ` ⚡ OZ MONITOR v2   uptime: ${fmtUptime(Date.now() - state.startTime)}   ${state.paused ? '⏸ PAUSED' : '▶ LIVE'}`;
+  const hText  = ` OZ MONITOR v2   uptime: ${fmtUptime(Date.now() - state.startTime)}   ${state.paused ? '⏸ PAUSED' : '▶ LIVE'}`;
   const header = chalk.bgBlack.bold(pad(chalk.white(hText), cols));
 
   const divider = chalk.gray('═'.repeat(cols));

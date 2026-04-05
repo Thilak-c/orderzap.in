@@ -28,7 +28,11 @@ const SelfHealer = {
     }
 
     const expressDir = path.resolve(config.projectRoot, 'express');
-    addLog('express', 'warn', `Self-heal #${svc.restarts}: spawning npm start in express/`);
+    if (svc.restarts === 1) {
+      addLog('express', 'info', `First time startup: Booting OrderZap Express natively!`);
+    } else {
+      addLog('express', 'warn', `Self-heal #${svc.restarts}: spawning npm start in express/`);
+    }
 
     const child = spawn('npm', ['start'], {
       cwd:   expressDir,

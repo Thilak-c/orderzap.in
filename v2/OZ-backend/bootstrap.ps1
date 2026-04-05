@@ -65,4 +65,4 @@ try {
 }
 
 Write-Step "Handoff to Setup Orchestrator (Node.js)..."
-node scripts/setup.js
+node "$PSScriptRoot\scripts\setup.js"
